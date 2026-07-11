@@ -1,0 +1,6 @@
+fastapi
+openai
+markdown
+pydantic
+sqlalchemy
+uvicorn
