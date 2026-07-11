@@ -2,14 +2,17 @@ from fastapi import FastAPI
 import uvicorn
 
 
+from core.agents.company_scout import CompanyScout
+
+
 app = FastAPI()
 
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    company_scout = CompanyScout()
+    return await company_scout.run()
 
 
 if __name__ == "__main__":
-    # Only run this if the file is executed directly, not when imported as a module
-    uvicorn.run("main:app", port=5000)
+    uvicorn.run("main:app", host="127.0.0.1", port=5000)

@@ -1,6 +1,10 @@
 fastapi
+langchain
+langchain-openai
 openai
 markdown
 pydantic
+python-dotenv
 sqlalchemy
+structlog
 uvicorn
