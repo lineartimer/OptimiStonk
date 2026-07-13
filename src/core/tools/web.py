@@ -1,9 +1,15 @@
+import httpx
+
+
 async def load_web_page(url: str) -> str:
     """
         Loads and returns the textual content of a web page.
     """
 
-    return ""
+    client = httpx.AsyncClient(timeout=10)
+    response = await client.get(url)
+
+    return response.content
 
 
 async def web_search(query: str) -> str:
