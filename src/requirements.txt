@@ -3,7 +3,7 @@ httpx
 langchain
 langchain-openai
 openai
-markdown
+markdownify
 pydantic
 python-dotenv
 sqlalchemy
