@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 import uvicorn
 
-
 from core.agents.company_scout import CompanyScout
 
 
