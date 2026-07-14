@@ -1,0 +1,6 @@
+fastapi
+langchain
+langchain-openai
+markdownify
+structlog
+uvicorn
