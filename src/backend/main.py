@@ -2,6 +2,7 @@ from fastapi import FastAPI
 import uvicorn
 
 from core.agents.company_scout import CompanyScout
+from core.tools.yahoo_finance import get_stonk
 
 
 app = FastAPI()
