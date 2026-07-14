@@ -19,11 +19,12 @@ async def load_web_page(url: str) -> str:
     try:
         response = await client.get(url)
         response.raise_for_status()
+
+        markdown_content = markdownify(response.text, heading_style="ATX")
+
+        _logger.info("Web page loaded successfully.", url=url)
+        return markdown_content
     
     except Exception as e:
         _logger.error("Page load failed.", error=e)
-    
-    markdown_content = markdownify(response.text, heading_style="ATX")
-
-    _logger.info("Web page loaded successfully.", url=url)
-    return markdown_content
+        return ""
