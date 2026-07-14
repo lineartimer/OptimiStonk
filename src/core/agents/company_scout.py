@@ -1,6 +1,7 @@
 from langchain.agents import create_agent
 
-from core.tools.web import load_web_page, web_search
+from core.tools.web import load_web_page
+from core.tools.brave_search import web_search
 
 
 COMPANY_SCOUT_PROMPT = """
