@@ -1,3 +1,5 @@
+import yfinance as yf
+
 class Stonk:
     def __init__(self, ticker: str, price_series: list, time_series: list):
         self.ticker = ticker
