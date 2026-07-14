@@ -1,11 +1,20 @@
-from fastapi import FastAPI
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 import uvicorn
+from fastapi import FastAPI
 
 from core.agents.company_scout import CompanyScout
-from core.tools.yahoo_finance import get_stonk
+from database.models import create_database
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    create_database()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
