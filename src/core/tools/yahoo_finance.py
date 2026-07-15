@@ -54,7 +54,7 @@ def _download_stock(ticker: str) -> Stock:
             price=round_price(numeric_close)
         )
     
-    _logger.info(f"Successfully downloaded data for {ticker} from Yahoo Finance.")
+    _logger.info(f"Downloaded price data for {ticker} from Yahoo Finance.")
 
     return Stock(
         name=name,
