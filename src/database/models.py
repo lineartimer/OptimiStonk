@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
 
@@ -16,11 +16,24 @@ from sqlalchemy import (
     create_engine,
     event
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    relationship,
+    validates,
+)
 
 
 DATABASE_PATH = Path(__file__).with_name("database.db")
 engine = create_engine(f"sqlite:///{DATABASE_PATH}")
+PRICE_PRECISION = 20
+PRICE_SCALE = 2
+PRICE_QUANTUM = Decimal("0.01")
+
+
+def round_price(price: Decimal) -> Decimal:
+    return price.quantize(PRICE_QUANTUM, rounding=ROUND_HALF_UP)
 
 
 @event.listens_for(engine, "connect")
@@ -66,10 +79,17 @@ class HistoricalPrice(Base):
         ForeignKey("stocks.id", ondelete="CASCADE"),
         nullable=False
     )
-    price: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    price: Mapped[Decimal] = mapped_column(
+        Numeric(PRICE_PRECISION, PRICE_SCALE),
+        nullable=False,
+    )
     price_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     stock: Mapped[Stock] = relationship(back_populates="historical_prices")
+
+    @validates("price")
+    def _round_price(self, _: str, price: Decimal) -> Decimal:
+        return round_price(price)
 
 
 def create_database() -> None:

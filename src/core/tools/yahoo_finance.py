@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import yfinance as yf
 
-from database.models import HistoricalPrice, Stock
+from database.models import HistoricalPrice, Stock, round_price
 
 
 async def get_stock(ticker: str) -> Stock:
@@ -48,7 +48,7 @@ def _download_stock(ticker: str) -> Stock:
 
         price_date = timestamp.date()
         prices_by_date[price_date] = HistoricalPrice(
-            price=Decimal(str(numeric_close)),
+            price=round_price(Decimal(str(numeric_close))),
             price_date=price_date
         )
 
