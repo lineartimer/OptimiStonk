@@ -27,8 +27,15 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
         xbrl = form_10K.xbrl()
         income_statement = xbrl.statements.income_statement()
-        print(income_statement)
-        #annual_revenues.append()
+        periods = income_statement.render().header.periods
+        annual_revenues.append({
+            "year": int(periods[0].end_date[:4]),
+            "revenue": income_statement["Revenue"].values[0]
+        })
+        annual_revenues.append({
+            "year": int(periods[1].end_date[:4]),
+            "revenue": income_statement["Revenue"].values[1]
+        })
 
         cnt += 1
         skip = True
@@ -40,5 +47,5 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
                  "from the EDGAR database.")
 
     return {
-        "annual_revenues": annual_revenues
+        "annual_revenues": annual_revenues[:years]
     }
