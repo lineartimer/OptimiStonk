@@ -29,12 +29,12 @@ async def web_search(query: str) -> list:
         )
 
         response.raise_for_status()
+        
+        payload = response.json()
+        search_results = (payload.get("web") or {}).get("results", [])
     
     except Exception as e:
         _logger.error("Web search failed.", error=str(e))
-
-    payload = response.json()
-    search_results = (payload.get("web") or {}).get("results", [])
 
     cleaned_result = []
     for search_result in search_results:

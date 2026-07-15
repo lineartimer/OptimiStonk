@@ -1,9 +1,8 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-
-import uvicorn
 from fastapi import FastAPI, HTTPException
+import uvicorn
 
 from core.tools.yahoo_finance import get_stock
 from database.models import create_database
@@ -23,8 +22,13 @@ app = FastAPI(lifespan=lifespan)
 async def root(ticker: str = "MSFT"):
     try:
         downloaded_stock = await get_stock(ticker)
+
     except ValueError as error:
-        raise HTTPException(status_code=404, detail=str(error)) from error
+        raise HTTPException(
+            status_code=404,
+            detail=str(error)
+        ) from error
+    
     except Exception as error:
         raise HTTPException(
             status_code=502,
