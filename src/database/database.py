@@ -17,17 +17,17 @@ def save_stock(downloaded_stock: Stock) -> Stock:
 
         stored_stock.name = downloaded_stock.name
         stored_prices = {
-            historical_price.price_date: historical_price
+            historical_price.date: historical_price
             for historical_price in stored_stock.historical_prices
         }
 
         for downloaded_price in downloaded_stock.historical_prices:
-            stored_price = stored_prices.get(downloaded_price.price_date)
+            stored_price = stored_prices.get(downloaded_price.date)
             if stored_price is None:
                 stored_stock.historical_prices.append(
                     HistoricalPrice(
-                        price=downloaded_price.price,
-                        price_date=downloaded_price.price_date,
+                        date=downloaded_price.date,
+                        price=downloaded_price.price
                     )
                 )
             else:

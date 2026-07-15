@@ -32,7 +32,7 @@ async def root():
             "ticker": msft_stored.ticker,
             "historical_price": [
                 {
-                    "date": price_point.price_date,
+                    "date": price_point.date,
                     "price": price_point.price
                 }
                 for price_point in msft_stored.historical_prices
@@ -43,7 +43,7 @@ async def root():
             "ticker": nvda_stored.ticker,
             "historical_price": [
                 {
-                    "date": price_point.price_date,
+                    "date": price_point.date,
                     "price": price_point.price
                 }
                 for price_point in nvda_stored.historical_prices

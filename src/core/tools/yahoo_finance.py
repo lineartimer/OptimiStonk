@@ -1,9 +1,12 @@
 import asyncio
-from decimal import Decimal, InvalidOperation
-
+from decimal import Decimal
+import structlog
 import yfinance as yf
 
 from database.models import HistoricalPrice, Stock, round_price
+
+
+_logger = structlog.get_logger(__name__)
 
 
 async def get_stock(ticker: str) -> Stock:
@@ -45,14 +48,13 @@ def _download_stock(ticker: str) -> Stock:
         if not numeric_close.is_finite() or numeric_close < 0:
             continue
 
-        price_date = timestamp.date()
-        prices_by_date[price_date] = HistoricalPrice(
-            price=round_price(numeric_close),
-            price_date=price_date
+        date = timestamp.date()
+        prices_by_date[date] = HistoricalPrice(
+            date=date,
+            price=round_price(numeric_close)
         )
-
-    if not prices_by_date:
-        raise ValueError(f"No valid closing prices found for ticker {ticker}")
+    
+    _logger.info(f"Successfully downloaded data for {ticker} from Yahoo Finance.")
 
     return Stock(
         name=name,

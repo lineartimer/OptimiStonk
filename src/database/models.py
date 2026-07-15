@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import date
+from datetime import date as DateValue
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from typing import Any
@@ -69,7 +69,7 @@ class HistoricalPrice(Base):
         CheckConstraint("price >= 0", name="ck_historical_prices_price_nonnegative"),
         UniqueConstraint(
             "stock_id",
-            "price_date",
+            "date",
             name="uq_historical_prices_stock_date"
         ),
     )
@@ -79,11 +79,11 @@ class HistoricalPrice(Base):
         ForeignKey("stocks.id", ondelete="CASCADE"),
         nullable=False
     )
+    date: Mapped[DateValue] = mapped_column(Date, nullable=False)
     price: Mapped[Decimal] = mapped_column(
         Numeric(PRICE_PRECISION, PRICE_SCALE),
         nullable=False,
     )
-    price_date: Mapped[date] = mapped_column(Date, nullable=False)
 
     stock: Mapped[Stock] = relationship(back_populates="historical_prices")
 
