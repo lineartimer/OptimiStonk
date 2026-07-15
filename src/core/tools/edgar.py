@@ -5,25 +5,40 @@ import structlog
 _logger = structlog.get_logger(__name__)
 
 
-async def get_financial_info(ticker: str) -> dict:
+async def get_financial_info(ticker: str, years: int = 5) -> dict:
+    """
+        Download financial data of the given company from the EDGAR database.
+    """
+
     company = Company(ticker)
 
     form_10Ks = company.get_filings(form="10-K")
     form_10Qs = company.get_filings(form="10-Q")
 
+    cnt = 0
+    skip = False
     annual_revenues = []
     for form_10K in form_10Ks:
-        xbrl = form_10K.xbrl()
-        income = xbrl.statements.income_statement()
-        annual_revenues.append(income.loc["Revenue", form_10K.filing_date.year])
+        # Balance sheets contain data for the last two years,
+        # so we can skip every other year
+        if skip:
+            skip = False
+            continue
 
-    quarterly_revenues = []
-    for form_10Q in form_10Qs:
-        xbrl = form_10Q.xbrl()
-        income = xbrl.statements.income_statement()
-        annual_revenues.append(income.loc["Revenue", form_10Q.filing_date.year])
+        xbrl = form_10K.xbrl()
+        income_statement = xbrl.statements.income_statement()
+        print(income_statement)
+        #annual_revenues.append()
+
+        cnt += 1
+        skip = True
+
+        if 2 * cnt > years:
+            break
+    
+    _logger.info(f"Successfully downloaded financial data for {ticker} "
+                 "from the EDGAR database.")
 
     return {
-        "annual_revenues": annual_revenues,
-        "quarterly_revenues": quarterly_revenues
+        "annual_revenues": annual_revenues
     }
