@@ -1,6 +1,5 @@
 import asyncio
-import math
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import yfinance as yf
 
@@ -39,16 +38,16 @@ def _download_stock(ticker: str) -> Stock:
         close = row["Close"]
 
         try:
-            numeric_close = float(close)
+            numeric_close = Decimal(str(close))
         except Exception:
             continue
 
-        if not math.isfinite(numeric_close) or numeric_close < 0:
+        if not numeric_close.is_finite() or numeric_close < 0:
             continue
 
         price_date = timestamp.date()
         prices_by_date[price_date] = HistoricalPrice(
-            price=round_price(Decimal(str(numeric_close))),
+            price=round_price(numeric_close),
             price_date=price_date
         )
 

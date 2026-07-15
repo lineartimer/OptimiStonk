@@ -19,35 +19,26 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.get("/")
-async def root(ticker: str = "MSFT"):
-    try:
-        downloaded_stock = await get_stock(ticker)
+async def root():
+    msft = await get_stock(ticker="MSFT")
+    msft_stored = await asyncio.to_thread(save_stock, msft)
 
-    except ValueError as error:
-        raise HTTPException(
-            status_code=404,
-            detail=str(error)
-        ) from error
-    
-    except Exception as error:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Could not download data for ticker {ticker}",
-        ) from error
-
-    stored_stock = await asyncio.to_thread(save_stock, downloaded_stock)
-    latest_price = max(
-        stored_stock.historical_prices,
-        key=lambda historical_price: historical_price.price_date,
-    )
+    nvda = await get_stock(ticker="NVDA")
+    nvda_stored = await asyncio.to_thread(save_stock, nvda)
 
     return {
-        "id": stored_stock.id,
-        "name": stored_stock.name,
-        "ticker": stored_stock.ticker,
-        "price_points": len(stored_stock.historical_prices),
-        "latest_price": latest_price.price,
-        "latest_price_date": latest_price.price_date,
+        "msft": {
+            "id": msft_stored.id,
+            "name": msft_stored.name,
+            "ticker": msft_stored.ticker,
+            "price_points": msft_stored.historical_prices
+        },
+        "nvda": {
+            "id": nvda_stored.id,
+            "name": nvda_stored.name,
+            "ticker": nvda_stored.ticker,
+            "price_points": nvda_stored.historical_prices
+        }
     }
 
 
