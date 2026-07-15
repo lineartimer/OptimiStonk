@@ -36,7 +36,7 @@ async def root():
             "name": msft_stored.name,
             "ticker": msft_stored.ticker,
             "financials": await get_financial_info("MSFT"),
-            "historical_price": [
+            "historical_prices": [
                 {
                     "date": price_point.date,
                     "price": price_point.price
@@ -48,7 +48,7 @@ async def root():
             "name": nvda_stored.name,
             "ticker": nvda_stored.ticker,
             "financials": await get_financial_info("NVDA"),
-            "historical_price": [
+            "historical_prices": [
                 {
                     "date": price_point.date,
                     "price": price_point.price
