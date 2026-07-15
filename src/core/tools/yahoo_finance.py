@@ -9,9 +9,9 @@ from database.models import HistoricalPrice, Stock, round_price
 _logger = structlog.get_logger(__name__)
 
 
-async def get_stock(ticker: str) -> Stock:
+async def get_historical_prices(ticker: str) -> Stock:
     """
-        Download historical prices about a stock from Yahoo Finance.
+        Download historical prices of the given stock from Yahoo Finance.
     """
 
     return await asyncio.to_thread(

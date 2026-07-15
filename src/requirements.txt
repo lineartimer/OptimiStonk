@@ -1,3 +1,4 @@
+edgartools
 fastapi
 langchain
 langchain-openai

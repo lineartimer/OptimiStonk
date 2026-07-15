@@ -1,10 +1,12 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from edgar import set_identity
 from fastapi import FastAPI
+import os
 import uvicorn
 
-from core.tools.yahoo_finance import get_stock
+from core.tools.yahoo_finance import get_historical_prices
 from database.models import create_database
 from database.database import save_stock
 
@@ -12,6 +14,8 @@ from database.database import save_stock
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     create_database()
+
+    set_identity(os.getenv("EDGAR_IDENTITY"))
     yield
 
 
@@ -20,10 +24,10 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
-    msft = await get_stock(ticker="MSFT")
+    msft = await get_historical_prices(ticker="MSFT")
     msft_stored = await asyncio.to_thread(save_stock, msft)
 
-    nvda = await get_stock(ticker="NVDA")
+    nvda = await get_historical_prices(ticker="NVDA")
     nvda_stored = await asyncio.to_thread(save_stock, nvda)
 
     return {
