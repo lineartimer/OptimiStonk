@@ -9,3 +9,4 @@ An agentic app striving for alpha.
 - Run scripts/init-repo.command
 - Then open OptimiStonk.code-workspace in VS Code
 - Hit F5
+- It takes some time to run the app the first time

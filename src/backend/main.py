@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 import uvicorn
 
 from core.tools.yahoo_finance import get_stock
@@ -28,17 +28,27 @@ async def root():
 
     return {
         "msft": {
-            "id": msft_stored.id,
             "name": msft_stored.name,
             "ticker": msft_stored.ticker,
-            "price_points": msft_stored.historical_prices
+            "historical_price": [
+                {
+                    "date": price_point.price_date,
+                    "price": price_point.price
+                }
+                for price_point in msft_stored.historical_prices
+            ],
         },
         "nvda": {
-            "id": nvda_stored.id,
             "name": nvda_stored.name,
             "ticker": nvda_stored.ticker,
-            "price_points": nvda_stored.historical_prices
-        }
+            "historical_price": [
+                {
+                    "date": price_point.price_date,
+                    "price": price_point.price
+                }
+                for price_point in nvda_stored.historical_prices
+            ],
+        },
     }
 
 
