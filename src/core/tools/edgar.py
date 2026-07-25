@@ -31,11 +31,11 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
         periods = income_statement.render().header.periods
 
         this_year = int(periods[0].end_date[:4])
-        current_revenue = int(income_statement["Revenue"].values[0])
+        current_revenue = int(income_statement["Revenue"].values[0] / 1_000_000)
         annual_revenues[this_year] = current_revenue
 
         last_year = int(periods[1].end_date[:4])
-        previous_revenue = int(income_statement["Revenue"].values[1])
+        previous_revenue = int(income_statement["Revenue"].values[1] / 1_000_000)
         annual_revenues[last_year] = previous_revenue
 
         cnt += 1
@@ -62,7 +62,7 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
             break
 
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
-        quarterly_revenue = int(income_statement["Revenue"].values[0])
+        quarterly_revenue = int(income_statement["Revenue"].values[0] / 1_000_000)
                                 
         if previous_quarter:
             # Calculate missing quarter from full-year results
@@ -108,6 +108,6 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
                  "from the EDGAR database.")
 
     return {
-        "annual_revenues": annual_revenues,
+        "annual_revenues": dict(sorted(annual_revenues.items())),
         "quarterly_revenues": dict(sorted(quarterly_revenues.items()))
     }
