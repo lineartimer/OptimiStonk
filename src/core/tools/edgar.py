@@ -13,41 +13,47 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
     company = Company(ticker)
 
-    form_10Ks = company.get_filings(form="10-K")
-    form_10Qs = company.get_filings(form="10-Q")
+    form_10ks = company.get_filings(form="10-K")
+    form_10qs = company.get_filings(form="10-Q")
 
     cnt = 0
     skip = False
-    annual_revenues = []
-    for form_10K in form_10Ks:
+    annual_revenues = {}
+    for form_10k in form_10ks:
         # Balance sheets contain data for the last two years,
         # so we can skip every other year
         if skip:
             skip = False
             continue
 
-        xbrl = form_10K.xbrl()
+        xbrl = form_10k.xbrl()
         income_statement = xbrl.statements.income_statement()
         periods = income_statement.render().header.periods
-        
-        annual_revenues.append({
-            "year": int(periods[0].end_date[:4]),
-            "revenue": income_statement["Revenue"].values[0]
-        })
-        annual_revenues.append({
-            "year": int(periods[1].end_date[:4]),
-            "revenue": income_statement["Revenue"].values[1]
-        })
+
+        this_year = int(periods[0].end_date[:4])
+        current_revenue = int(income_statement["Revenue"].values[0])
+        annual_revenues[this_year] = current_revenue
+
+        last_year = int(periods[1].end_date[:4])
+        previous_revenue = int(income_statement["Revenue"].values[1])
+        annual_revenues[last_year] = previous_revenue
 
         cnt += 1
         skip = True
 
         if 2 * cnt > years:
+            if len(annual_revenues) > years:
+                annual_revenues.popitem()
+            
             break
 
-    quarterly_revenues = []
-    for form_10Q in form_10Qs:
-        xbrl = form_10Q.xbrl()
+    quarterly_revenues = {}
+    previous_quarter = None
+    missing_quarter = None
+    for form_10q in form_10qs:
+        # As full-year quarters are not reported,
+        # every year will have only 3 quarters
+        xbrl = form_10q.xbrl()
         income_statement = xbrl.statements.income_statement()
         period = income_statement.render().header.periods[0]
 
@@ -55,16 +61,53 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
         if year < datetime.now().year - years:
             break
 
-        quarterly_revenues.append({
-            "year": year,
-            "quarter": (int(period.end_date[5:7]) - 1) // 3 + 1,
-            "revenue": income_statement["Revenue"].values[0]
-        })
+        quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
+        quarterly_revenue = int(income_statement["Revenue"].values[0])
+                                
+        if previous_quarter:
+            # Calculate missing quarter from full-year results
+            if previous_quarter - quarter == 2:
+                # Cases:
+                # - 2 is missing: 4 3 1  4 3 1
+                # - 3 is missing: 4 2 1  4 2 1
+                missing_quarter = quarter + 1
+                year_of_missing_quarter = year
+
+                missing_quarter_cnt = 1
+            elif quarter - previous_quarter == 2:
+                # Cases:
+                # - 1 is missing: 4 3 2  4 3 2
+                # - 4 is missing: 3 2 1  3 2 1
+                missing_quarter = 1 if quarter == 4 else 4
+                year_of_missing_quarter = year + 1 if missing_quarter == 1 else year
+
+                missing_quarter_cnt = 1
+
+            if missing_quarter:
+                if missing_quarter_cnt == 3:
+                    # Calculate missing quarter's revenue from
+                    # the full year revenue and the revenue of the previous 3 quarters
+                    quarterly_revenues_list = list(quarterly_revenues.values())
+                    missing_revenue = (
+                        annual_revenues[year_of_missing_quarter] -
+                        (
+                            quarterly_revenues_list[-3] +
+                            quarterly_revenues_list[-2] +
+                            quarterly_revenues_list[-1]
+                        )
+                    )
+                    quarterly_revenues[f"{year_of_missing_quarter}/{missing_quarter}"] = missing_revenue
+                
+                missing_quarter_cnt += 1
+
+        quarterly_revenues[f"{year}/{quarter}"] = quarterly_revenue
+
+        previous_quarter = quarter
     
     _logger.info(f"Downloaded financial data for {ticker} "
                  "from the EDGAR database.")
 
     return {
-        "annual_revenues": annual_revenues[:years],
-        "quarterly_revenues": quarterly_revenues
+        "annual_revenues": annual_revenues,
+        "quarterly_revenues": dict(sorted(quarterly_revenues.items()))
     }

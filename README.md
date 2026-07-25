@@ -16,3 +16,14 @@ EDGAR_IDENTITY="<Your name> <Your email>"
 - Then open OptimiStonk.code-workspace in VS Code
 - Hit F5
 - It takes some time to run the app the first time
+- Open http://127.0.0.1:8000 in a browser
+
+## Troubleshooting
+
+- Set the correct python interpreter in VS Code: Ctrl + Shift + P -> Python: Select Interpreter -> .venv/bin/python
+- If pylance erronously underlines a module import, restart VS Code
+- To create/activate/deactivate a virtual environment:
+
+python3 -m venv .venv
+source .venv/bin/activate
+deactivate
