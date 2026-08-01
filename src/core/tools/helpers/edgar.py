@@ -91,6 +91,6 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
                  "from the EDGAR database.")
 
     return {
-        "revenues": dict(sorted(quarterly_revenues.items())),
-        "share_counts": dict(sorted(quarterly_share_counts.items()))
+        "revenue": dict(sorted(quarterly_revenues.items())),
+        "share_count": dict(sorted(quarterly_share_counts.items()))
     }
