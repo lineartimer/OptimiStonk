@@ -65,7 +65,6 @@ async def _get_quarterly_revenues(ticker: str, years: int) -> dict:
     quarterly_revenues = {}
     previous_quarter = None
     missing_quarter = None
-    is_next_quarter = False
     for form_10q in form_10qs:
         # As full-year quarters are not reported,
         # every year will have only 3 quarters
@@ -96,21 +95,16 @@ async def _get_quarterly_revenues(ticker: str, years: int) -> dict:
                 year_of_missing_quarter = year + 1 if missing_quarter == 1 else year
 
             if missing_quarter:
-                if is_next_quarter:
-                    # Estimate missing quarter by the quarters surrounding it
-                    quarterly_revenues_list = list(quarterly_revenues.values())
-                    missing_revenue = (
-                        quarterly_revenues_list[-2] +
-                        quarterly_revenues_list[-1]
-                    ) / 2
-                    
-                    quarterly_revenues[f"{year_of_missing_quarter}/{missing_quarter}"] = missing_revenue
+                # Estimate missing quarter by the quarters surrounding it
+                quarterly_revenues_list = list(quarterly_revenues.values())
+                missing_revenue = (
+                    quarterly_revenues_list[-1] +
+                    quarterly_revenue
+                ) / 2
+                
+                quarterly_revenues[f"{year_of_missing_quarter}/{missing_quarter}"] = missing_revenue
 
-                    missing_quarter = None
-                    is_next_quarter = False
-
-                else:
-                    is_next_quarter = True
+                missing_quarter = None
 
         quarterly_revenues[f"{year}/{quarter}"] = quarterly_revenue
 
