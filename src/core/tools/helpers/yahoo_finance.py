@@ -3,61 +3,54 @@ from decimal import Decimal
 import structlog
 import yfinance as yf
 
-from database.models import HistoricalPrice, Stock, round_price
-
 
 _logger = structlog.get_logger(__name__)
 
 
-async def get_historical_prices(ticker: str) -> Stock:
+async def get_historical_prices(ticker: str, years: int) -> dict:
     """
         Download historical prices of the given stock from Yahoo Finance.
     """
 
-    return await asyncio.to_thread(
-        _download_stock,
-        ticker.strip().upper()
-    )
-
-
-def _download_stock(ticker: str) -> Stock:
     stock = yf.Ticker(ticker)
+
     price_history = stock.history(
-        period="max",
-        interval="1wk",
+        period=f"{years}y",
+        interval="1d",
         auto_adjust=False,
         actions=True
     )
 
-    try:
-        info = stock.get_info()
-    except Exception:
-        info = {}
-    
-    name = info.get("longName") or info.get("shortName") or ticker
+    info = stock.get_info()
+    name = info["longName"]
 
-    prices_by_date = {}
-    for timestamp, row in price_history.iterrows():
-        close = row["Close"]
+    prices_by_quarter = {}
+    previous_year = None
+    previous_quarter = None
+    close_price = None
+    for dt, price in price_history.iterrows():
+        if close_price:
+            previous_close_price = close_price
 
-        try:
-            numeric_close = Decimal(str(close))
-        except Exception:
-            continue
+        date = dt.date()
+        year = date.year
+        quarter = (date.month - 1) // 3 + 1
 
-        if not numeric_close.is_finite() or numeric_close < 0:
-            continue
+        close_price = round(price["Close"], 2)
 
-        date = timestamp.date()
-        prices_by_date[date] = HistoricalPrice(
-            date=date,
-            price=round_price(numeric_close)
-        )
+        if not previous_year:
+            previous_year = year
+
+        if not previous_quarter:
+            previous_quarter = quarter
+
+        if year > previous_year or quarter > previous_quarter:
+            # Start of a new quarter
+            prices_by_quarter[f"{previous_year}/{previous_quarter}"] = previous_close_price
+
+            previous_year = year
+            previous_quarter = quarter
     
     _logger.info(f"Downloaded price data for {ticker} from Yahoo Finance.")
 
-    return Stock(
-        name=name,
-        ticker=ticker,
-        historical_prices=list(prices_by_date.values())
-    )
+    return name, prices_by_quarter

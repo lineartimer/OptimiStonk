@@ -6,13 +6,10 @@ import os
 import uvicorn
 
 from core.tools.financials import get_financials
-from database.models import create_database
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    create_database()
-
     set_identity(os.getenv("EDGAR_IDENTITY"))
     yield
 
