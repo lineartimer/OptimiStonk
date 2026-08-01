@@ -89,12 +89,14 @@ async def _get_annual_data(ticker: str, years: int) -> dict:
 async def _get_quarterly_data(ticker: str, years: int) -> dict:
     company = Company(ticker)
     form_10qs = company.get_filings(form="10-Q")
+    splits = detect_splits(company.get_facts().get_all_facts())
 
     quarterly_revenues = {}
     quarterly_share_counts = {}
 
     previous_quarter = None
     missing_quarter = None
+    split = 1
     for form_10q in form_10qs:
         # As full-year quarters are not reported,
         # every year will have only 3 quarters
@@ -108,7 +110,11 @@ async def _get_quarterly_data(ticker: str, years: int) -> dict:
 
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
         quarterly_revenue = int(income_statement["Revenue"].values[0] / UNIT)
-        quarterly_share_count = int(xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
+        quarterly_share_count = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
+
+        for s in splits:
+            if s["date"].year == year and (s["date"].month - 1) // 3 + 1 == quarter:
+                split *= s["ratio"]
 
         if previous_quarter:
             if previous_quarter - quarter == 2:
