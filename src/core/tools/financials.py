@@ -12,8 +12,8 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
         "name": name,
         "ticker": ticker,
         "financials": {
-            "revenues": financials["quarterly"]["revenues"],
-            "share_counts": financials["quarterly"]["share_counts"]
+            "revenues": financials["revenues"],
+            "share_counts": financials["share_counts"]
         },
         "historical_prices": price_history
     }
