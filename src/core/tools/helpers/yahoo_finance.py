@@ -1,5 +1,3 @@
-import asyncio
-from decimal import Decimal
 import structlog
 import yfinance as yf
 

@@ -1,5 +1,3 @@
-import asyncio
-
 from core.tools.helpers.edgar import get_financial_info
 from core.tools.helpers.yahoo_finance import get_historical_prices
 
@@ -15,7 +13,7 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
         revenue = financials["revenue"][quarter]
 
         if share_count and price:
-            price_to_revenue[quarter] = share_count * price / (4 * revenue)
+            price_to_revenue[quarter] = round(share_count * price / (4 * revenue), 2)
 
     result = {
         "name": name,
