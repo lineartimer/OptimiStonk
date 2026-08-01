@@ -21,6 +21,7 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
     quarterly_revenues = {}
     quarterly_share_counts = {}
+    quarterly_investments = {}
 
     previous_quarter = None
     missing_quarter = None
@@ -37,8 +38,16 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
             break
 
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
+
         quarterly_revenue = int(income_statement["Revenue"].values[0] / UNIT)
         quarterly_share_count = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
+
+        investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
+
+        if investment_df.empty:
+            print(investment_df)
+
+        quarterly_investment = int(abs(investment_df.iloc[-1]["numeric_value"]) / UNIT)
 
         for s in splits:
             if s["date"].year == year and (s["date"].month - 1) // 3 + 1 == quarter:
@@ -61,13 +70,15 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
             if missing_quarter:
                 # Estimate missing quarter by the quarters surrounding it
+                key = f"{year_of_missing_quarter}/{missing_quarter}"
+
                 missing_revenue = int(
                     (
                         list(quarterly_revenues.values())[-1] +
                         quarterly_revenue
                     ) / 2
                 )
-                quarterly_revenues[f"{year_of_missing_quarter}/{missing_quarter}"] = missing_revenue
+                quarterly_revenues[key] = missing_revenue
 
                 missing_share_count = int(
                     (
@@ -75,22 +86,35 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
                         quarterly_share_count
                     ) / 2
                 )
-                quarterly_share_counts[f"{year_of_missing_quarter}/{missing_quarter}"] = missing_share_count
+                quarterly_share_counts[key] = missing_share_count
+
+                missing_investment = int(
+                    (
+                        list(quarterly_investments.values())[-1] +
+                        quarterly_investment
+                    ) / 2
+                )
+                quarterly_investments[key] = missing_investment
                 
                 missing_quarter = None
 
-        quarterly_revenues[f"{year}/{quarter}"] = quarterly_revenue
-        quarterly_share_counts[f"{year}/{quarter}"] = quarterly_share_count
+        key = f"{year}/{quarter}"
+
+        quarterly_revenues[key] = quarterly_revenue
+        quarterly_share_counts[key] = quarterly_share_count
+        quarterly_investments[key] = quarterly_investment
 
         previous_quarter = quarter
 
     quarterly_revenues.popitem()
     quarterly_share_counts.popitem()
+    quarterly_investments.popitem()
 
     _logger.info(f"Downloaded financial data for {ticker} "
                  "from the EDGAR database.")
 
     return {
         "revenue": dict(sorted(quarterly_revenues.items())),
-        "share_count": dict(sorted(quarterly_share_counts.items()))
+        "share_count": dict(sorted(quarterly_share_counts.items())),
+        "investment_cash_flow": dict(sorted(quarterly_investments.items()))
     }
