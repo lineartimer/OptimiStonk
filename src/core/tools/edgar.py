@@ -1,5 +1,6 @@
 from datetime import datetime
 from edgar import Company
+from edgar.ttm.splits import detect_splits
 import structlog
 
 
@@ -26,12 +27,14 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 async def _get_annual_data(ticker: str, years: int) -> dict:
     company = Company(ticker)
     form_10ks = company.get_filings(form="10-K")
+    splits = detect_splits(company.get_facts().get_all_facts())
 
     annual_revenues = {}
     share_counts = {}
 
     cnt = 0
     skip = False
+    split = 1
     for form_10k in form_10ks:
         # Balance sheets contain data for the last two years,
         # so we can skip every other year
@@ -43,18 +46,30 @@ async def _get_annual_data(ticker: str, years: int) -> dict:
         income_statement = xbrl.statements.income_statement()
         periods = income_statement.render().header.periods
 
-        # This year
         this_year = int(periods[0].end_date[:4])
-
-        annual_revenues[this_year] = int(income_statement["Revenue"].values[0] / UNIT)
-        share_counts[this_year] = int(xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
-
-        # Last year
         last_year = int(periods[1].end_date[:4])
 
-        annual_revenues[last_year] = int(income_statement["Revenue"].values[1] / UNIT)
-        share_counts[last_year] = int(xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-2]["numeric_value"] / UNIT)
+        split_this_year = 1
+        split_last_year = 1
+        for s in splits:
+            if s["date"].year == this_year:
+                split_this_year *= s["ratio"]
+            
+            if s["date"].year == last_year:
+                split_last_year *= s["ratio"]
 
+        # This year
+        split *= split_this_year
+
+        annual_revenues[this_year] = int(income_statement["Revenue"].values[0] / UNIT)
+        share_counts[this_year] = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
+
+        # Last year
+        annual_revenues[last_year] = int(income_statement["Revenue"].values[1] / UNIT)
+        share_counts[last_year] = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-2]["numeric_value"]  / UNIT)
+
+        split *= split_last_year
+        
         cnt += 1
         skip = True
 
