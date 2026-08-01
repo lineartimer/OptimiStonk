@@ -44,9 +44,6 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
         investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
 
-        if investment_df.empty:
-            print(investment_df)
-
         quarterly_investment = int(abs(investment_df.iloc[-1]["numeric_value"]) / UNIT)
 
         for s in splits:
