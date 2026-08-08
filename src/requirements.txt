@@ -1,6 +1,9 @@
+edgartools
 fastapi
 langchain
 langchain-openai
 markdownify
+sqlalchemy
 structlog
+yfinance
 uvicorn
