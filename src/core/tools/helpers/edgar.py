@@ -10,6 +10,13 @@ _logger = structlog.get_logger(__name__)
 UNIT = 1_000_000
 
 
+R_AND_D_NAMES = {
+    "us-gaap_ResearchAndDevelopmentCosts",
+    "us-gaap_ResearchAndDevelopmentExpense",
+    "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+}
+
+
 async def get_financial_info(ticker: str, years: int = 5) -> dict:
     """
         Download financial data of the given company from the EDGAR database.
@@ -20,6 +27,7 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
     splits = detect_splits(company.get_facts().get_all_facts())
 
     quarterly_revenues = {}
+    quarterly_r_and_d_expenses = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -40,6 +48,7 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
 
         quarterly_revenue = int(income_statement["Revenue"].values[0] / UNIT)
+        quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
         quarterly_share_count = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
 
         investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
@@ -77,6 +86,14 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
                 )
                 quarterly_revenues[key] = missing_revenue
 
+                missing_r_and_d_expense = int(
+                    (
+                        list(quarterly_r_and_d_expenses.values())[-1] +
+                        quarterly_r_and_d_expense
+                    ) / 2
+                )
+                quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
+
                 missing_share_count = int(
                     (
                         list(quarterly_share_counts.values())[-1] +
@@ -98,12 +115,14 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
         key = f"{year}/{quarter}"
 
         quarterly_revenues[key] = quarterly_revenue
+        quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
         previous_quarter = quarter
 
     quarterly_revenues.popitem()
+    quarterly_r_and_d_expenses.popitem()
     quarterly_share_counts.popitem()
     quarterly_investments.popitem()
 
@@ -112,6 +131,31 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
 
     return {
         "revenue": dict(sorted(quarterly_revenues.items())),
+        "r_and_d_expense": dict(sorted(quarterly_r_and_d_expenses.items())),
         "share_count": dict(sorted(quarterly_share_counts.items())),
         "investment_cash_flow": dict(sorted(quarterly_investments.items()))
     }
+
+
+def _get_r_and_d_expense(income_statement) -> float:
+    rendered_statement = income_statement.render()
+
+    # Statement labels are chosen by each filer, so identify R&D by its
+    # underlying XBRL concept rather than a particular display label
+    for row in rendered_statement.rows:
+        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
+        if concept not in R_AND_D_NAMES:
+            continue
+
+        if row.cells and row.cells[0].value is not None:
+            return row.cells[0].value
+
+    # If company-specific extension concepts cannot be enumerated in advance,
+    # falling back to matching their rendered statement labels
+    for match in income_statement.search("research and development"):
+        if match.values and match.values[0] is not None:
+            return match.values[0]
+
+    raise ValueError(
+        "The filing does not report a research and development expense."
+    )
