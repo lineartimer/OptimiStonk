@@ -24,7 +24,7 @@ cd -- "$(dirname -- "$BASH_SOURCE")"
 rm -rf ../src/backend/__pycache__
 rm -rf ../src/core/agents/__pycache__
 rm -rf ../src/core/tools/__pycache__
-rm -rf ../src/database/__pycache__
+rm -rf ../src/core/tools/helpers/__pycache__
 
 rm -rf ../src/database/database.db
 rm -rf ../src/database/database.db-journal

@@ -9,7 +9,9 @@ An agentic app striving for alpha.
 - Create a .env file with the following content:
 
 OPENAI_API_KEY="<Your OpenAI API key>"
+
 BRAVE_API_KEY="<Your Brave API key>"
+
 EDGAR_IDENTITY="<Your name> <Your email>"
 
 - Run scripts/init-repo.command

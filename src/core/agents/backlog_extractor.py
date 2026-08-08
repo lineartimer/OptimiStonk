@@ -1,20 +1,16 @@
 from langchain.agents import create_agent
 
-from core.tools.web import load_web_page
-from core.tools.brave_search import web_search
 
-
-COMPANY_SCOUT_PROMPT = """
+BACKLOG_EXTRACTOR_PROMPT = """
 You are a helpful assistant.
 """
 
 
-class CompanyScout:
+class BacklogExtractor:
     def __init__(self):
         self._agent = create_agent(
             model="openai:gpt-5.4-nano",
-            tools=[load_web_page, web_search],
-            system_prompt=COMPANY_SCOUT_PROMPT
+            system_prompt=BACKLOG_EXTRACTOR_PROMPT
         )
     
     async def run(self) -> list:
