@@ -1,8 +1,11 @@
 from datetime import datetime
 from langchain.agents import create_agent
 
+SYSTEM_PROMPT = """
+"""
 
-BACKLOG_EXTRACTOR_PROMPT = """
+
+USER_PROMPT = """
 Below you will find the latest 10-K and 10-Q of a company called {company_name}. Your job is to read them and find out, based on these documents, how big is the company's backlog. Look at the Remaining Performance Obligations as well as any future contracts that are not included in that but is discussed in either of the financial statements.
 
 Return the result as a list of json objects. Each backlog item that you can identify should be one such object with a short description of the item, the value of the item expressed in millions of USD, and the time horizon of the item expressed as the number of years from now.
@@ -22,14 +25,15 @@ The latest 10-Q of {company_name}:
 class BacklogExtractor:
     def __init__(self):
         self._agent = create_agent(
-            model="openai:gpt-5.4-nano"
+            model="openai:gpt-5.4-nano",
+            system_prompt=SYSTEM_PROMPT
         )
     
     async def run(self, company_name: str, form_10k: str, form_10q: str) -> list:
         result = await self._agent.ainvoke({
             "messages": [{
                 "role": "user",
-                "content": BACKLOG_EXTRACTOR_PROMPT.format(
+                "content": USER_PROMPT.format(
                     company_name=company_name,
                     date=datetime.now(),
                     form_10k=form_10k,
