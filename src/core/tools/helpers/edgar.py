@@ -17,7 +17,7 @@ R_AND_D_NAMES = {
 }
 
 
-async def get_financial_info(ticker: str, years: int = 5) -> dict:
+async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
         Download financial data of the given company from the EDGAR database.
     """
@@ -126,6 +126,9 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
     quarterly_share_counts.popitem()
     quarterly_investments.popitem()
 
+    latest_10q = form_10qs.latest(1).markdown()
+    latest_10k = company.get_filings(form="10-K").latest(1).markdown()
+
     _logger.info(f"Downloaded financial data for {ticker} "
                  "from the EDGAR database.")
 
@@ -134,6 +137,9 @@ async def get_financial_info(ticker: str, years: int = 5) -> dict:
         "r_and_d_expense": dict(sorted(quarterly_r_and_d_expenses.items())),
         "share_count": dict(sorted(quarterly_share_counts.items())),
         "investment_cash_flow": dict(sorted(quarterly_investments.items()))
+    }, {
+        "latest_10k": latest_10k,
+        "latest_10q": latest_10q
     }
 
 
@@ -155,7 +161,3 @@ def _get_r_and_d_expense(income_statement) -> float:
     for match in income_statement.search("research and development"):
         if match.values and match.values[0] is not None:
             return match.values[0]
-
-    raise ValueError(
-        "The filing does not report a research and development expense."
-    )
