@@ -1,9 +1,9 @@
 from core.tools.helpers.edgar import get_financial_info
-from core.tools.helpers.yahoo_finance import get_historical_prices
+from core.tools.helpers.yahoo_finance import get_price_history
 
 
 async def get_financials(ticker: str, years: str = 5) -> dict:
-    name, price_history = await get_historical_prices(ticker, years)
+    name, last_price, price_history = await get_price_history(ticker, years)
     financials = await get_financial_info(ticker, years)
 
     price_to_revenue = {}
@@ -13,11 +13,14 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
         revenue = financials["revenue"][quarter]
 
         if share_count and price:
+            current_price_to_revenue = round(share_count * last_price / (4 * revenue), 2)
             price_to_revenue[quarter] = round(share_count * price / (4 * revenue), 2)
 
     result = {
         "name": name,
         "ticker": ticker,
+        "last_price": last_price,
+        "current_price_to_revenue": current_price_to_revenue,
         "financials": {
             "revenue": financials["revenue"],
             "investment_cash_flow": financials["investment_cash_flow"],

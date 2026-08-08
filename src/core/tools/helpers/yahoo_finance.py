@@ -5,12 +5,14 @@ import yfinance as yf
 _logger = structlog.get_logger(__name__)
 
 
-async def get_historical_prices(ticker: str, years: int) -> dict:
+async def get_price_history(ticker: str, years: int) -> dict:
     """
         Download historical prices of the given stock from Yahoo Finance.
     """
 
     stock = yf.Ticker(ticker)
+
+    last_price = round(float(stock.fast_info.last_price), 2)
 
     price_history = stock.history(
         period=f"{years}y",
@@ -51,4 +53,4 @@ async def get_historical_prices(ticker: str, years: int) -> dict:
     
     _logger.info(f"Downloaded price data for {ticker} from Yahoo Finance.")
 
-    return name, prices_by_quarter
+    return name, last_price, prices_by_quarter
