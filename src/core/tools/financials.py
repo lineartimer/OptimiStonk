@@ -1,3 +1,4 @@
+from core.agents.backlog_extractor import BacklogExtractor
 from core.tools.helpers.edgar import get_stock_info
 from core.tools.helpers.yahoo_finance import get_price_history
 
@@ -16,6 +17,13 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
             current_price_to_revenue = round(share_count * last_price / (4 * revenue), 2)
             price_to_revenue[quarter] = round(share_count * price / (4 * revenue), 2)
 
+    backlog_extractor = BacklogExtractor()
+    backlog = await backlog_extractor.run(
+        name,
+        sec_filings["latest_10k"],
+        sec_filings["latest_10q"]
+    )
+
     result = {
         "name": name,
         "ticker": ticker,
@@ -28,7 +36,7 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
             "number_of_shares_outstanding_assuming_delution": financials["share_count"],
             "price_to_revenue": price_to_revenue
         },
-        "sec_filings": sec_filings,
+        "backlog": backlog,
         "historical_prices": price_history
     }
 
