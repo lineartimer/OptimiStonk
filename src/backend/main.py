@@ -20,8 +20,9 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/")
 async def root():
     return {
-        "MSFT": await get_financials("MSFT"),
-        "NVDA": await get_financials("NVDA")
+        # "MSFT": await get_financials("MSFT")
+        # "NVDA": await get_financials("NVDA")
+        "IREN": await get_financials("IREN")
     }
 
 if __name__ == "__main__":

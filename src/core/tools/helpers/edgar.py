@@ -10,6 +10,13 @@ _logger = structlog.get_logger(__name__)
 UNIT = 1_000_000
 
 
+REVENUE_NAMES = {
+    "us-gaap_Revenues",
+    "us-gaap_SalesRevenueNet",
+    "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
+}
+
+
 R_AND_D_NAMES = {
     "us-gaap_ResearchAndDevelopmentCosts",
     "us-gaap_ResearchAndDevelopmentExpense",
@@ -47,7 +54,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
 
-        quarterly_revenue = int(income_statement["Revenue"].values[0] / UNIT)
+        quarterly_revenue = int(_get_revenue(income_statement) / UNIT)
         quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
         quarterly_share_count = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
 
@@ -126,8 +133,8 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     quarterly_share_counts.popitem()
     quarterly_investments.popitem()
 
-    latest_10q = form_10qs.latest(1).markdown()
-    latest_10k = company.get_filings(form="10-K").latest(1).markdown()
+    latest_10k = company.get_filings(form="10-K").latest(1)
+    latest_10q = form_10qs.latest(1)
 
     _logger.info(f"Downloaded financial data for {company.name} "
                  "from the EDGAR database.")
@@ -138,16 +145,35 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         "share_count": dict(sorted(quarterly_share_counts.items())),
         "investment_cash_flow": dict(sorted(quarterly_investments.items()))
     }, {
-        "latest_10k": latest_10k,
-        "latest_10q": latest_10q
+        "latest_10k": {
+            "date": latest_10k.filing_date,
+            "document": latest_10k.markdown()
+        },
+        "latest_10q": {
+            "date": latest_10q.filing_date,
+            "document": latest_10q.markdown()
+        }
     }
+
+
+def _get_revenue(income_statement) -> float:
+    for row in income_statement.render().rows:
+        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
+
+        if concept in REVENUE_NAMES:
+            if row.cells and row.cells[0].value is not None:
+                return row.cells[0].value
+
+    for label in ("total revenue", "revenue", "revenues"):
+        for match in income_statement.search(label):
+            if match.values and match.values[0] is not None:
+                return match.values[0]
 
 
 def _get_r_and_d_expense(income_statement) -> float:
     rendered_statement = income_statement.render()
 
-    # Statement labels are chosen by each filer, so identify R&D by its
-    # underlying XBRL concept rather than a particular display label
+    # Try to find R&D expenses
     for row in rendered_statement.rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
         if concept not in R_AND_D_NAMES:
@@ -156,8 +182,10 @@ def _get_r_and_d_expense(income_statement) -> float:
         if row.cells and row.cells[0].value is not None:
             return row.cells[0].value
 
-    # If company-specific extension concepts cannot be enumerated in advance,
-    # falling back to matching their rendered statement labels
+    # If nothing else works, try searching for it
     for match in income_statement.search("research and development"):
         if match.values and match.values[0] is not None:
             return match.values[0]
+
+    # The company doesn't do R&D
+    return 0

@@ -17,11 +17,14 @@ async def get_financials(ticker: str, years: str = 5) -> dict:
             current_price_to_revenue = round(share_count * last_price / (4 * revenue), 2)
             price_to_revenue[quarter] = round(share_count * price / (4 * revenue), 2)
 
+    latest_10k = sec_filings["latest_10k"]
+    latest_10q = sec_filings["latest_10q"]
+    
     backlog_extractor = BacklogExtractor()
     backlog = await backlog_extractor.run(
         name,
-        sec_filings["latest_10k"],
-        sec_filings["latest_10q"]
+        latest_10k["document"] if latest_10k["date"] > latest_10q["date"] else "",
+        latest_10q["document"] if latest_10q["date"] > latest_10k["date"] else ""
     )
 
     result = {
