@@ -129,7 +129,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     latest_10q = form_10qs.latest(1).markdown()
     latest_10k = company.get_filings(form="10-K").latest(1).markdown()
 
-    _logger.info(f"Downloaded financial data for {ticker} "
+    _logger.info(f"Downloaded financial data for {company.name} "
                  "from the EDGAR database.")
 
     return {

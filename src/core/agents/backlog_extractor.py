@@ -1,6 +1,7 @@
 from datetime import date
 from langchain.agents import create_agent
 from pydantic import BaseModel, Field
+import structlog
 
 SYSTEM_PROMPT = """You extract company backlog from SEC filings.
 
@@ -43,6 +44,9 @@ The latest 10-Q of {company_name}:
 """
 
 
+_logger = structlog.get_logger(__name__)
+
+
 class BacklogItem(BaseModel):
     description: str
     value_in_millions_usd: float | None = Field(
@@ -59,8 +63,11 @@ class BacklogResult(BaseModel):
 
 class BacklogExtractor:
     def __init__(self):
+        self._provider = "openai"
+        self._model = "gpt-5.4-nano"
+        
         self._agent = create_agent(
-            model="openai:gpt-5.4-nano",
+            model=f"{self._provider}:{self._model}",
             system_prompt=SYSTEM_PROMPT,
             response_format=BacklogResult
         )
@@ -77,6 +84,9 @@ class BacklogExtractor:
                 )
             }]
         })
+
+        _logger.info(f"Extracted backlog for {company_name} "
+                     f"using {self._model}.")
 
         backlog = result["structured_response"]
         return [item.model_dump() for item in backlog.items]

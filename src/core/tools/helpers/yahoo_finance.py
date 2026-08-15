@@ -51,6 +51,6 @@ async def get_price_history(ticker: str, years: int) -> dict:
             previous_year = year
             previous_quarter = quarter
     
-    _logger.info(f"Downloaded price data for {ticker} from Yahoo Finance.")
+    _logger.info(f"Downloaded price data for {name} from Yahoo Finance.")
 
     return name, last_price, prices_by_quarter
