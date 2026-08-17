@@ -5,6 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
+from core.tools.brave_search import web_search
 from core.tools.financials import get_financials
 
 
@@ -22,7 +23,9 @@ async def root():
     return {
         # "MSFT": await get_financials("MSFT")
         # "NVDA": await get_financials("NVDA")
-        "IREN": await get_financials("IREN")
+        # "IREN": await get_financials("IREN")
+
+        "Brave search: Microsoft's backlog": await web_search("Microsoft's backlog")
     }
 
 if __name__ == "__main__":
