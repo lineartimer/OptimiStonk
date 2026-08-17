@@ -14,7 +14,7 @@ _logger = structlog.get_logger(__name__)
 
 class BacklogResult(BaseModel):
     backlog_millions: int = Field(
-        description="The company's backlog in millions of USD, or -1 if unavailable."
+        description="The company's backlog in millions of USD, or 0 if unavailable."
     )
 
 
