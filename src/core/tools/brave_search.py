@@ -11,27 +11,30 @@ _logger = structlog.get_logger(__name__)
 
 async def web_search(query: str) -> list:
     """
-        Searches the web.
-    """
+    Search the web for current information relevant to the supplied query.
 
-    client = httpx.AsyncClient(timeout=10)
+    Args:
+        query: A concise Brave Search query.
+    """
+    search_results = []
 
     try:
-        response = await client.get(
-            url=BRAVE_SEARCH_URL,
-            params={
-                "q": query
-            },
-            headers={
-                "Accept": "application/json",
-                "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
-            }
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                url=BRAVE_SEARCH_URL,
+                params={
+                    "q": query
+                },
+                headers={
+                    "Accept": "application/json",
+                    "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
+                }
+            )
 
-        response.raise_for_status()
-        
-        payload = response.json()
-        search_results = (payload.get("web") or {}).get("results", [])
+            response.raise_for_status()
+
+            payload = response.json()
+            search_results = (payload.get("web") or {}).get("results", [])
     
     except Exception as e:
         _logger.error("Web search failed.", error=str(e))
@@ -58,5 +61,5 @@ async def web_search(query: str) -> list:
                 "url": sub_result.get("url")
             })
 
-    _logger.info("Web search successful.", query=query)
+    _logger.info("Web search completed.", query=query, result_count=len(cleaned_result))
     return cleaned_result

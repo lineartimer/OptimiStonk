@@ -23,9 +23,7 @@ async def root():
     return {
         # "MSFT": await get_financials("MSFT")
         # "NVDA": await get_financials("NVDA")
-        # "IREN": await get_financials("IREN")
-
-        "Brave search: Microsoft's backlog": await web_search("Microsoft's backlog")
+        "IREN": await get_financials("IREN")
     }
 
 if __name__ == "__main__":
