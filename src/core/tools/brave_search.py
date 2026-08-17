@@ -44,7 +44,7 @@ async def web_search(query: str) -> list:
         cleaned_result.append({
             "title": search_result.get("title"),
             "description": search_result.get("description"),
-            "page_age": search_result.get("page_age"),
+            "publish_date": search_result.get("page_age"),
             "language": search_result.get("language"),
             "category": "Main page",
             "url": search_result.get("url")
@@ -55,7 +55,7 @@ async def web_search(query: str) -> list:
             cleaned_result.append({
                 "title": sub_result.get("title"),
                 "description": sub_result.get("description"),
-                "page_age": search_result.get("page_age"),
+                "publish_date": search_result.get("page_age"),
                 "language": search_result.get("language"),
                 "category": "Subpage",
                 "url": sub_result.get("url")
