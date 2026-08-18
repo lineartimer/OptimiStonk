@@ -2,6 +2,8 @@ import httpx
 from markdownify import markdownify
 import structlog
 
+from backend.db.database import get_web_page, save_web_page
+
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 
@@ -17,6 +19,11 @@ async def load_web_page(url: str) -> str:
         url: Url of the web page.
     """
 
+    stored_page = get_web_page(url)
+    if stored_page is not None:
+        _logger.info("Web page loaded from database.", url=url)
+        return stored_page.markdown_content
+
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(url)
@@ -24,6 +31,7 @@ async def load_web_page(url: str) -> str:
 
             markdown_content = markdownify(response.text, heading_style="ATX")
 
+        save_web_page(url, markdown_content)
         _logger.info("Web page loaded successfully.", url=url)
         return markdown_content
     
