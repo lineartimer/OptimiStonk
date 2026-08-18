@@ -25,19 +25,25 @@ async def root():
 
     return {
         "MSFT": {
+            "rank": msft.rank(),
+            "price_to_backlog": msft.price_to_backlog_ratio(),
+            "revenue_growth_per_year": msft.revenue_growth_per_year(),
             "price_to_revenue": msft.price_to_revenue_ratio(),
-            "relative_hype": msft.relative_hype(),
-            "price_to_backlog": msft.price_to_backlog_ratio()
+            "relative_hype": msft.relative_hype()
         },
         "NVDA": {
+            "rank": nvda.rank(),
+            "price_to_backlog": nvda.price_to_backlog_ratio(),
+            "revenue_growth_per_year": nvda.revenue_growth_per_year(),
             "price_to_revenue": nvda.price_to_revenue_ratio(),
-            "relative_hype": nvda.relative_hype(),
-            "price_to_backlog": nvda.price_to_backlog_ratio()
+            "relative_hype": nvda.relative_hype()
         },
         "IREN": {
+            "rank": iren.rank(),
+            "price_to_backlog": iren.price_to_backlog_ratio(),
+            "revenue_growth_per_year": iren.revenue_growth_per_year(),
             "price_to_revenue": iren.price_to_revenue_ratio(),
-            "relative_hype": iren.relative_hype(),
-            "price_to_backlog": iren.price_to_backlog_ratio()
+            "relative_hype": iren.relative_hype()
         }
     }
 
