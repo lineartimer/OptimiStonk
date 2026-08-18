@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from backend.core.financials import get_financials
+from backend.api.get_stock import router as get_stock_router
 from backend.db.database import initialize_database
 
 
@@ -18,14 +18,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(get_stock_router)
 
-
-@app.get("/get_stock")
-async def get_stock(ticker: str):
-    ticker = ticker.strip().upper()
-    stock = await get_financials(ticker)
-
-    return stock.to_json()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=5000)
