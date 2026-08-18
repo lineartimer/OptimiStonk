@@ -11,27 +11,30 @@ _logger = structlog.get_logger(__name__)
 
 async def web_search(query: str) -> list:
     """
-        Searches the web.
-    """
+    Carries out a web search using Brave.
 
-    client = httpx.AsyncClient(timeout=10)
+    Args:
+        query: Search query.
+    """
+    search_results = []
 
     try:
-        response = await client.get(
-            url=BRAVE_SEARCH_URL,
-            params={
-                "q": query
-            },
-            headers={
-                "Accept": "application/json",
-                "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
-            }
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(
+                url=BRAVE_SEARCH_URL,
+                params={
+                    "q": query
+                },
+                headers={
+                    "Accept": "application/json",
+                    "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
+                }
+            )
 
-        response.raise_for_status()
-        
-        payload = response.json()
-        search_results = (payload.get("web") or {}).get("results", [])
+            response.raise_for_status()
+
+            payload = response.json()
+            search_results = (payload.get("web") or {}).get("results", [])
     
     except Exception as e:
         _logger.error("Web search failed.", error=str(e))
@@ -41,7 +44,7 @@ async def web_search(query: str) -> list:
         cleaned_result.append({
             "title": search_result.get("title"),
             "description": search_result.get("description"),
-            "page_age": search_result.get("page_age"),
+            "publish_date": search_result.get("page_age"),
             "language": search_result.get("language"),
             "category": "Main page",
             "url": search_result.get("url")
@@ -52,11 +55,11 @@ async def web_search(query: str) -> list:
             cleaned_result.append({
                 "title": sub_result.get("title"),
                 "description": sub_result.get("description"),
-                "page_age": search_result.get("page_age"),
+                "publish_date": search_result.get("page_age"),
                 "language": search_result.get("language"),
                 "category": "Subpage",
                 "url": sub_result.get("url")
             })
 
-    _logger.info("Web search successful.", query=query)
+    _logger.info("Web search completed.", query=query, result_count=len(cleaned_result))
     return cleaned_result

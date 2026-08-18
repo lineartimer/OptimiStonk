@@ -11,16 +11,18 @@ _logger = structlog.get_logger(__name__)
 
 async def load_web_page(url: str) -> str:
     """
-        Loads a web page.
+    Loads a web page.
+
+    Args:
+        url: Url of the web page.
     """
 
-    client = httpx.AsyncClient(timeout=30)
-
     try:
-        response = await client.get(url)
-        response.raise_for_status()
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url)
+            response.raise_for_status()
 
-        markdown_content = markdownify(response.text, heading_style="ATX")
+            markdown_content = markdownify(response.text, heading_style="ATX")
 
         _logger.info("Web page loaded successfully.", url=url)
         return markdown_content

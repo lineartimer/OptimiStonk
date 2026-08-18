@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from core.tools.financials import get_financials
+from backend.financials import get_financials
 
 
 @asynccontextmanager
@@ -17,12 +17,12 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-async def root():
-    return {
-        "MSFT": await get_financials("MSFT"),
-        "NVDA": await get_financials("NVDA")
-    }
+@app.get("/get_stock")
+async def get_stock(ticker: str):
+    ticker = ticker.strip().upper()
+    stock = await get_financials(ticker)
+
+    return stock.to_json()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=5000)
