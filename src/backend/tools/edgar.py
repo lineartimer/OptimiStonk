@@ -26,11 +26,11 @@ R_AND_D_NAMES = {
 
 async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
-        Downloads financial data of a company from the EDGAR database.
+    Downloads financial data of a company from the EDGAR database.
 
-        Args:
-            ticker: Ticker symbol of the company.
-            years: Time period of the financial data.
+    Args:
+        ticker: Ticker symbol of the company.
+        years: Time period of the financial data.
     """
 
     company = Company(ticker)
@@ -161,6 +161,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
 
 def _get_revenue(income_statement) -> float:
+    # Try to find revenues
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
@@ -168,6 +169,7 @@ def _get_revenue(income_statement) -> float:
             if row.cells and row.cells[0].value is not None:
                 return row.cells[0].value
 
+    # If nothing else works, try searching for it
     for label in ("total revenue", "revenue", "revenues"):
         for match in income_statement.search(label):
             if match.values and match.values[0] is not None:
@@ -175,10 +177,8 @@ def _get_revenue(income_statement) -> float:
 
 
 def _get_r_and_d_expense(income_statement) -> float:
-    rendered_statement = income_statement.render()
-
     # Try to find R&D expenses
-    for row in rendered_statement.rows:
+    for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
         if concept not in R_AND_D_NAMES:
             continue

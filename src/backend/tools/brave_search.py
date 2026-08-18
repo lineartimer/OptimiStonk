@@ -11,7 +11,7 @@ _logger = structlog.get_logger(__name__)
 
 async def web_search(query: str) -> list:
     """
-    Executes a search using Brave.
+    Carries out a web search using Brave.
 
     Args:
         query: Search query.

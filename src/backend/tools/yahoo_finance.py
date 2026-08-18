@@ -7,8 +7,9 @@ _logger = structlog.get_logger(__name__)
 
 async def get_price_history(ticker: str, years: int) -> dict:
     """
-        Downloads historical prices of a stock from Yahoo Finance.
+    Downloads historical prices of a stock from Yahoo Finance.
 
+    Args:
         ticker: Ticker symbol of the company.
         years: Time period of the prices.
     """
@@ -65,5 +66,5 @@ async def get_price_history(ticker: str, years: int) -> dict:
 
     _logger.info(f"Downloaded price data for {name} from Yahoo Finance.")
 
-    # Return the prices in normal order
+    # Return prices in normal order
     return name, last_price, dict(reversed(prices_by_quarter.items())), extra_price_point

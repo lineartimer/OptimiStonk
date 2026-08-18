@@ -6,7 +6,8 @@ import structlog
 
 
 SYSTEM_PROMPT = """
-You are an expert financial analyst. Your job is to answer how big a company's backlog is based on the web pages provided.
+You are an expert financial analyst. Your job is to answer how big a company's
+backlog is based on the web pages provided.
 """
 
 
@@ -15,7 +16,8 @@ _logger = structlog.get_logger(__name__)
 
 class BacklogResult(BaseModel):
     backlog_millions: int = Field(
-        description="The company's backlog in millions of USD, or 0 if unavailable."
+        description="The company's backlog in millions of USD, "
+                    "or 0 if unavailable."
     )
 
 

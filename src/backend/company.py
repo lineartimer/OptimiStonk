@@ -10,7 +10,7 @@ class Company:
                  revenue: dict,
                  r_and_d_expense: dict,
                  investment_cash_flow: dict,
-                 number_of_shares_outstanding_assuming_delution: dict,
+                 share_count: dict,
                  backlog: int
     ):
         self.name = name
@@ -25,7 +25,7 @@ class Company:
                 "revenue": revenue[quarter],
                 "r_and_d_expense": r_and_d_expense[quarter],
                 "investment_cash_flow": investment_cash_flow[quarter],
-                "number_of_shares_outstanding_assuming_delution": number_of_shares_outstanding_assuming_delution[quarter]
+                "share_count": share_count[quarter]
             }
 
         self.backlog = backlog
@@ -43,7 +43,7 @@ class Company:
         return self._historical_data[quarter]["investment_cash_flow"]
 
     def get_share_count(self, quarter):
-        return self._historical_data[quarter]["number_of_shares_outstanding_assuming_delution"]
+        return self._historical_data[quarter]["share_count"]
 
     def rank(self):
         # Can handle negative growth
@@ -96,6 +96,32 @@ class Company:
         current = share_count * self.last_price / (4 * revenue)
 
         return round((current - min) / (max - min), 2)
+
+    def to_json(self) -> dict:
+        return {
+            "name": self.name,
+            "ticker": self.ticker,
+            "last_price": self.last_price,
+            "rank": self.rank(),
+            "backlog": self.backlog,
+            "financial_data": {
+                quarter: {
+                    "revenue": data["revenue"],
+                    "r_and_d_expense": data["r_and_d_expense"],
+                    "investment_cash_flow": data["investment_cash_flow"],
+                    "share_count": data["share_count"]
+                } for quarter, data in self._historical_data.items()
+            },
+            "historical_prices": {
+                quarter: data["price"] for quarter, data in self._historical_data.items()
+            },
+            "metrics": {
+                "price_to_revenue_ratio": self.price_to_revenue_ratio(),
+                "price_to_backlog_ratio": self.price_to_backlog_ratio(),
+                "revenue_growth_per_year": self.revenue_growth_per_year(),
+                "relative_hype": self.relative_hype()
+            },
+        }
 
     def _get_last_quarter(self):
         return list(self._historical_data)[-1]

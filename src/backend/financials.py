@@ -40,7 +40,7 @@ async def get_financials(ticker: str, years: str = 5) -> Company:
         financials["share_count"] = dict(sorted(financials["share_count"].items()))
         financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
 
-    # Find out backlog
+    # Find out how big the backlog is
     prompt = {
         "company": name,
         "current_date": date.today().isoformat(),
@@ -70,7 +70,7 @@ async def get_financials(ticker: str, years: str = 5) -> Company:
         "revenue": financials["revenue"],
         "r_and_d_expense": financials["r_and_d_expense"],
         "investment_cash_flow": financials["investment_cash_flow"],
-        "number_of_shares_outstanding_assuming_delution": financials["share_count"],
+        "share_count": financials["share_count"],
         "backlog": backlog,
         "historical_prices": price_history
     }
