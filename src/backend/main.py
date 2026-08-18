@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from core.financials import get_financials
+from backend.financials import get_financials
 
 
 @asynccontextmanager

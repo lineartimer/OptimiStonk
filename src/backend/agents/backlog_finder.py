@@ -9,6 +9,7 @@ SYSTEM_PROMPT = """
 You are an expert financial analyst. Your job is to answer how big a company's backlog is based on the web pages provided.
 """
 
+
 _logger = structlog.get_logger(__name__)
 
 
