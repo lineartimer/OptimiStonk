@@ -12,6 +12,9 @@ _logger = structlog.get_logger(__name__)
 async def load_web_page(url: str) -> str:
     """
         Loads a web page.
+
+        Args:
+            url: Url of the web page.
     """
 
     try:

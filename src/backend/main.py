@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from core.tools.financials import get_financials
+from core.financials import get_financials
 
 
 @asynccontextmanager
@@ -19,10 +19,26 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():
+    msft = await get_financials("MSFT")
+    nvda = await get_financials("NVDA")
+    iren = await get_financials("IREN")
+
     return {
-        "MSFT": await get_financials("MSFT"),
-        "NVDA": await get_financials("NVDA"),
-        "IREN": await get_financials("IREN")
+        "MSFT": {
+            "price_to_revenue": msft.price_to_revenue_ratio(),
+            "relative_hype": msft.relative_hype(),
+            "price_to_backlog": msft.price_to_backlog_ratio()
+        },
+        "NVDA": {
+            "price_to_revenue": nvda.price_to_revenue_ratio(),
+            "relative_hype": nvda.relative_hype(),
+            "price_to_backlog": nvda.price_to_backlog_ratio()
+        },
+        "IREN": {
+            "price_to_revenue": iren.price_to_revenue_ratio(),
+            "relative_hype": iren.relative_hype(),
+            "price_to_backlog": iren.price_to_backlog_ratio()
+        }
     }
 
 if __name__ == "__main__":

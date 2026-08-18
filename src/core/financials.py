@@ -1,0 +1,70 @@
+from datetime import date
+
+from core.agents.backlog_finder import BacklogFinder
+from core.company import Company
+from core.tools.brave_search import web_search
+from core.tools.edgar import get_stock_info
+from core.tools.web import load_web_page
+from core.tools.yahoo_finance import get_price_history
+
+
+async def get_financials(ticker: str, years: str = 5) -> Company:
+    name, last_price, price_history, extra_price_point = await get_price_history(ticker, years)
+    financials, _ = await get_stock_info(ticker, years)
+
+    # If current quarter's 10-Q is not in EDGAR yet,
+    # shift price history back one quarter
+    if list(price_history)[-1] != list(financials["revenue"])[-1]:
+        price_history.popitem()
+        quarter, price = extra_price_point.popitem()
+
+        price_history[quarter] = price
+        price_history = dict(sorted(price_history.items()))
+
+    # Only keep the intersection of the quarters returned from Yahoo Finance and EDGAR
+    if len(price_history) != len(financials["revenue"]):
+        common_keys = price_history.keys() & financials["revenue"].keys()
+
+        price_history = {k: price_history[k] for k in common_keys}
+
+        financials["revenue"] = {k: financials["revenue"][k] for k in common_keys}
+        financials["r_and_d_expense"] = {k: financials["r_and_d_expense"][k] for k in common_keys}
+        financials["share_count"] = {k: financials["share_count"][k] for k in common_keys}
+        financials["investment_cash_flow"] = {k: financials["investment_cash_flow"][k] for k in common_keys}
+
+    # Find out backlog
+    prompt = {
+        "company": name,
+        "current_date": date.today().isoformat(),
+        "web_pages": []
+    }
+
+    cnt = 1
+    search_results = await web_search(f"How big is {name}'s backlog?")
+    for search_result in search_results:
+        if cnt > 5:
+            break
+
+        prompt["web_pages"].append({
+            "title": search_result["title"],
+            "publish_date": search_result["publish_date"],
+            "content": await load_web_page(search_result["url"])
+        })
+        cnt += 1
+
+    backlog_finder = BacklogFinder()
+    backlog = await backlog_finder.run(name, prompt)
+
+    financial_data = {
+        "name": name,
+        "ticker": ticker,
+        "last_price": last_price,
+        "revenue": financials["revenue"],
+        "r_and_d_expense": financials["r_and_d_expense"],
+        "investment_cash_flow": financials["investment_cash_flow"],
+        "number_of_shares_outstanding_assuming_delution": financials["share_count"],
+        "backlog": backlog,
+        "historical_prices": price_history
+    }
+
+    return Company(**financial_data)

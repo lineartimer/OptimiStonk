@@ -26,7 +26,11 @@ R_AND_D_NAMES = {
 
 async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
-        Download financial data of the given company from the EDGAR database.
+        Downloads financial data of a company from the EDGAR database.
+
+        Args:
+            ticker: Ticker symbol of the company.
+            years: Time period of the financial data.
     """
 
     company = Company(ticker)
