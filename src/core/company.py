@@ -1,5 +1,7 @@
 import math
 
+import numpy as np
+
 
 class Company:
     def __init__(self,
@@ -46,7 +48,8 @@ class Company:
         return self._historical_data[quarter]["number_of_shares_outstanding_assuming_delution"]
 
     def rank(self):
-        return round(self.revenue_growth_per_year() / self.price_to_backlog_ratio(), 2)
+        # Can handle negative growth
+        return round((1 + self.revenue_growth_per_year()) / self.price_to_backlog_ratio(), 2)
 
     def price_to_revenue_ratio(self):
         last_quarter = self._get_last_quarter()
@@ -57,26 +60,24 @@ class Company:
         return round(self.last_price * self.get_share_count(last_quarter) / self.backlog, 2)
 
     def revenue_growth_per_year(self):
-        revenues = [data["revenue"] for data in self._historical_data.values()]
-        log_revenues = [math.log(revenue) for revenue in revenues]
-
-        x_mean = (len(log_revenues) - 1) / 2
-        y_mean = sum(log_revenues) / len(log_revenues)
-
-        numerator = sum(
-            (quarter - x_mean) * (log_revenue - y_mean)
-            for quarter, log_revenue in enumerate(log_revenues)
+        revenues = np.array(
+            [
+                data["revenue"]
+                for data in self._historical_data.values()
+            ],
+            dtype=float
         )
 
-        denominator = sum(
-            (quarter - x_mean) ** 2
-            for quarter in range(len(log_revenues))
-        )
+        quarters = np.arange(revenues.size)
+        quarterly_log_growth = np.polyfit(
+            quarters,
+            np.log(revenues),
+            deg=1
+        )[0]
 
-        quarterly_log_growth = numerator / denominator
-        annual_growth = math.exp(4 * quarterly_log_growth) - 1
+        annual_growth = np.expm1(4 * quarterly_log_growth)
 
-        return round(annual_growth, 2)
+        return round(float(annual_growth), 2)
 
     def relative_hype(self):
         min = float("inf")

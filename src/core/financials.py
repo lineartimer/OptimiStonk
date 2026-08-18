@@ -32,6 +32,14 @@ async def get_financials(ticker: str, years: str = 5) -> Company:
         financials["share_count"] = {k: financials["share_count"][k] for k in common_keys}
         financials["investment_cash_flow"] = {k: financials["investment_cash_flow"][k] for k in common_keys}
 
+        # Taking the intersection discards the order, so order the dictionaries
+        price_history = dict(sorted(price_history.items()))
+
+        financials["revenue"] = dict(sorted(financials["revenue"].items()))
+        financials["r_and_d_expense"] = dict(sorted(financials["r_and_d_expense"].items()))
+        financials["share_count"] = dict(sorted(financials["share_count"].items()))
+        financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
+
     # Find out backlog
     prompt = {
         "company": name,
