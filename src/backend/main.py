@@ -5,7 +5,7 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from backend.financials import get_financials
+from backend.core.financials import get_financials
 from backend.db.database import initialize_database
 
 

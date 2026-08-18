@@ -1,11 +1,11 @@
 from datetime import date
 
-from backend.agents.backlog_finder import BacklogFinder
-from backend.company import Company
-from backend.tools.brave_search import web_search
-from backend.tools.edgar import get_stock_info
-from backend.tools.web import load_web_page
-from backend.tools.yahoo_finance import get_price_history
+from backend.core.agents.backlog_finder import BacklogFinder
+from backend.core.company import Company
+from backend.core.tools.brave_search import web_search
+from backend.core.tools.edgar import get_stock_info
+from backend.core.tools.web import load_web_page
+from backend.core.tools.yahoo_finance import get_price_history
 
 
 async def get_financials(ticker: str, years: str = 5) -> Company:
