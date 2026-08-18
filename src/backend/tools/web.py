@@ -20,20 +20,21 @@ async def load_web_page(url: str) -> str:
     """
 
     stored_page = get_web_page(url)
-    if stored_page is not None:
+    if stored_page:
         _logger.info("Web page loaded from database.", url=url)
-        return stored_page.markdown_content
+        return stored_page.content
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(url)
             response.raise_for_status()
 
-            markdown_content = markdownify(response.text, heading_style="ATX")
+            content = markdownify(response.text, heading_style="ATX")
 
-        save_web_page(url, markdown_content)
-        _logger.info("Web page loaded successfully.", url=url)
-        return markdown_content
+        save_web_page(url, content)
+
+        _logger.info("Web page downloaded and saved.", url=url)
+        return content
     
     except Exception as e:
         _logger.error("Page load failed.", error=e)

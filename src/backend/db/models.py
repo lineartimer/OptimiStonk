@@ -11,5 +11,5 @@ class WebPage(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     url: Mapped[str] = mapped_column(Text, unique=True, index=True)
-    markdown_content: Mapped[str] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text)
 
