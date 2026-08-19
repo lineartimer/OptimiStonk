@@ -4,7 +4,7 @@ from backend.core.financials import get_financials
 
 router = APIRouter()
 
-@router.get("/get_stock")
+@router.get("/api/stock")
 async def get_stock(ticker: str):
     ticker = ticker.strip().upper()
     stock = await get_financials(ticker)
