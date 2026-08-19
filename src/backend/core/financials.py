@@ -6,11 +6,18 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_stock_info
 from backend.core.tools.web import load_web_page
 from backend.core.tools.yahoo_finance import get_price_history
+from backend.db.database import get_stock_data, save_stock_data
 
 
-async def get_financials(ticker: str, years: str = 5) -> Company:
+async def get_financials(ticker: str, years: int = 5) -> Company:
+    ticker = ticker.strip().upper()
+
+    stored_data = get_stock_data(ticker)
+    if stored_data:
+        return Company(**stored_data)
+
     name, last_price, price_history, extra_price_point = await get_price_history(ticker, years)
-    financials, _ = await get_stock_info(ticker, years)
+    financials, reports = await get_stock_info(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet,
     # shift price history back one quarter
@@ -75,4 +82,7 @@ async def get_financials(ticker: str, years: str = 5) -> Company:
         "historical_prices": price_history
     }
 
-    return Company(**financial_data)
+    company = Company(**financial_data)
+    save_stock_data(company, reports)
+
+    return company

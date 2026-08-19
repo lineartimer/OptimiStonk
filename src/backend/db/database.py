@@ -2,7 +2,9 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
-from backend.db.models import Base, WebSearch, WebPage
+from backend.db.models import (
+    Base, FinancialData, HistoricalPrice, Stock, WebPage, WebSearch
+)
 
 
 engine = create_engine(
@@ -47,3 +49,78 @@ def save_web_search(query: str, search_result: list) -> WebSearch:
         session.commit()
 
         return brave_search
+
+
+def get_stock_data(ticker: str) -> dict | None:
+    with SessionFactory() as session:
+        stock = session.scalar(select(Stock).where(Stock.ticker == ticker.upper()))
+        if stock is None:
+            return None
+
+        financial_rows = list(session.scalars(
+            select(FinancialData)
+            .where(FinancialData.stock_id == stock.id)
+            .order_by(FinancialData.quarter)
+        ))
+
+        prices = {
+            row.quarter: row.price for row in session.scalars(
+                select(HistoricalPrice)
+                .where(HistoricalPrice.stock_id == stock.id)
+            )
+        }
+
+        financial_rows = [row for row in financial_rows if row.quarter in prices]
+        if not financial_rows:
+            return None
+
+        return {
+            "name": stock.name,
+            "ticker": stock.ticker,
+            "last_price": stock.last_price,
+            "backlog": stock.backlog,
+            "historical_prices": {
+                row.quarter: prices[row.quarter] for row in financial_rows
+            },
+            **{
+                field: {row.quarter: getattr(row, field) for row in financial_rows}
+                for field in (
+                    "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+                )
+            }
+        }
+
+
+def save_stock_data(company, reports: dict) -> None:
+    with SessionFactory() as session:
+        stock = Stock(
+            name=company.name,
+            ticker=company.ticker.upper(),
+            last_price=company.last_price,
+            rank=company.rank(),
+            backlog=company.backlog,
+            price_to_revenue=company.price_to_revenue_ratio(),
+            price_to_backlog=company.price_to_backlog_ratio(),
+            revenue_growth=company.revenue_growth_per_year(),
+            relative_hype=company.relative_hype(),
+            annual_report=reports["latest_10k"],
+            quarterly_report=reports["latest_10q"]
+        )
+        session.add(stock)
+        session.flush()
+
+        for quarter, data in company._historical_data.items():
+            session.add(FinancialData(
+                stock_id=stock.id,
+                quarter=quarter,
+                revenue=data["revenue"],
+                r_and_d_expense=data["r_and_d_expense"],
+                investment_cash_flow=data["investment_cash_flow"],
+                share_count=data["share_count"]
+            ))
+
+            session.add(HistoricalPrice(
+                stock_id=stock.id, quarter=quarter, price=data["price"]
+            ))
+
+        session.commit()
