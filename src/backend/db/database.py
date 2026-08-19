@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
 from backend.db.models import (
-    Base, FinancialData, HistoricalPrice, Stock, WebPage, WebSearch
+    Base, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
 )
 
 
@@ -15,8 +15,28 @@ engine = create_engine(
 SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 
 
-def initialize_database() -> None:
+async def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
+
+    with SessionFactory() as session:
+        market_is_populated = session.scalar(select(Market.ticker).limit(1)) is not None
+
+    if market_is_populated:
+        return
+
+    from backend.core.tools.market import download_stock_list
+    companies = await download_stock_list()
+
+    with SessionFactory() as session:
+        session.add_all(
+            Market(
+                ticker=ticker,
+                company_name=company["company_name"],
+                stock_type=company["stock_type"]
+            )
+            for ticker, company in companies.items()
+        )
+        session.commit()
 
 
 def get_web_page(url: str) -> WebPage | None:

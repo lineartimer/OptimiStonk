@@ -24,6 +24,14 @@ class WebSearch(Base):
     search_result: Mapped[list] = mapped_column(JSON)
 
 
+class Market(Base):
+    __tablename__ = "market"
+
+    ticker: Mapped[str] = mapped_column(Text, primary_key=True)
+    company_name: Mapped[str] = mapped_column(Text)
+    stock_type: Mapped[str] = mapped_column(Text)
+
+
 class Stock(Base):
     __tablename__ = "stocks"
 

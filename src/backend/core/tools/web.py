@@ -39,3 +39,19 @@ async def load_web_page(url: str) -> str:
     except Exception as e:
         _logger.error("Page load failed.", error=e)
         return ""
+
+
+async def download_file(url: str) -> str:
+    """
+    Downloads a file from the internet.
+
+    Args:
+        url: Url to the file.
+    """
+    
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+
+    _logger.info("File downloaded.", url=url)
+    return response.text
