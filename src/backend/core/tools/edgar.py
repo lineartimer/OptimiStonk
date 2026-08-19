@@ -182,10 +182,8 @@ def _get_revenue(income_statement) -> float:
         for match in income_statement.search(label):
             if match.values and match.values[0] is not None:
                 return match.values[0]
-
-    msg = "Couldn't find revenue in income statement."
-    _logger.error(msg)
-    raise RevenueNotFoundError(msg)
+    
+    raise RevenueNotFoundError("Couldn't find revenue in income statement.")
 
 
 def _get_r_and_d_expense(income_statement) -> float:
