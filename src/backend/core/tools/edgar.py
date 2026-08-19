@@ -24,6 +24,10 @@ R_AND_D_NAMES = {
 }
 
 
+class RevenueNotFoundError(LookupError):
+    pass
+
+
 async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
     Downloads financial data of a company from the EDGAR database.
@@ -141,7 +145,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     latest_10q = form_10qs.latest(1)
 
     _logger.info(f"Downloaded financial data for {company.name} "
-                 "from the EDGAR database.")
+                "from the EDGAR database.")
 
     financials = {
         "revenue": dict(sorted(quarterly_revenues.items())),
@@ -178,6 +182,10 @@ def _get_revenue(income_statement) -> float:
         for match in income_statement.search(label):
             if match.values and match.values[0] is not None:
                 return match.values[0]
+
+    msg = "Couldn't find revenue in income statement."
+    _logger.error(msg)
+    raise RevenueNotFoundError(msg)
 
 
 def _get_r_and_d_expense(income_statement) -> float:
