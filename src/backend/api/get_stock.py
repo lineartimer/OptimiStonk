@@ -2,7 +2,9 @@ from fastapi import APIRouter
 
 from backend.core.financials import get_financials
 
+
 router = APIRouter()
+
 
 @router.get("/api/stock")
 async def get_stock(ticker: str):

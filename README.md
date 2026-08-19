@@ -8,11 +8,11 @@ An agentic app striving for alpha.
 - Fork the repo, then clone it onto your computer
 - Create a .env file with the following content:
 
-OPENAI_API_KEY="<Your OpenAI API key>"
+OPENAI_API_KEY="&lt;Your OpenAI API key&gt;"
 
-BRAVE_API_KEY="<Your Brave API key>"
+BRAVE_API_KEY="&lt;Your Brave API key&gt;"
 
-EDGAR_IDENTITY="<Your name> <Your email>"
+EDGAR_IDENTITY="&lt;Your name&gt; &lt;Your email&gt;"
 
 - Run scripts/init-repo.command
 - Then open OptimiStonk.code-workspace in VS Code
