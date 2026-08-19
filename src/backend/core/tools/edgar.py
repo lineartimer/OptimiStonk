@@ -141,17 +141,24 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         quarterly_investments[key] = quarterly_investment
 
         previous_quarter = quarter
+    
+    if len(quarterly_revenues) > 0:
+        quarterly_revenues.popitem()
 
-    quarterly_revenues.popitem()
-    quarterly_r_and_d_expenses.popitem()
-    quarterly_share_counts.popitem()
-    quarterly_investments.popitem()
+    if len(quarterly_r_and_d_expenses) > 0:
+        quarterly_r_and_d_expenses.popitem()
 
-    latest_10k = company.get_filings(form="10-K").latest(1)
-    latest_10q = form_10qs.latest(1)
+    if len(quarterly_share_counts) > 0:
+        quarterly_share_counts.popitem()
+
+    if len(quarterly_investments) > 0:
+        quarterly_investments.popitem()
+
+    latest_10k = company.get_filings(form="10-K").latest(1) or ""
+    latest_10q = form_10qs.latest(1) or ""
 
     _logger.info(f"Downloaded financial data for {company.name} "
-                "from the EDGAR database.")
+                 "from the EDGAR database.")
 
     financials = {
         "revenue": dict(sorted(quarterly_revenues.items())),
@@ -162,12 +169,12 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
     reports = {
         "latest_10k": {
-            "date": latest_10k.filing_date.isoformat(),
-            "document": latest_10k.markdown()
+            "date": latest_10k.filing_date.isoformat() if latest_10k else "",
+            "document": latest_10k.markdown() if latest_10k else ""
         },
         "latest_10q": {
-            "date": latest_10q.filing_date.isoformat(),
-            "document": latest_10q.markdown()
+            "date": latest_10q.filing_date.isoformat() if latest_10q else "",
+            "document": latest_10q.markdown() if latest_10q else ""
         }
     }
 

@@ -13,6 +13,15 @@ class Company:
                  share_count: dict,
                  backlog: int
     ):
+        if (
+            len(historical_prices) < 2 or
+            len(revenue) < 2 or
+            len(r_and_d_expense) < 2 or
+            len(investment_cash_flow) < 2 or
+            len(share_count) < 2
+        ):
+            raise ValueError("At least two quarters needed.")
+
         self.name = name
         self.ticker = ticker
         self.last_price = last_price
@@ -69,7 +78,7 @@ class Company:
         quarters = np.arange(revenues.size)
         quarterly_log_growth = np.polyfit(
             quarters,
-            # Add a small amount ($1M) to each value to avoid log(0)
+            # Add $1M to every quarterly value to avoid log(0)
             np.log(revenues + 1),
             deg=1
         )[0]
@@ -125,7 +134,7 @@ class Company:
                 "price_to_backlog_ratio": self.price_to_backlog_ratio(),
                 "revenue_growth_per_year": self.revenue_growth_per_year(),
                 "relative_hype": self.relative_hype()
-            },
+            }
         }
 
     def _get_last_quarter(self):

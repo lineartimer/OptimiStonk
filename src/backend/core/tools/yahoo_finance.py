@@ -60,7 +60,7 @@ async def get_price_history(ticker: str, years: int) -> dict:
             previous_year = year
             previous_quarter = quarter
 
-    if not period_finished:
+    if len(prices_by_quarter) > 0 and not period_finished:
         quarter, price = prices_by_quarter.popitem()
         extra_price_point[quarter] = price
 

@@ -25,7 +25,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
     financials, reports = await get_stock_info(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet, shift price history back one quarter
-    if list(price_history)[-1] != list(financials["revenue"])[-1]:
+    if len(price_history) > 0 and len(financials) > 0 and list(price_history)[-1] != list(financials["revenue"])[-1]:
         price_history.popitem()
         quarter, price = extra_price_point.popitem()
 
