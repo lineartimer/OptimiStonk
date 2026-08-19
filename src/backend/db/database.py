@@ -31,8 +31,6 @@ def save_web_page(url: str, content: str) -> WebPage:
         session.add(web_page)
         session.commit()
 
-        return web_page
-
 
 def get_web_search(query: str) -> WebSearch | None:
     with SessionFactory() as session:
