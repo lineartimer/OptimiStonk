@@ -1,19 +1,30 @@
 from datetime import date
+import structlog
 
-from backend.agents.backlog_finder import BacklogFinder
-from backend.company import Company
-from backend.tools.brave_search import web_search
-from backend.tools.edgar import get_stock_info
-from backend.tools.web import load_web_page
-from backend.tools.yahoo_finance import get_price_history
+from backend.core.agents.backlog_finder import BacklogFinder
+from backend.core.company import Company
+from backend.core.tools.brave_search import web_search
+from backend.core.tools.edgar import get_stock_info
+from backend.core.tools.web import load_web_page
+from backend.core.tools.yahoo_finance import get_price_history
+from backend.db.database import get_stock_data, save_stock_data
 
 
-async def get_financials(ticker: str, years: str = 5) -> Company:
+_logger = structlog.get_logger(__name__)
+
+
+async def get_financials(ticker: str, years: int = 5) -> Company:
+    ticker = ticker.strip().upper()
+
+    stored_data = get_stock_data(ticker)
+    if stored_data:
+        _logger.info("Company data loaded from database.", ticker=ticker)
+        return Company(**stored_data)
+
     name, last_price, price_history, extra_price_point = await get_price_history(ticker, years)
-    financials, _ = await get_stock_info(ticker, years)
+    financials, reports = await get_stock_info(ticker, years)
 
-    # If current quarter's 10-Q is not in EDGAR yet,
-    # shift price history back one quarter
+    # If current quarter's 10-Q is not in EDGAR yet, shift price history back one quarter
     if list(price_history)[-1] != list(financials["revenue"])[-1]:
         price_history.popitem()
         quarter, price = extra_price_point.popitem()
@@ -75,4 +86,7 @@ async def get_financials(ticker: str, years: str = 5) -> Company:
         "historical_prices": price_history
     }
 
-    return Company(**financial_data)
+    company = Company(**financial_data)
+    save_stock_data(company, reports)
+
+    return company

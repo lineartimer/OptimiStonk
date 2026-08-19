@@ -143,21 +143,25 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     _logger.info(f"Downloaded financial data for {company.name} "
                  "from the EDGAR database.")
 
-    return {
+    financials = {
         "revenue": dict(sorted(quarterly_revenues.items())),
         "r_and_d_expense": dict(sorted(quarterly_r_and_d_expenses.items())),
         "share_count": dict(sorted(quarterly_share_counts.items())),
         "investment_cash_flow": dict(sorted(quarterly_investments.items()))
-    }, {
+    }
+
+    reports = {
         "latest_10k": {
-            "date": latest_10k.filing_date,
+            "date": latest_10k.filing_date.isoformat(),
             "document": latest_10k.markdown()
         },
         "latest_10q": {
-            "date": latest_10q.filing_date,
+            "date": latest_10q.filing_date.isoformat(),
             "document": latest_10q.markdown()
         }
     }
+
+    return financials, reports
 
 
 def _get_revenue(income_statement) -> float:

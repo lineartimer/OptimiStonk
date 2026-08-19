@@ -1,0 +1,57 @@
+import httpx
+from markdownify import markdownify
+import structlog
+
+from backend.db.database import get_web_page, save_web_page
+
+
+BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
+
+
+_logger = structlog.get_logger(__name__)
+
+
+async def load_web_page(url: str) -> str:
+    """
+    Loads a web page.
+
+    Args:
+        url: Url of the web page.
+    """
+
+    stored_page = get_web_page(url)
+    if stored_page:
+        _logger.info("Web page loaded from database.", url=url)
+        return stored_page.content
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+
+            content = markdownify(response.text, heading_style="ATX")
+
+        save_web_page(url, content)
+
+        _logger.info("Web page downloaded and saved.", url=url)
+        return content
+    
+    except Exception as e:
+        _logger.error("Page load failed.", error=e)
+        return ""
+
+
+async def download_file(url: str) -> str:
+    """
+    Downloads a file from the internet.
+
+    Args:
+        url: Url to the file.
+    """
+    
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+
+    _logger.info("File downloaded.", url=url)
+    return response.text

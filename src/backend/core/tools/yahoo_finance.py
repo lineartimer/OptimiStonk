@@ -64,7 +64,7 @@ async def get_price_history(ticker: str, years: int) -> dict:
         quarter, price = prices_by_quarter.popitem()
         extra_price_point[quarter] = price
 
-    _logger.info(f"Downloaded price data for {name} from Yahoo Finance.")
+    _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
 
     # Return prices in normal order
     return name, last_price, dict(reversed(prices_by_quarter.items())), extra_price_point

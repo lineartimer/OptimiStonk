@@ -2,6 +2,8 @@ import httpx
 import os
 import structlog
 
+from backend.db.database import get_web_search, save_web_search
+
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 
@@ -16,6 +18,17 @@ async def web_search(query: str) -> list:
     Args:
         query: Search query.
     """
+
+    stored_search = get_web_search(query)
+    if stored_search:
+        _logger.info(
+            "Web search loaded from database.",
+            query=query,
+            result_count=len(stored_search.search_result)
+        )
+
+        return stored_search.search_result
+
     search_results = []
 
     try:
@@ -38,6 +51,7 @@ async def web_search(query: str) -> list:
     
     except Exception as e:
         _logger.error("Web search failed.", error=str(e))
+        return []
 
     cleaned_result = []
     for search_result in search_results:
@@ -61,5 +75,12 @@ async def web_search(query: str) -> list:
                 "url": sub_result.get("url")
             })
 
-    _logger.info("Web search completed.", query=query, result_count=len(cleaned_result))
+    save_web_search(query, cleaned_result)
+
+    _logger.info(
+        "Web search completed and saved.",
+        query=query,
+        result_count=len(cleaned_result)
+    )
+
     return cleaned_result
