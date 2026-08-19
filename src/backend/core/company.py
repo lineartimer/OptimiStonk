@@ -69,7 +69,8 @@ class Company:
         quarters = np.arange(revenues.size)
         quarterly_log_growth = np.polyfit(
             quarters,
-            np.log(revenues),
+            # Add a small amount ($1M) to each value to avoid log(0)
+            np.log(revenues + 1),
             deg=1
         )[0]
 
@@ -84,6 +85,10 @@ class Company:
             share_count = self.get_share_count(quarter)
             price = self.get_price(quarter)
             revenue = self.get_revenue(quarter)
+
+            # Ignore years with 0 revenues
+            if revenue == 0:
+                continue
 
             price_to_revenue = share_count * price / (4 * revenue)
 

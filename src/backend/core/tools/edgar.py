@@ -23,9 +23,11 @@ R_AND_D_NAMES = {
     "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
 }
 
-
-class RevenueNotFoundError(LookupError):
-    pass
+SHARE_COUNT_NAMES = (
+    "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
+    "us-gaap:WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
+    "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"
+)
 
 
 async def get_stock_info(ticker: str, years: int = 5) -> dict:
@@ -38,7 +40,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
 
     company = Company(ticker)
-    form_10qs = company.get_filings(form="10-Q")
+    form_10qs = company.get_filings(form="10-Q", amendments=False)
     splits = detect_splits(company.get_facts().get_all_facts())
 
     quarterly_revenues = {}
@@ -62,13 +64,17 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
 
-        quarterly_revenue = int(_get_revenue(income_statement) / UNIT)
-        quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
-        quarterly_share_count = int(split * xbrl.facts.time_series("us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding").iloc[-1]["numeric_value"] / UNIT)
+        try:
+            quarterly_revenue = int(_get_revenue(income_statement) / UNIT)
+            quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
+            quarterly_share_count = int(split * _get_weighted_average_share_count(xbrl) / UNIT)
+            investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
+            quarterly_investment = int(investment_df.iloc[-1]["numeric_value"] / UNIT)
 
-        investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
-
-        quarterly_investment = int(investment_df.iloc[-1]["numeric_value"] / UNIT)
+        except LookupError as e:
+            # Stop processing if financial data cannot be extracted from the current 10-Q
+            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, error=str(e))
+            break
 
         for s in splits:
             if s["date"].year == year and (s["date"].month - 1) // 3 + 1 == quarter:
@@ -183,7 +189,7 @@ def _get_revenue(income_statement) -> float:
             if match.values and match.values[0] is not None:
                 return match.values[0]
     
-    raise RevenueNotFoundError("Couldn't find revenue in income statement.")
+    raise LookupError("Couldn't find revenue in income statement.")
 
 
 def _get_r_and_d_expense(income_statement) -> float:
@@ -203,3 +209,16 @@ def _get_r_and_d_expense(income_statement) -> float:
 
     # The company doesn't do R&D
     return 0
+
+
+def _get_weighted_average_share_count(xbrl) -> float:
+    # Try to find share count
+    for concept in SHARE_COUNT_NAMES:
+        df = xbrl.facts.time_series(concept)
+
+        if not df.empty:
+            values = df["numeric_value"].dropna()
+            if not values.empty:
+                return float(values.iloc[-1])
+
+    raise LookupError("Couldn't find share count.")
