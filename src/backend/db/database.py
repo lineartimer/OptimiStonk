@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
 from backend.db.models import (
-    Base, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
+    Base, Failed, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
 )
 
 
@@ -107,6 +107,19 @@ def get_stock_data(ticker: str) -> dict | None:
                 )
             }
         }
+
+
+def save_failed_stock(ticker: str, reason: str) -> None:
+    ticker = ticker.strip().upper()
+
+    with SessionFactory() as session:
+        failed = session.get(Failed, ticker)
+        if failed is None:
+            session.add(Failed(ticker=ticker, reason=reason))
+        else:
+            failed.reason = reason
+
+        session.commit()
 
 
 def save_stock_data(company, reports: dict) -> None:

@@ -37,7 +37,7 @@ async def load_web_page(url: str) -> str:
         return content
     
     except Exception as e:
-        _logger.error("Page load failed.", error=e)
+        _logger.error("Page load failed.", http_status=response.status_code, url=url)
         return ""
 
 

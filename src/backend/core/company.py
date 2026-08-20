@@ -54,12 +54,12 @@ class Company:
     def get_share_count(self, quarter: str) -> int:
         return self._historical_data[quarter]["share_count"]
 
+    def rank_market(self) -> float:
+        return round(self.revenue_growth_per_year() / self.price_to_revenue_ratio(), 4)
+
     def rank_backlog(self) -> float:
         # Can handle negative growth and infinite price-to-backlog ratio
-        return round((1 + self.revenue_growth_per_year()) / self.price_to_backlog_ratio(), 2)
-
-    def rank_market(self) -> float:
-        return round(self.revenue_growth_per_year() / self.price_to_revenue_ratio(), 2)
+        return round((1 + self.revenue_growth_per_year()) / self.price_to_backlog_ratio(), 4)
 
     def price_to_revenue_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
@@ -96,7 +96,7 @@ class Company:
 
         annual_growth = np.expm1(4 * quarterly_log_growth)
 
-        return round(float(annual_growth), 2)
+        return round(float(annual_growth), 4)
 
     def relative_hype(self) -> float:
         min = float("inf")
@@ -120,7 +120,7 @@ class Company:
 
         current = share_count * self.last_price / (4 * revenue)
 
-        return round((current - min) / (max - min), 2)
+        return round((current - min) / (max - min), 4)
 
     def to_json(self) -> dict:
         price_to_revenue = self.price_to_revenue_ratio()
@@ -135,8 +135,8 @@ class Company:
             "name": self.name,
             "ticker": self.ticker,
             "last_price": self.last_price,
-            "rank_backlog": self.rank_backlog(),
             "rank_market": self.rank_market(),
+            "rank_backlog": self.rank_backlog(),
             "backlog": self.backlog,
             "financial_data": {
                 quarter: {

@@ -4,7 +4,7 @@ import structlog
 
 from backend.api.get_stock import get_stock
 from backend.db.database import SessionFactory
-from backend.db.models import Market, Stock
+from backend.db.models import Failed, Market, Stock
 
 
 router = APIRouter()
@@ -32,6 +32,9 @@ async def _get_random_ticker():
             .where(
                 ~select(Stock.id)
                 .where(Stock.ticker == Market.ticker)
+                .exists(),
+                ~select(Failed.ticker)
+                .where(Failed.ticker == Market.ticker)
                 .exists()
             )
             .order_by(func.random())
