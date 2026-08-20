@@ -39,7 +39,8 @@ class Stock(Base):
     name: Mapped[str] = mapped_column(Text)
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
     last_price: Mapped[float] = mapped_column(Float)
-    rank: Mapped[float] = mapped_column(Float)
+    rank_backlog: Mapped[float] = mapped_column(Float)
+    rank_market: Mapped[float] = mapped_column(Float)
     backlog: Mapped[int]
     price_to_revenue: Mapped[float] = mapped_column(Float)
     price_to_backlog: Mapped[float] = mapped_column(Float)

@@ -54,9 +54,12 @@ class Company:
     def get_share_count(self, quarter: str) -> int:
         return self._historical_data[quarter]["share_count"]
 
-    def rank(self) -> float:
+    def rank_backlog(self) -> float:
         # Can handle negative growth and infinite price-to-backlog ratio
         return round((1 + self.revenue_growth_per_year()) / self.price_to_backlog_ratio(), 2)
+
+    def rank_market(self) -> float:
+        return round(self.revenue_growth_per_year() / self.price_to_revenue_ratio(), 2)
 
     def price_to_revenue_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
@@ -132,7 +135,8 @@ class Company:
             "name": self.name,
             "ticker": self.ticker,
             "last_price": self.last_price,
-            "rank": self.rank(),
+            "rank_backlog": self.rank_backlog(),
+            "rank_market": self.rank_market(),
             "backlog": self.backlog,
             "financial_data": {
                 quarter: {
