@@ -73,7 +73,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
         except LookupError as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
-            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, error=str(e))
+            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=quarter, error=str(e))
             break
 
         for s in splits:
@@ -141,17 +141,14 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         quarterly_investments[key] = quarterly_investment
 
         previous_quarter = quarter
-    
-    if len(quarterly_revenues) > 0:
+
+    if len(quarterly_revenues) < 2:
+        raise ValueError(f"Less than 2 quarters of financial data could be parsed from EDGAR for {ticker}.")
+
+    if len(quarterly_revenues) > 4 * years:
         quarterly_revenues.popitem()
-
-    if len(quarterly_r_and_d_expenses) > 0:
         quarterly_r_and_d_expenses.popitem()
-
-    if len(quarterly_share_counts) > 0:
         quarterly_share_counts.popitem()
-
-    if len(quarterly_investments) > 0:
         quarterly_investments.popitem()
 
     latest_10k = company.get_filings(form="10-K").latest(1) or ""

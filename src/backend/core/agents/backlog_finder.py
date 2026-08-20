@@ -42,5 +42,5 @@ class BacklogFinder:
 
         backlog = result["structured_response"].backlog_millions
 
-        _logger.info(f"{company_name}'s backlog found.")
+        _logger.info(f"{company_name}'s backlog is {backlog}.")
         return backlog

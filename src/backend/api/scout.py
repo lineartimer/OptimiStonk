@@ -24,6 +24,7 @@ async def scout():
 
     return await get_stock(ticker)
 
+
 async def _get_random_ticker():
     with SessionFactory() as session:
         ticker = session.scalar(

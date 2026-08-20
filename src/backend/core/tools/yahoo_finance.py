@@ -63,6 +63,9 @@ async def get_price_history(ticker: str, years: int) -> dict:
     if len(prices_by_quarter) > 0 and not period_finished:
         quarter, price = prices_by_quarter.popitem()
         extra_price_point[quarter] = price
+    
+    if len(prices_by_quarter) < 2:
+        raise ValueError(f"Less than 2 quarters of financial data could be downloaded from Yahoo Finance for {ticker}.")
 
     _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
 

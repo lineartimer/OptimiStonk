@@ -12,6 +12,8 @@ from backend.db.database import get_stock_data, save_stock_data
 
 _logger = structlog.get_logger(__name__)
 
+SEARCH_QUERY = "How big is {company_name}'s backlog?"
+
 
 async def get_financials(ticker: str, years: int = 5) -> Company:
     ticker = ticker.strip().upper()
@@ -25,7 +27,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
     financials, reports = await get_stock_info(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet, shift price history back one quarter
-    if len(price_history) > 0 and len(financials) > 0 and list(price_history)[-1] != list(financials["revenue"])[-1]:
+    if len(price_history) > 0 and len(financials["revenue"]) > 0 and list(price_history)[-1] != list(financials["revenue"])[-1]:
         price_history.popitem()
         quarter, price = extra_price_point.popitem()
 
@@ -51,6 +53,11 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         financials["share_count"] = dict(sorted(financials["share_count"].items()))
         financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
 
+    # Stop processing if there isn't at least 2 quarters of data
+    num_quarters = len(price_history)
+    if num_quarters < 2:
+        raise ValueError(f"{num_quarters} quarter(s) of financial data could be parsed for {name}.")
+
     # Find out how big the backlog is
     prompt = {
         "company": name,
@@ -59,7 +66,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
     }
 
     cnt = 1
-    search_results = await web_search(f"How big is {name}'s backlog?")
+    search_results = await web_search(SEARCH_QUERY.format(company_name=name))
     for search_result in search_results:
         if cnt > 5:
             break
