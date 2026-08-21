@@ -90,10 +90,10 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
 
         try:
-            quarterly_revenue = int(_get_revenue(income_statement) / UNIT)
-            quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
-            quarterly_share_count = int(split * _get_weighted_average_share_count(xbrl) / UNIT)
-            quarterly_investment = int(_get_investment_cashflow(xbrl) / UNIT)
+            quarterly_revenue = round(_get_revenue(income_statement) / UNIT)
+            quarterly_r_and_d_expense = round(_get_r_and_d_expense(income_statement) / UNIT)
+            quarterly_share_count = round(split * _get_weighted_average_share_count(xbrl) / UNIT)
+            quarterly_investment = round(_get_investment_cashflow(xbrl) / UNIT)
 
         except LookupError as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
@@ -123,7 +123,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
                 # Estimate missing quarter by the quarters surrounding it
                 key = f"{year_of_missing_quarter}/{missing_quarter}"
 
-                missing_revenue = int(
+                missing_revenue = round(
                     (
                         list(quarterly_revenues.values())[-1] +
                         quarterly_revenue
@@ -131,7 +131,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
                 )
                 quarterly_revenues[key] = missing_revenue
 
-                missing_r_and_d_expense = int(
+                missing_r_and_d_expense = round(
                     (
                         list(quarterly_r_and_d_expenses.values())[-1] +
                         quarterly_r_and_d_expense
@@ -139,7 +139,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
                 )
                 quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
 
-                missing_share_count = int(
+                missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
                         quarterly_share_count
@@ -147,7 +147,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
                 )
                 quarterly_share_counts[key] = missing_share_count
 
-                missing_investment = int(
+                missing_investment = round(
                     (
                         list(quarterly_investments.values())[-1] +
                         quarterly_investment
@@ -182,10 +182,10 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
                  "from the EDGAR database.")
 
     financials = {
-        "revenue": dict(sorted(quarterly_revenues.items())),
-        "r_and_d_expense": dict(sorted(quarterly_r_and_d_expenses.items())),
-        "share_count": dict(sorted(quarterly_share_counts.items())),
-        "investment_cash_flow": dict(sorted(quarterly_investments.items()))
+        "revenue": _clean_result(quarterly_revenues),
+        "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
+        "share_count": _clean_result(quarterly_share_counts),
+        "investment_cash_flow": _clean_result(quarterly_investments)
     }
 
     reports = {
@@ -260,3 +260,21 @@ def _get_investment_cashflow(xbrl) -> float:
 
     except Exception as e:
         raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
+
+
+def _clean_result(data: dict) -> dict:
+    sorted_backward = dict(sorted(data.items(), reverse = True))
+
+    result = {}
+    q_frac_prev = None
+    for q in sorted_backward.keys():
+        year, quarter = q.split("/")
+        q_frac = int(year) + int(quarter) / 4
+
+        if q_frac_prev and q_frac_prev - q_frac > 0.25:
+            break
+
+        result[q] = sorted_backward[q]
+        q_frac_prev = q_frac
+
+    return dict(sorted(result.items()))

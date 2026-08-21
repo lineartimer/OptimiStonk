@@ -53,9 +53,9 @@ class Stock(Base):
     price_to_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
     revenue_growth: Mapped[float | None] = mapped_column(Float, nullable=True)
     relative_hype: Mapped[float | None] = mapped_column(Float, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     annual_report: Mapped[dict] = mapped_column(JSON)
     quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     financial_data: Mapped[list[FinancialData]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
