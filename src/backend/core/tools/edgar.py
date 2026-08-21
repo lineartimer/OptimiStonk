@@ -30,6 +30,26 @@ SHARE_COUNT_NAMES = (
 )
 
 
+class EdgarTickerNotFoundError(Exception):
+    pass
+
+
+class EdgarParseError(Exception):
+    pass
+
+
+class EdgarDataLessThanTwoQuartersError(Exception):
+    pass
+
+
+class _CouldNotFindRevenueError(LookupError):
+    pass
+
+
+class _CouldNotFindShareCountError(LookupError):
+    pass
+
+
 async def get_stock_info(ticker: str, years: int = 5) -> dict:
     """
     Downloads financial data of a company from the EDGAR database.
@@ -39,7 +59,12 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         years: Time period of the financial data.
     """
 
-    company = Company(ticker)
+    try:
+        company = Company(ticker)
+
+    except Exception as e:
+        raise EdgarTickerNotFoundError(str(e))
+
     form_10qs = company.get_filings(form="10-Q", amendments=False)
     splits = detect_splits(company.get_facts().get_all_facts())
 
@@ -68,13 +93,12 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
             quarterly_revenue = int(_get_revenue(income_statement) / UNIT)
             quarterly_r_and_d_expense = int(_get_r_and_d_expense(income_statement) / UNIT)
             quarterly_share_count = int(split * _get_weighted_average_share_count(xbrl) / UNIT)
-            investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
-            quarterly_investment = int(investment_df.iloc[-1]["numeric_value"] / UNIT)
+            quarterly_investment = int(_get_investment_cashflow(xbrl) / UNIT)
 
         except LookupError as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
             _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=quarter, error=str(e))
-            break
+            raise EdgarParseError(f"{str(e)} Affected quarter: {year}/{quarter}.")
 
         for s in splits:
             if s["date"].year == year and (s["date"].month - 1) // 3 + 1 == quarter:
@@ -143,7 +167,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         previous_quarter = quarter
 
     if len(quarterly_revenues) < 2:
-        raise ValueError(f"Less than 2 quarters of financial data could be parsed from EDGAR for {ticker}.")
+        raise EdgarDataLessThanTwoQuartersError(f"Less than 2 quarters of financial data could be parsed from EDGAR for {ticker}.")
 
     if len(quarterly_revenues) > 4 * years:
         quarterly_revenues.popitem()
@@ -193,7 +217,7 @@ def _get_revenue(income_statement) -> float:
             if match.values and match.values[0] is not None:
                 return match.values[0]
     
-    raise LookupError("Couldn't find revenue in income statement.")
+    raise _CouldNotFindRevenueError("Couldn't find revenue in income statement.")
 
 
 def _get_r_and_d_expense(income_statement) -> float:
@@ -225,4 +249,14 @@ def _get_weighted_average_share_count(xbrl) -> float:
             if not values.empty:
                 return float(values.iloc[-1])
 
-    raise LookupError("Couldn't find share count.")
+    raise _CouldNotFindShareCountError("Couldn't find share count.")
+
+
+def _get_investment_cashflow(xbrl) -> float:
+    # Try to find investment cashflow
+    try:
+        investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
+        return investment_df.iloc[-1]["numeric_value"]
+
+    except Exception as e:
+        raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
