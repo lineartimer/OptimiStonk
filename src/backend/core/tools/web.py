@@ -24,6 +24,7 @@ async def load_web_page(url: str) -> str:
         _logger.info("Web page loaded from database.", url=url)
         return stored_page.content
 
+    response = {}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             response = await client.get(url)
@@ -35,10 +36,17 @@ async def load_web_page(url: str) -> str:
 
         _logger.info("Web page downloaded and saved.", url=url)
         return content
-    
+
+    except httpx.ReadTimeout:
+        _logger.error("Page load failed.", error="HTTP request has timed out.", url=url)
+
     except Exception as e:
-        _logger.error("Page load failed.", http_status=response.status_code, url=url)
-        return ""
+        if response and response.status_code:
+            _logger.error("Page load failed.", http_status=response.status_code, url=url)
+        else:
+            _logger.error("Page load failed.", error=str(e), url=url)
+            
+    return ""
 
 
 async def download_file(url: str) -> str:

@@ -118,7 +118,10 @@ class Company:
             if price_to_revenue > max:
                 max = price_to_revenue
 
-        current = share_count * self.last_price / (4 * revenue)
+        if revenue == 0:
+            current = float("inf")
+        else:
+            current = share_count * self.last_price / (4 * revenue)
 
         return round((current - min) / (max - min), 4)
 
@@ -130,6 +133,10 @@ class Company:
         price_to_backlog = self.price_to_backlog_ratio()
         if price_to_backlog == float("inf"):
             price_to_backlog = str(price_to_backlog)
+
+        relative_hype = self.relative_hype()
+        if relative_hype == float("inf"):
+            relative_hype = str(relative_hype)
         
         return {
             "name": self.name,
@@ -153,7 +160,7 @@ class Company:
                 "price_to_revenue_ratio": price_to_revenue,
                 "price_to_backlog_ratio": price_to_backlog,
                 "revenue_growth_per_year": self.revenue_growth_per_year(),
-                "relative_hype": self.relative_hype()
+                "relative_hype": relative_hype
             }
         }
 

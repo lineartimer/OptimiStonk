@@ -46,15 +46,16 @@ class Stock(Base):
     name: Mapped[str] = mapped_column(Text)
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
     last_price: Mapped[float] = mapped_column(Float)
-    rank_market: Mapped[float] = mapped_column(Float)
-    rank_backlog: Mapped[float] = mapped_column(Float)
-    backlog: Mapped[int]
-    price_to_revenue: Mapped[float] = mapped_column(Float)
-    price_to_backlog: Mapped[float] = mapped_column(Float)
-    revenue_growth: Mapped[float] = mapped_column(Float)
-    relative_hype: Mapped[float] = mapped_column(Float)
+    rank_market: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rank_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
+    backlog: Mapped[int | None] = mapped_column(nullable=True)
+    price_to_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_to_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
+    revenue_growth: Mapped[float | None] = mapped_column(Float, nullable=True)
+    relative_hype: Mapped[float | None] = mapped_column(Float, nullable=True)
     annual_report: Mapped[dict] = mapped_column(JSON)
-    quarterly_report: Mapped[dict] = mapped_column(JSON)
+    quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     financial_data: Mapped[list[FinancialData]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"

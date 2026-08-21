@@ -35,23 +35,22 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         price_history = dict(sorted(price_history.items()))
 
     # Only keep the intersection of the quarters returned from Yahoo Finance and EDGAR
-    if len(price_history) != len(financials["revenue"]):
-        common_keys = price_history.keys() & financials["revenue"].keys()
+    common_keys = price_history.keys() & financials["revenue"].keys()
 
-        price_history = {k: price_history[k] for k in common_keys}
+    price_history = {k: price_history[k] for k in common_keys}
 
-        financials["revenue"] = {k: financials["revenue"][k] for k in common_keys}
-        financials["r_and_d_expense"] = {k: financials["r_and_d_expense"][k] for k in common_keys}
-        financials["share_count"] = {k: financials["share_count"][k] for k in common_keys}
-        financials["investment_cash_flow"] = {k: financials["investment_cash_flow"][k] for k in common_keys}
+    financials["revenue"] = {k: financials["revenue"][k] for k in common_keys}
+    financials["r_and_d_expense"] = {k: financials["r_and_d_expense"][k] for k in common_keys}
+    financials["share_count"] = {k: financials["share_count"][k] for k in common_keys}
+    financials["investment_cash_flow"] = {k: financials["investment_cash_flow"][k] for k in common_keys}
 
-        # Taking the intersection discards the order, so order the dictionaries
-        price_history = dict(sorted(price_history.items()))
+    # Taking the intersection discards the order, so order the dictionaries
+    price_history = dict(sorted(price_history.items()))
 
-        financials["revenue"] = dict(sorted(financials["revenue"].items()))
-        financials["r_and_d_expense"] = dict(sorted(financials["r_and_d_expense"].items()))
-        financials["share_count"] = dict(sorted(financials["share_count"].items()))
-        financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
+    financials["revenue"] = dict(sorted(financials["revenue"].items()))
+    financials["r_and_d_expense"] = dict(sorted(financials["r_and_d_expense"].items()))
+    financials["share_count"] = dict(sorted(financials["share_count"].items()))
+    financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
 
     # Stop processing if there isn't at least 2 quarters of data
     num_quarters = len(price_history)
