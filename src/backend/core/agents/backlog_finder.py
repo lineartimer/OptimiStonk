@@ -1,7 +1,6 @@
 import json
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
-import openai
 from pydantic import BaseModel, Field
 import structlog
 
@@ -35,7 +34,7 @@ class BacklogFinder:
     
     async def run(self, company_name: str, prompt: dict) -> int:
         prompt = json.dumps(prompt, ensure_ascii=False)
-        _logger.info("Running agent.", prompt_size=len(prompt))
+        _logger.info("Running backlog finder agent.", prompt_size=len(prompt))
 
         result = await self._agent.ainvoke({
             "messages": [{

@@ -97,6 +97,7 @@ def get_stock_data(ticker: str) -> dict | None:
             "ticker": stock.ticker,
             "last_price": stock.last_price,
             "backlog": stock.backlog,
+            "summary": stock.summary,
             "historical_prices": {
                 row.quarter: prices[row.quarter] for row in financial_rows
             },
@@ -135,6 +136,7 @@ def save_stock_data(company, reports: dict) -> None:
             price_to_backlog=company.price_to_backlog_ratio(),
             revenue_growth=company.revenue_growth_per_year(),
             relative_hype=company.relative_hype(),
+            summary=company.summary,
             annual_report=reports["latest_10k"],
             quarterly_report=reports["latest_10q"]
         )

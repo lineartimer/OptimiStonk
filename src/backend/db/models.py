@@ -54,7 +54,7 @@ class Stock(Base):
     revenue_growth: Mapped[float | None] = mapped_column(Float, nullable=True)
     relative_hype: Mapped[float | None] = mapped_column(Float, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    annual_report: Mapped[dict] = mapped_column(JSON)
+    annual_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     financial_data: Mapped[list[FinancialData]] = relationship(

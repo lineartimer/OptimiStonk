@@ -2,9 +2,10 @@ from datetime import date
 import structlog
 
 from backend.core.agents.backlog_finder import BacklogFinder
+from backend.core.agents.summarizer import Summarizer
 from backend.core.company import Company
 from backend.core.tools.brave_search import web_search
-from backend.core.tools.edgar import get_stock_info
+from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import load_web_page
 from backend.core.tools.yahoo_finance import get_price_history
 from backend.db.database import get_stock_data, save_stock_data
@@ -15,7 +16,7 @@ _logger = structlog.get_logger(__name__)
 SEARCH_QUERY = "How big is {company_name}'s backlog?"
 
 
-async def get_financials(ticker: str, years: int = 5) -> Company:
+async def get_stock(ticker: str, years: int = 5) -> Company:
     ticker = ticker.strip().upper()
 
     stored_data = get_stock_data(ticker)
@@ -24,10 +25,11 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         return Company(**stored_data)
 
     name, last_price, price_history, extra_price_point = await get_price_history(ticker, years)
-    financials, reports = await get_stock_info(ticker, years)
+    financials, reports = await get_financial_data(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet, shift price history back one quarter
-    if len(price_history) > 0 and len(financials["revenue"]) > 0 and list(price_history)[-1] != list(financials["revenue"])[-1]:
+    if (len(price_history) > 0 and len(financials["revenue"]) > 0 and
+        list(price_history)[-1] != list(financials["revenue"])[-1]):
         price_history.popitem()
         quarter, price = extra_price_point.popitem()
 
@@ -44,7 +46,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
     financials["share_count"] = {k: financials["share_count"][k] for k in common_keys}
     financials["investment_cash_flow"] = {k: financials["investment_cash_flow"][k] for k in common_keys}
 
-    # Taking the intersection discards the order, so order the dictionaries
+    # Taking the intersection discards the order, so order dictionaries again
     price_history = dict(sorted(price_history.items()))
 
     financials["revenue"] = dict(sorted(financials["revenue"].items()))
@@ -52,13 +54,8 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
     financials["share_count"] = dict(sorted(financials["share_count"].items()))
     financials["investment_cash_flow"] = dict(sorted(financials["investment_cash_flow"].items()))
 
-    # Stop processing if there isn't at least 2 quarters of data
-    num_quarters = len(price_history)
-    if num_quarters < 2:
-        raise ValueError(f"{num_quarters} quarter(s) of financial data could be parsed for {name}.")
-
     # Find out how big the backlog is
-    prompt = {
+    prompt_backlog = {
         "company": name,
         "current_date": date.today().isoformat(),
         "web_pages": []
@@ -70,7 +67,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         if cnt > 5:
             break
 
-        prompt["web_pages"].append({
+        prompt_backlog["web_pages"].append({
             "title": search_result["title"],
             "publish_date": search_result["publish_date"],
             "content": await load_web_page(search_result["url"])
@@ -78,7 +75,17 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         cnt += 1
 
     backlog_finder = BacklogFinder()
-    backlog = await backlog_finder.run(name, prompt)
+    backlog = await backlog_finder.run(name, prompt_backlog)
+
+    # Create a summary of the company
+    prompt_summarizer = {
+        "company": name,
+        "latest_10k": reports["latest_10k"]["document"],
+        "latest_10q": reports["latest_10q"]["document"]
+    }
+
+    summarizer = Summarizer()
+    summary = await summarizer.run(name, prompt_summarizer)
 
     financial_data = {
         "name": name,
@@ -89,6 +96,7 @@ async def get_financials(ticker: str, years: int = 5) -> Company:
         "investment_cash_flow": financials["investment_cash_flow"],
         "share_count": financials["share_count"],
         "backlog": backlog,
+        "summary": summary,
         "historical_prices": price_history
     }
 

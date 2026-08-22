@@ -9,10 +9,6 @@ class YahooFinanceTickerNotFoundError(Exception):
     pass
 
 
-class YahooFinanceDataLessThanTwoQuartersError(Exception):
-    pass
-
-
 async def get_price_history(ticker: str, years: int) -> dict:
     """
     Downloads historical prices of a stock from Yahoo Finance.
@@ -28,11 +24,11 @@ async def get_price_history(ticker: str, years: int) -> dict:
         lp = stock.fast_info.last_price
 
     except KeyError:
-        raise YahooFinanceTickerNotFoundError()
+        raise YahooFinanceTickerNotFoundError("Ticker not found.")
 
     # Needed if hovered the mouse over last_price while debugging
     if not lp:
-        raise YahooFinanceTickerNotFoundError()
+        raise YahooFinanceTickerNotFoundError("Ticker not found.")
 
     last_price = round(float(lp), 2)
 
@@ -82,9 +78,6 @@ async def get_price_history(ticker: str, years: int) -> dict:
         quarter, price = prices_by_quarter.popitem()
         extra_price_point[quarter] = price
     
-    if len(prices_by_quarter) < 2:
-        raise YahooFinanceDataLessThanTwoQuartersError(f"Less than 2 quarters of financial data could be downloaded from Yahoo Finance for {ticker}.")
-
     _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
 
     # Return prices in normal order

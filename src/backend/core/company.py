@@ -6,22 +6,14 @@ class Company:
                  name: str,
                  ticker: str,
                  last_price: int,
-                 historical_prices: dict,
                  revenue: dict,
                  r_and_d_expense: dict,
                  investment_cash_flow: dict,
                  share_count: dict,
-                 backlog: int
+                 backlog: int,
+                 summary: str,
+                 historical_prices: dict
     ):
-        if (
-            len(historical_prices) < 2 or
-            len(revenue) < 2 or
-            len(r_and_d_expense) < 2 or
-            len(investment_cash_flow) < 2 or
-            len(share_count) < 2
-        ):
-            raise ValueError("At least two quarters of financial data needed.")
-
         self.name = name
         self.ticker = ticker
         self.last_price = last_price
@@ -38,32 +30,45 @@ class Company:
             }
 
         self.backlog = backlog
+        self.summary = summary
 
-    def get_price(self, quarter: str) -> int:
-        return self._historical_data[quarter]["price"]
+    def get_price(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("price")
 
-    def get_revenue(self, quarter: str) -> int:
-        return self._historical_data[quarter]["revenue"]
+    def get_revenue(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("revenue")
 
-    def get_r_and_d_expense(self, quarter: str) -> int:
-        return self._historical_data[quarter]["r_and_d_expense"]
+    def get_r_and_d_expense(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("r_and_d_expense")
 
-    def get_investment_cash_flow(self, quarter: str) -> int:
-        return self._historical_data[quarter]["investment_cash_flow"]
+    def get_investment_cash_flow(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("investment_cash_flow")
 
-    def get_share_count(self, quarter: str) -> int:
-        return self._historical_data[quarter]["share_count"]
+    def get_share_count(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("share_count")
 
     def rank_market(self) -> float:
-        return round(self.revenue_growth_per_year() / self.price_to_revenue_ratio(), 4)
+        revenue_growth_per_year = self.revenue_growth_per_year()
+        price_to_revenue_ratio = self.price_to_revenue_ratio()
+
+        if not revenue_growth_per_year or not price_to_revenue_ratio:
+            return None
+
+        return round(revenue_growth_per_year / price_to_revenue_ratio, 4)
 
     def rank_backlog(self) -> float:
+        revenue_growth_per_year = self.revenue_growth_per_year()
+        price_to_backlog_ratio = self.price_to_backlog_ratio()
+
         # Can handle negative growth and infinite price-to-backlog ratio
-        return round((1 + self.revenue_growth_per_year()) / self.price_to_backlog_ratio(), 4)
+        return round((1 + revenue_growth_per_year) / price_to_backlog_ratio, 4)
 
     def price_to_revenue_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
         revenue = self.get_revenue(last_quarter)
+
+        if not last_quarter:
+            return None
 
         if revenue == 0:
             return float("inf")
@@ -71,13 +76,19 @@ class Company:
         return round(self.last_price * self.get_share_count(last_quarter) / (4 * revenue), 2)
 
     def price_to_backlog_ratio(self) -> float:
+        last_quarter = self._get_last_quarter()
+        if not last_quarter:
+            return None
+        
         if self.backlog == 0:
             return float("inf")
         
-        last_quarter = self._get_last_quarter()
         return round(self.last_price * self.get_share_count(last_quarter) / self.backlog, 2)
 
     def revenue_growth_per_year(self) -> float:
+        if len(self._historical_data) < 2:
+            return None
+        
         revenues = np.array(
             [
                 data["revenue"]
@@ -99,6 +110,9 @@ class Company:
         return round(float(annual_growth), 4)
 
     def relative_hype(self) -> float:
+        if len(self._historical_data) == 0:
+            return None
+        
         min = float("inf")
         max = float("-inf")
         for quarter in self._historical_data.keys():
@@ -142,6 +156,7 @@ class Company:
             "name": self.name,
             "ticker": self.ticker,
             "last_price": self.last_price,
+            "summary": self.summary,
             "rank_market": self.rank_market(),
             "rank_backlog": self.rank_backlog(),
             "backlog": self.backlog,
@@ -165,4 +180,4 @@ class Company:
         }
 
     def _get_last_quarter(self) -> str:
-        return list(self._historical_data)[-1]
+        return list(self._historical_data)[-1] if self._historical_data else None

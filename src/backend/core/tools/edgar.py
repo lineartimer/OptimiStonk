@@ -38,10 +38,6 @@ class EdgarParseError(Exception):
     pass
 
 
-class EdgarDataLessThanTwoQuartersError(Exception):
-    pass
-
-
 class _CouldNotFindRevenueError(LookupError):
     pass
 
@@ -50,7 +46,7 @@ class _CouldNotFindShareCountError(LookupError):
     pass
 
 
-async def get_stock_info(ticker: str, years: int = 5) -> dict:
+async def get_financial_data(ticker: str, years: int = 5) -> dict:
     """
     Downloads financial data of a company from the EDGAR database.
 
@@ -63,7 +59,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         company = Company(ticker)
 
     except Exception as e:
-        raise EdgarTickerNotFoundError(str(e))
+        raise EdgarTickerNotFoundError(f"Ticker not found. {str(e)}")
 
     form_10qs = company.get_filings(form="10-Q", amendments=False)
     splits = detect_splits(company.get_facts().get_all_facts())
@@ -77,8 +73,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
     missing_quarter = None
     split = 1
     for form_10q in form_10qs:
-        # As full-year quarters are not reported,
-        # every year will have only 3 quarters
+        # As full-year quarters are not reported, every year will have only 3 quarters
         xbrl = form_10q.xbrl()
         income_statement = xbrl.statements.income_statement()
         period = income_statement.render().header.periods[0]
@@ -98,7 +93,7 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
         except LookupError as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
             _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=quarter, error=str(e))
-            raise EdgarParseError(f"{str(e)} Affected quarter: {year}/{quarter}.")
+            break
 
         for s in splits:
             if s["date"].year == year and (s["date"].month - 1) // 3 + 1 == quarter:
@@ -166,17 +161,18 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
         previous_quarter = quarter
 
-    if len(quarterly_revenues) < 2:
-        raise EdgarDataLessThanTwoQuartersError(f"Less than 2 quarters of financial data could be parsed from EDGAR for {ticker}.")
-
-    if len(quarterly_revenues) > 4 * years:
+    while len(quarterly_revenues) > 4 * years:
         quarterly_revenues.popitem()
         quarterly_r_and_d_expenses.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
-    latest_10k = company.get_filings(form="10-K").latest(1) or ""
-    latest_10q = form_10qs.latest(1) or ""
+    form_10ks = company.get_filings(form="10-K")
+    if form_10ks.empty and len(quarterly_revenues) < 2:
+        raise EdgarParseError("Neither a 10-K nor at least 2 quarters of financial data has been found.")
+    
+    latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
+    latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
 
     _logger.info(f"Downloaded financial data for {company.name} "
                  "from the EDGAR database.")
@@ -190,13 +186,13 @@ async def get_stock_info(ticker: str, years: int = 5) -> dict:
 
     reports = {
         "latest_10k": {
-            "date": latest_10k.filing_date.isoformat() if latest_10k else "",
-            "document": latest_10k.markdown() if latest_10k else ""
-        },
+            "date": latest_10k.filing_date.isoformat(),
+            "document": latest_10k.markdown()
+        } if latest_10k else {},
         "latest_10q": {
-            "date": latest_10q.filing_date.isoformat() if latest_10q else "",
-            "document": latest_10q.markdown() if latest_10q else ""
-        }
+            "date": latest_10q.filing_date.isoformat(),
+            "document": latest_10q.markdown()
+        } if latest_10q else {}
     }
 
     return financials, reports
