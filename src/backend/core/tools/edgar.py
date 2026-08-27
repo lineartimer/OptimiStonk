@@ -9,21 +9,30 @@ _logger = structlog.get_logger(__name__)
 
 UNIT = 1_000_000
 
-
-REVENUE_NAMES = {
+REVENUE_CONCEPT_NAMES = {
     "us-gaap_Revenues",
     "us-gaap_SalesRevenueNet",
     "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
 }
 
+REVENUE_LABELS = {
+    "Revenue",
+    "Revenues",
+    "Total revenue",
+    "Net revenues"
+}
 
-R_AND_D_NAMES = {
+R_AND_D_CONCEPT_NAMES = {
     "us-gaap_ResearchAndDevelopmentCosts",
     "us-gaap_ResearchAndDevelopmentExpense",
     "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
 }
 
-SHARE_COUNT_NAMES = (
+R_AND_D_LABELS = {
+    "Research and development"
+}
+
+SHARE_COUNT_CONCEPT_NAMES = (
     "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
     "us-gaap:WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
     "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"
@@ -222,16 +231,28 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
 def _get_revenue(xbrl) -> float:
     income_statement = xbrl.statements.income_statement()
 
-    # Try to find revenues
+    # Try to find revenues in rendered income statement
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
-        if concept in REVENUE_NAMES:
+        if concept in REVENUE_CONCEPT_NAMES:
             if row.cells and row.cells[0].value is not None:
                 return row.cells[0].value
 
+    # Try to find revenues in xbrl facts
+    for concept in REVENUE_CONCEPT_NAMES:
+        df = xbrl.facts.time_series(concept)
+        if df.empty:
+            continue
+
+        df = df.sort_values(by="date")
+        for label in REVENUE_LABELS:
+            filtered_df = df.loc[df["label"].eq(label)]["numeric_value"].dropna()
+            if not filtered_df.empty:
+                return float(filtered_df.iloc[-1])
+    
     # If nothing else works, try searching for it
-    for label in ("total revenue", "revenue", "revenues"):
+    for label in (REVENUE_LABELS):
         for match in income_statement.search(label):
             if match.values and match.values[0] is not None:
                 return match.values[0]
@@ -245,16 +266,29 @@ def _get_r_and_d_expense(xbrl) -> float:
     # Try to find R&D expenses
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-        if concept not in R_AND_D_NAMES:
+        if concept not in R_AND_D_CONCEPT_NAMES:
             continue
 
         if row.cells and row.cells[0].value is not None:
             return row.cells[0].value
 
+    # Try to find revenues in xbrl facts
+    for concept in R_AND_D_CONCEPT_NAMES:
+        df = xbrl.facts.time_series(concept)
+        if df.empty:
+            continue
+
+        df = df.sort_values(by="date")
+        for label in R_AND_D_LABELS:
+            filtered_df = df.loc[df["label"].eq(label)]["numeric_value"].dropna()
+            if not filtered_df.empty:
+                return float(filtered_df.iloc[-1])
+
     # If nothing else works, try searching for it
-    for match in income_statement.search("research and development"):
-        if match.values and match.values[0] is not None:
-            return match.values[0]
+    for label in R_AND_D_LABELS:
+        for match in income_statement.search(label):
+            if match.values and match.values[0] is not None:
+                return match.values[0]
 
     # The company doesn't do R&D
     return 0
@@ -262,7 +296,7 @@ def _get_r_and_d_expense(xbrl) -> float:
 
 def _get_weighted_average_share_count(xbrl) -> float:
     # Try to find share count
-    for concept in SHARE_COUNT_NAMES:
+    for concept in SHARE_COUNT_CONCEPT_NAMES:
         df = xbrl.facts.time_series(concept)
 
         if not df.empty:
