@@ -13,7 +13,7 @@ UNIT = 1_000_000
 
 QUARTER_NAMES = {"Q1", "Q2", "Q3", "Q4"}
 
-VALUES = {
+EDGAR_CONSTANTS = {
     "revenue": {
         "concept_names": {
             "us-gaap_Revenues",
@@ -53,7 +53,8 @@ VALUES = {
             "Net cash provided by investing activities",
             "Net cash provided by (used in) investing activities",
             "Net cash used in investing activities"
-        }
+        },
+        "allow_ytd": True
     }
 }
 
@@ -265,12 +266,7 @@ def _get_r_and_d_expense(xbrl: XBRL) -> float:
 
 
 def _get_weighted_average_share_count(xbrl:XBRL) -> float:
-    constants = VALUES["share_count"]
-    concept_names = constants["concept_names"]
-    labels = constants["labels"]
-
-    # Try to find share count in xbrl facts
-    value = _parse_from_xbrl(xbrl, concept_names, labels)
+    value = _parse_value(xbrl, "share_count")
     if value is not None:
         return value
 
@@ -278,12 +274,7 @@ def _get_weighted_average_share_count(xbrl:XBRL) -> float:
 
 
 def _get_investment_cashflow(xbrl: XBRL) -> float:
-    constants = VALUES["investment_cash_flow"]
-    concept_names = constants["concept_names"]
-    labels = constants["labels"]
-
-    # Try to find investment cash flow in xbrl facts
-    value = _parse_from_xbrl(xbrl, concept_names, labels, True)
+    value = _parse_value(xbrl, "investment_cash_flow")
     if value is not None:
         return value
 
@@ -291,9 +282,10 @@ def _get_investment_cashflow(xbrl: XBRL) -> float:
 
 
 def _parse_value(xbrl: XBRL, name: str) -> float | None:
-    constants = VALUES[name]
+    constants = EDGAR_CONSTANTS[name]
     concept_names = constants["concept_names"]
     labels = constants["labels"]
+    allow_ytd = constants.get("allow_ytd", False)
 
     income_statement = xbrl.statements.income_statement()
 
@@ -303,7 +295,7 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
         return value
 
     # Try to find the value in xbrl facts
-    value = _parse_from_xbrl(xbrl, concept_names, labels)
+    value = _parse_from_xbrl(xbrl, concept_names, labels, allow_ytd)
     if value is not None:
         return value
 
