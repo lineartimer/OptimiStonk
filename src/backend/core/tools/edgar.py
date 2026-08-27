@@ -1,5 +1,5 @@
 from datetime import datetime
-from edgar import Company
+from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 import structlog
 
@@ -38,6 +38,10 @@ class EdgarParseError(Exception):
     pass
 
 
+class _CouldNotFindPeriodError(LookupError):
+    pass
+
+
 class _CouldNotFindRevenueError(LookupError):
     pass
 
@@ -73,20 +77,15 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     missing_quarter = None
     split = 1
     for form_10q in form_10qs:
-        # As full-year quarters are not reported, every year will have only 3 quarters
-        xbrl = form_10q.xbrl()
-        income_statement = xbrl.statements.income_statement()
-        period = income_statement.render().header.periods[0]
-
-        year = int(period.end_date[:4])
-        if year < datetime.now().year - years:
-            break
-
-        quarter = (int(period.end_date[5:7]) - 1) // 3 + 1
-
         try:
-            quarterly_revenue = round(_get_revenue(income_statement) / UNIT)
-            quarterly_r_and_d_expense = round(_get_r_and_d_expense(income_statement) / UNIT)
+            # As full-year quarters are not reported, every year will have only 3 quarters
+            xbrl, year, quarter = _get_xbrl_and_period(form_10q)
+
+            if year < datetime.now().year - years:
+                break
+
+            quarterly_revenue = round(_get_revenue(xbrl) / UNIT)
+            quarterly_r_and_d_expense = round(_get_r_and_d_expense(xbrl) / UNIT)
             quarterly_share_count = round(split * _get_weighted_average_share_count(xbrl) / UNIT)
             quarterly_investment = round(_get_investment_cashflow(xbrl) / UNIT)
 
@@ -198,7 +197,31 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     return financials, reports
 
 
-def _get_revenue(income_statement) -> float:
+def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
+    xbrl = form_10q.xbrl()
+    income_statement = xbrl.statements.income_statement()
+    rendered_income_statement = income_statement.render()
+
+    period = None
+    if rendered_income_statement.header.periods:
+        period = rendered_income_statement.header.periods[0].end_date
+    else:
+        period_of_report = getattr(form_10q, "period_of_report", None)
+        if period_of_report:
+            period = str(period_of_report)[:10]
+
+    if not period:
+        raise _CouldNotFindPeriodError("Couldn't find period in 10-Q.")
+
+    year = int(period[:4])
+    quarter = (int(period[5:7]) - 1) // 3 + 1
+
+    return xbrl, year, quarter
+
+
+def _get_revenue(xbrl) -> float:
+    income_statement = xbrl.statements.income_statement()
+
     # Try to find revenues
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
@@ -216,7 +239,9 @@ def _get_revenue(income_statement) -> float:
     raise _CouldNotFindRevenueError("Couldn't find revenue in income statement.")
 
 
-def _get_r_and_d_expense(income_statement) -> float:
+def _get_r_and_d_expense(xbrl) -> float:
+    income_statement = xbrl.statements.income_statement()
+
     # Try to find R&D expenses
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")

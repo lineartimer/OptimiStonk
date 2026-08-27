@@ -10,7 +10,6 @@ You are an expert financial analyst. Your job is to create a summary
 introducing the given company based on the SEC filings provided.
 """
 
-
 _logger = structlog.get_logger(__name__)
 
 
