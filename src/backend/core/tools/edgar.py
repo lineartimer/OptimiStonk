@@ -13,49 +13,48 @@ UNIT = 1_000_000
 
 QUARTER_NAMES = {"Q1", "Q2", "Q3", "Q4"}
 
-# Revenues
-REVENUE_CONCEPT_NAMES = {
-    "us-gaap_Revenues",
-    "us-gaap_SalesRevenueNet",
-    "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
-}
-
-REVENUE_LABELS = {
-    "Revenue",
-    "Revenues",
-    "Total revenue",
-    "Net revenues"
-}
-
-# R&D expenses
-R_AND_D_CONCEPT_NAMES = {
-    "us-gaap_ResearchAndDevelopmentCosts",
-    "us-gaap_ResearchAndDevelopmentExpense",
-    "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
-}
-
-R_AND_D_LABELS = {
-    "Research and development"
-}
-
-# Number of shares outstanding assuming dilution
-SHARE_COUNT_CONCEPT_NAMES = {
-    "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"
-}
-
-SHARE_COUNT_LABELS = {
-    "Diluted (in shares)"
-}
-
-# Investment cash flow
-INVESTMENT_CASH_FLOW_CONCEPT_NAMES = {
-    "us-gaap:NetCashProvidedByUsedInInvestingActivities"
-}
-
-INVESTMENT_CASH_FLOW_LABELS = {
-    "Net cash provided by investing activities",
-    "Net cash provided by (used in) investing activities",
-    "Net cash used in investing activities"
+VALUES = {
+    "revenue": {
+        "concept_names": {
+            "us-gaap_Revenues",
+            "us-gaap_SalesRevenueNet",
+            "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
+        },
+        "labels": {
+            "Revenue",
+            "Revenues",
+            "Total revenue",
+            "Net revenues"
+        }
+    },
+    "r_and_d_expense": {
+        "concept_names": {
+            "us-gaap_ResearchAndDevelopmentCosts",
+            "us-gaap_ResearchAndDevelopmentExpense",
+            "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+        },
+        "labels": {
+            "Research and development"
+        }
+    },
+    "share_count": {
+        "concept_names": {
+            "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"
+        },
+        "labels": {
+            "Diluted (in shares)"
+        }
+    },
+    "investment_cash_flow": {
+        "concept_names": {
+            "us-gaap:NetCashProvidedByUsedInInvestingActivities"
+        },
+        "labels": {
+            "Net cash provided by investing activities",
+            "Net cash provided by (used in) investing activities",
+            "Net cash used in investing activities"
+        }
+    }
 }
 
 
@@ -252,82 +251,83 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     return xbrl, year, quarter
 
 
-def _get_revenue(xbrl) -> float:
-    income_statement = xbrl.statements.income_statement()
-
-    # Try to find revenues in rendered income statement
-    value = _parse_from_income_statement(income_statement, REVENUE_CONCEPT_NAMES)
-    if value:
+def _get_revenue(xbrl: XBRL) -> float:
+    value = _parse_value(xbrl, "revenue")
+    if value is not None:
         return value
 
-    # Try to find revenues in xbrl facts
-    value = _parse_from_xbrl(xbrl, REVENUE_CONCEPT_NAMES, REVENUE_LABELS)
-    if value:
-        return value
-    
-    # If nothing else works, try searching for it
-    for label in (REVENUE_LABELS):
-        for match in income_statement.search(label):
-            if match.values and match.values[0] is not None:
-                return match.values[0]
-    
     raise _CouldNotFindRevenueError("Couldn't find revenue in income statement.")
 
 
-def _get_r_and_d_expense(xbrl) -> float:
-    income_statement = xbrl.statements.income_statement()
-
-    # Try to find R&D expenses in rendered income statement
-    value = _parse_from_income_statement(income_statement, R_AND_D_CONCEPT_NAMES)
-    if value:
-        return value
-
-    # Try to find R&D expenses in xbrl facts
-    value = _parse_from_xbrl(xbrl, R_AND_D_CONCEPT_NAMES, R_AND_D_LABELS)
-    if value:
-        return value
-
-    # If nothing else works, try searching for it
-    for label in R_AND_D_LABELS:
-        for match in income_statement.search(label):
-            if match.values and match.values[0] is not None:
-                return match.values[0]
-
-    # The company doesn't do R&D
-    return 0
+def _get_r_and_d_expense(xbrl: XBRL) -> float:
+    value = _parse_value(xbrl, "r_and_d_expense")
+    return value if value is not None else 0
 
 
-def _get_weighted_average_share_count(xbrl) -> float:
+def _get_weighted_average_share_count(xbrl:XBRL) -> float:
+    constants = VALUES["share_count"]
+    concept_names = constants["concept_names"]
+    labels = constants["labels"]
+
     # Try to find share count in xbrl facts
-    value = _parse_from_xbrl(xbrl, SHARE_COUNT_CONCEPT_NAMES, SHARE_COUNT_LABELS)
-    if value:
+    value = _parse_from_xbrl(xbrl, concept_names, labels)
+    if value is not None:
         return value
 
     raise _CouldNotFindShareCountError("Couldn't find share count.")
 
 
-def _get_investment_cashflow(xbrl) -> float:
-    # Try to find share count in xbrl facts
-    value = _parse_from_xbrl(xbrl, INVESTMENT_CASH_FLOW_CONCEPT_NAMES, INVESTMENT_CASH_FLOW_LABELS, True)
-    if value:
+def _get_investment_cashflow(xbrl: XBRL) -> float:
+    constants = VALUES["investment_cash_flow"]
+    concept_names = constants["concept_names"]
+    labels = constants["labels"]
+
+    # Try to find investment cash flow in xbrl facts
+    value = _parse_from_xbrl(xbrl, concept_names, labels, True)
+    if value is not None:
         return value
 
     raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
 
 
-def _parse_from_income_statement(income_statement: Statement, concepts: Collection[str]) -> float | None:
+def _parse_value(xbrl: XBRL, name: str) -> float | None:
+    constants = VALUES[name]
+    concept_names = constants["concept_names"]
+    labels = constants["labels"]
+
+    income_statement = xbrl.statements.income_statement()
+
+    # Try to find the value in the rendered income statement
+    value = _parse_from_income_statement(income_statement, concept_names)
+    if value is not None:
+        return value
+
+    # Try to find the value in xbrl facts
+    value = _parse_from_xbrl(xbrl, concept_names, labels)
+    if value is not None:
+        return value
+
+    # If nothing else works, try searching for it
+    for label in labels:
+        for match in income_statement.search(label):
+            if match.values and match.values[0] is not None:
+                return match.values[0]
+
+    return None
+
+def _parse_from_income_statement(income_statement: Statement, concept_names: Collection[str]) -> float | None:
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
-        if concept in concepts:
+        if concept in concept_names:
             if row.cells and row.cells[0].value is not None:
                 return row.cells[0].value
 
     return None
 
 
-def _parse_from_xbrl(xbrl: XBRL, concepts: Statement, labels: Collection[str], allow_ytd: bool = False) -> float | None:
-    for concept in concepts:
+def _parse_from_xbrl(xbrl: XBRL, concept_names: Statement, labels: Collection[str], allow_ytd: bool = False) -> float | None:
+    for concept in concept_names:
         df = xbrl.facts.time_series(concept)
         if df.empty:
             continue
