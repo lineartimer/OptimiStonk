@@ -1,6 +1,8 @@
+from collections.abc import Collection
 from datetime import datetime
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
+from edgar.xbrl.statements import Statement
 import structlog
 
 
@@ -9,6 +11,9 @@ _logger = structlog.get_logger(__name__)
 
 UNIT = 1_000_000
 
+QUARTER_NAMES = {"Q1", "Q2", "Q3", "Q4"}
+
+# Revenues
 REVENUE_CONCEPT_NAMES = {
     "us-gaap_Revenues",
     "us-gaap_SalesRevenueNet",
@@ -22,6 +27,7 @@ REVENUE_LABELS = {
     "Net revenues"
 }
 
+# R&D expenses
 R_AND_D_CONCEPT_NAMES = {
     "us-gaap_ResearchAndDevelopmentCosts",
     "us-gaap_ResearchAndDevelopmentExpense",
@@ -32,11 +38,25 @@ R_AND_D_LABELS = {
     "Research and development"
 }
 
-SHARE_COUNT_CONCEPT_NAMES = (
-    "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding",
-    "us-gaap:WeightedAverageNumberOfShareOutstandingBasicAndDiluted",
-    "us-gaap:WeightedAverageNumberOfSharesOutstandingBasic"
-)
+# Number of shares outstanding assuming dilution
+SHARE_COUNT_CONCEPT_NAMES = {
+    "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"
+}
+
+SHARE_COUNT_LABELS = {
+    "Diluted (in shares)"
+}
+
+# Investment cash flow
+INVESTMENT_CASH_FLOW_CONCEPT_NAMES = {
+    "us-gaap:NetCashProvidedByUsedInInvestingActivities"
+}
+
+INVESTMENT_CASH_FLOW_LABELS = {
+    "Net cash provided by investing activities",
+    "Net cash provided by (used in) investing activities",
+    "Net cash used in investing activities"
+}
 
 
 class EdgarTickerNotFoundError(Exception):
@@ -222,8 +242,12 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     if not period:
         raise _CouldNotFindPeriodError("Couldn't find period in 10-Q.")
 
-    year = int(period[:4])
-    quarter = (int(period[5:7]) - 1) // 3 + 1
+    try:
+        year = int(period[:4])
+        quarter = (int(period[5:7]) - 1) // 3 + 1
+
+    except:
+        raise EdgarParseError("Error parsing quarter of 10-Q.", period=period)
 
     return xbrl, year, quarter
 
@@ -232,24 +256,14 @@ def _get_revenue(xbrl) -> float:
     income_statement = xbrl.statements.income_statement()
 
     # Try to find revenues in rendered income statement
-    for row in income_statement.render().rows:
-        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-
-        if concept in REVENUE_CONCEPT_NAMES:
-            if row.cells and row.cells[0].value is not None:
-                return row.cells[0].value
+    value = _parse_from_income_statement(income_statement, REVENUE_CONCEPT_NAMES)
+    if value:
+        return value
 
     # Try to find revenues in xbrl facts
-    for concept in REVENUE_CONCEPT_NAMES:
-        df = xbrl.facts.time_series(concept)
-        if df.empty:
-            continue
-
-        df = df.sort_values(by="date")
-        for label in REVENUE_LABELS:
-            filtered_df = df.loc[df["label"].eq(label)]["numeric_value"].dropna()
-            if not filtered_df.empty:
-                return float(filtered_df.iloc[-1])
+    value = _parse_from_xbrl(xbrl, REVENUE_CONCEPT_NAMES, REVENUE_LABELS)
+    if value:
+        return value
     
     # If nothing else works, try searching for it
     for label in (REVENUE_LABELS):
@@ -263,26 +277,15 @@ def _get_revenue(xbrl) -> float:
 def _get_r_and_d_expense(xbrl) -> float:
     income_statement = xbrl.statements.income_statement()
 
-    # Try to find R&D expenses
-    for row in income_statement.render().rows:
-        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-        if concept not in R_AND_D_CONCEPT_NAMES:
-            continue
+    # Try to find R&D expenses in rendered income statement
+    value = _parse_from_income_statement(income_statement, R_AND_D_CONCEPT_NAMES)
+    if value:
+        return value
 
-        if row.cells and row.cells[0].value is not None:
-            return row.cells[0].value
-
-    # Try to find revenues in xbrl facts
-    for concept in R_AND_D_CONCEPT_NAMES:
-        df = xbrl.facts.time_series(concept)
-        if df.empty:
-            continue
-
-        df = df.sort_values(by="date")
-        for label in R_AND_D_LABELS:
-            filtered_df = df.loc[df["label"].eq(label)]["numeric_value"].dropna()
-            if not filtered_df.empty:
-                return float(filtered_df.iloc[-1])
+    # Try to find R&D expenses in xbrl facts
+    value = _parse_from_xbrl(xbrl, R_AND_D_CONCEPT_NAMES, R_AND_D_LABELS)
+    if value:
+        return value
 
     # If nothing else works, try searching for it
     for label in R_AND_D_LABELS:
@@ -295,26 +298,51 @@ def _get_r_and_d_expense(xbrl) -> float:
 
 
 def _get_weighted_average_share_count(xbrl) -> float:
-    # Try to find share count
-    for concept in SHARE_COUNT_CONCEPT_NAMES:
-        df = xbrl.facts.time_series(concept)
-
-        if not df.empty:
-            values = df["numeric_value"].dropna()
-            if not values.empty:
-                return float(values.iloc[-1])
+    # Try to find share count in xbrl facts
+    value = _parse_from_xbrl(xbrl, SHARE_COUNT_CONCEPT_NAMES, SHARE_COUNT_LABELS)
+    if value:
+        return value
 
     raise _CouldNotFindShareCountError("Couldn't find share count.")
 
 
 def _get_investment_cashflow(xbrl) -> float:
-    # Try to find investment cashflow
-    try:
-        investment_df = xbrl.facts.time_series("us-gaap:NetCashProvidedByUsedInInvestingActivities")
-        return investment_df.iloc[-1]["numeric_value"]
+    # Try to find share count in xbrl facts
+    value = _parse_from_xbrl(xbrl, INVESTMENT_CASH_FLOW_CONCEPT_NAMES, INVESTMENT_CASH_FLOW_LABELS, True)
+    if value:
+        return value
 
-    except Exception as e:
-        raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
+    raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
+
+
+def _parse_from_income_statement(income_statement: Statement, concepts: Collection[str]) -> float | None:
+    for row in income_statement.render().rows:
+        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
+
+        if concept in concepts:
+            if row.cells and row.cells[0].value is not None:
+                return row.cells[0].value
+
+    return None
+
+
+def _parse_from_xbrl(xbrl: XBRL, concepts: Statement, labels: Collection[str], allow_ytd: bool = False) -> float | None:
+    for concept in concepts:
+        df = xbrl.facts.time_series(concept)
+        if df.empty:
+            continue
+
+        df = df.sort_values(by="date")
+        for label in labels:
+            filtered_df = df.loc[df["label"].eq(label)]
+            if not allow_ytd:
+                filtered_df = filtered_df.loc[filtered_df["fiscal_period"].isin(QUARTER_NAMES)]
+            
+            filtered_df = filtered_df["numeric_value"].dropna()
+            if not filtered_df.empty:
+                return float(filtered_df.iloc[-1])
+
+    return None
 
 
 def _clean_result(data: dict) -> dict:
