@@ -39,7 +39,7 @@ EDGAR_CONSTANTS = {
     },
     "share_count": {
         "concept_names": {
-            "us-gaap:WeightedAverageNumberOfDilutedSharesOutstanding"
+            "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding"
         },
         "labels": {
             "Diluted (in shares)"
@@ -47,12 +47,13 @@ EDGAR_CONSTANTS = {
     },
     "investment_cash_flow": {
         "concept_names": {
-            "us-gaap:NetCashProvidedByUsedInInvestingActivities"
+            "us-gaap_NetCashProvidedByUsedInInvestingActivities"
         },
         "labels": {
             "Net cash provided by investing activities",
             "Net cash provided by (used in) investing activities",
-            "Net cash used in investing activities"
+            "Net cash used in investing activities",
+            "Net cash used in investing"
         },
         "allow_ytd": True
     }
@@ -120,7 +121,7 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
         except LookupError as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
-            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=quarter, error=str(e))
+            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=f"{year}/{quarter}", error=str(e))
             break
 
         for s in splits:
