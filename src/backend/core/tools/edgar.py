@@ -1,4 +1,3 @@
-from collections.abc import Collection
 from datetime import datetime
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
@@ -17,48 +16,48 @@ YTD_NAMES = {"YTD3", "YTD6", "YTD9"}
 
 EDGAR_CONSTANTS = {
     "revenue": {
-        "concept_names": {
+        "concept_names": [
             "us-gaap_Revenues",
             "us-gaap_SalesRevenueNet",
             "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
-        },
-        "labels": {
+        ],
+        "labels": [
             "Revenue",
             "Revenues",
             "Total revenue",
             "Net revenues"
-        }
+        ]
     },
     "r_and_d_expense": {
-        "concept_names": {
+        "concept_names": [
             "us-gaap_ResearchAndDevelopmentCosts",
             "us-gaap_ResearchAndDevelopmentExpense",
             "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
-        },
-        "labels": {
+        ],
+        "labels": [
             "Research and development"
-        }
+        ]
     },
     "share_count": {
-        "concept_names": {
+        "concept_names": [
             "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding"
-        },
-        "labels": {
+        ],
+        "labels": [
             "Diluted (in shares)"
-        }
+        ]
     },
     "investment_cash_flow": {
-        "concept_names": {
+        "concept_names": [
             "us-gaap_NetCashProvidedByUsedInInvestingActivities"
-        },
-        "labels": {
+        ],
+        "labels": [
             "Net cash provided by investing activities",
             "Net cash provided by (used in) investing activities",
             "Net cash used in investing",
             "Net cash used in investing activities",
             "Net cash from (used in) investing",
             "Net cash from (used in) investing activities"
-        }
+        ]
     }
 }
 
@@ -75,11 +74,7 @@ class _CouldNotFindPeriodError(LookupError):
     pass
 
 
-class _CouldNotFindRevenueError(LookupError):
-    pass
-
-
-class _CouldNotFindShareCountError(LookupError):
+class _CouldNotFindFinancialDataError(LookupError):
     pass
 
 
@@ -121,10 +116,10 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
             if year < datetime.now().year - years:
                 break
 
-            quarterly_revenue = round(_get_revenue(xbrl) / UNIT)
-            quarterly_r_and_d_expense = round(_get_r_and_d_expense(xbrl) / UNIT)
-            quarterly_share_count = round(split * _get_weighted_average_share_count(xbrl) / UNIT)
-            quarterly_investment = round(_get_investment_cashflow(xbrl) / UNIT)
+            quarterly_revenue = round(_get_optional_financial_data(xbrl, "revenue") / UNIT)
+            quarterly_r_and_d_expense = round(_get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT)
+            quarterly_share_count = round(split * _get_financial_data(xbrl, "share_count") / UNIT)
+            quarterly_investment = round(_get_financial_data(xbrl, "investment_cash_flow") / UNIT)
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
@@ -260,33 +255,20 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     return xbrl, year, quarter
 
 
-def _get_revenue(xbrl: XBRL) -> float:
-    value = _parse_value(xbrl, "revenue")
+def _get_financial_data(xbrl:XBRL, name: str) -> float:
+    value = _parse_value(xbrl, name)
     if value is not None:
         return value
 
-    raise _CouldNotFindRevenueError("Couldn't find revenue in income statement.")
+    # If we can't find what we're looking for, it's an error
+    raise _CouldNotFindFinancialDataError(f"Couldn't find {name}.")
 
 
-def _get_r_and_d_expense(xbrl: XBRL) -> float:
-    value = _parse_value(xbrl, "r_and_d_expense")
+def _get_optional_financial_data(xbrl: XBRL, name: str) -> float:
+    value = _parse_value(xbrl, name)
+
+    # If we can't find what we're looking for, it's zero
     return value if value is not None else 0
-
-
-def _get_weighted_average_share_count(xbrl:XBRL) -> float:
-    value = _parse_value(xbrl, "share_count")
-    if value is not None:
-        return value
-
-    raise _CouldNotFindShareCountError("Couldn't find share count.")
-
-
-def _get_investment_cashflow(xbrl: XBRL) -> float:
-    value = _parse_value(xbrl, "investment_cash_flow")
-    if value is not None:
-        return value
-
-    raise _CouldNotFindShareCountError("Couldn't find investment cachflow.")
 
 
 def _parse_value(xbrl: XBRL, name: str) -> float | None:
@@ -314,7 +296,7 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
 
     return None
 
-def _parse_from_income_statement(income_statement: Statement, concept_names: Collection[str]) -> float | None:
+def _parse_from_income_statement(income_statement: Statement, concept_names: list[str]) -> float | None:
     for row in income_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
@@ -325,7 +307,7 @@ def _parse_from_income_statement(income_statement: Statement, concept_names: Col
     return None
 
 
-def _parse_from_xbrl(xbrl: XBRL, concept_names: Statement, labels: Collection[str]) -> float | None:
+def _parse_from_xbrl(xbrl: XBRL, concept_names: list[str], labels: list[str]) -> float | None:
     for concept in concept_names:
         df = xbrl.facts.time_series(concept)
         if df.empty:
