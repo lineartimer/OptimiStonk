@@ -276,10 +276,15 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     concept_names = constants["concept_names"]
     labels = constants["labels"]
 
-    income_statement = xbrl.statements.income_statement()
-
     # Try to find the value in the rendered income statement
-    value = _parse_from_income_statement(income_statement, concept_names)
+    income_statement = xbrl.statements.income_statement()
+    value = _parse_from_financial_statement(income_statement, concept_names)
+    if value is not None:
+        return value
+
+    # Try to find the value in the rendered cash flow
+    cash_flow = xbrl.statements.cash_flow_statement()
+    value = _parse_from_financial_statement(cash_flow, concept_names)
     if value is not None:
         return value
 
@@ -288,7 +293,7 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     if value is not None:
         return value
 
-    # If nothing else works, try searching for it
+    # If nothing else works, try a search
     for label in labels:
         for match in income_statement.search(label):
             if match.values and match.values[0] is not None:
@@ -296,8 +301,8 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
 
     return None
 
-def _parse_from_income_statement(income_statement: Statement, concept_names: list[str]) -> float | None:
-    for row in income_statement.render().rows:
+def _parse_from_financial_statement(financial_statement: Statement, concept_names: list[str]) -> float | None:
+    for row in financial_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
         if concept in concept_names:
