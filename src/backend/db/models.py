@@ -71,7 +71,10 @@ class FinancialData(Base):
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"), index=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+    
     quarter: Mapped[str] = mapped_column(Text)
     revenue: Mapped[int]
     r_and_d_expense: Mapped[int]
@@ -86,7 +89,10 @@ class HistoricalPrice(Base):
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"), index=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+
     quarter: Mapped[str] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Float)
 

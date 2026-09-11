@@ -1,4 +1,5 @@
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
@@ -9,8 +10,22 @@ from backend.db.models import (
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args=(
+        {"check_same_thread": False}
+        if make_url(DATABASE_URL).get_backend_name() == "sqlite"
+        else {}
+    )
 )
+
+if engine.dialect.name == "sqlite":
+    @event.listens_for(engine, "connect")
+    def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys = ON")
+        finally:
+            cursor.close()
+
 
 SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 

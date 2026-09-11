@@ -117,6 +117,11 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
                 break
 
             quarterly_revenue = round(_get_optional_financial_data(xbrl, "revenue") / UNIT)
+            if quarterly_revenue < 0:
+                # In some rare, esoteric cases, revenue can be negative
+                _logger.warning("Negative revenue found.", ticker=ticker, quarter=f"{year}/{quarter}")
+                break
+
             quarterly_r_and_d_expense = round(_get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT)
             quarterly_share_count = round(split * _get_financial_data(xbrl, "share_count") / UNIT)
             quarterly_investment = round(_get_financial_data(xbrl, "investment_cash_flow") / UNIT)
