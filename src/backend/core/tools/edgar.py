@@ -10,10 +10,6 @@ _logger = structlog.get_logger(__name__)
 
 UNIT = 1_000_000
 
-QUARTER_NAMES = {"Q1", "Q2", "Q3", "Q4"}
-
-YTD_NAMES = {"YTD3", "YTD6", "YTD9"}
-
 EDGAR_CONSTANTS = {
     "revenue": {
         "concept_names": [
