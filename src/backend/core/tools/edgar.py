@@ -25,7 +25,8 @@ EDGAR_CONSTANTS = {
             "Revenue",
             "Revenues",
             "Total revenue",
-            "Net revenues"
+            "Net revenues",
+            "Sales"
         ]
     },
     "r_and_d_expense": {
@@ -40,10 +41,12 @@ EDGAR_CONSTANTS = {
     },
     "share_count": {
         "concept_names": [
-            "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding"
+            "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
+            "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
         ],
         "labels": [
-            "Diluted (in shares)"
+            "Diluted (in shares)",
+            "Basic and Diluted"
         ]
     },
     "investment_cash_flow": {
@@ -55,6 +58,7 @@ EDGAR_CONSTANTS = {
             "Net cash provided by (used in) investing activities",
             "Net cash used in investing",
             "Net cash used in investing activities",
+            "Net cash (used in) provided by investing activities",
             "Net cash from (used in) investing",
             "Net cash from (used in) investing activities"
         ]
@@ -284,34 +288,26 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
 
     # Try to find the value in the income statement
     income_statement = xbrl.statements.income_statement()
-    value = _parse_from_financial_statement(income_statement, concept_names)
+    value = _parse_from_financial_statement(income_statement, concept_names, labels)
     if value is not None:
         return value
 
     # Try to find the value in the cash flow
     cash_flow = xbrl.statements.cash_flow_statement()
-    value = _parse_from_financial_statement(cash_flow, concept_names)
+    value = _parse_from_financial_statement(cash_flow, concept_names, labels)
     if value is not None:
         return value
-
-    # Try to find the value in xbrl facts
-    value = _parse_from_xbrl(xbrl, concept_names, labels)
-    if value is not None:
-        return value
-
-    # If nothing else works, try a search
-    for label in labels:
-        for match in income_statement.search(label):
-            if match.values and match.values[0] is not None:
-                return match.values[0]
 
     return None
 
-def _parse_from_financial_statement(financial_statement: Statement, concept_names: list[str]) -> float | None:
+def _parse_from_financial_statement(financial_statement: Statement, concept_names: list[str], labels: list[str]) -> float | None:
     for row in financial_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-
-        if concept in concept_names:
+        
+        if (
+            concept.lower() in [concept.lower() for concept in concept_names] or
+            row.label.lower() in [label.lower() for label in labels]
+        ):
             if row.cells and row.cells[0]:
                 try:
                     return float(row.cells[0].value)
@@ -321,42 +317,6 @@ def _parse_from_financial_statement(financial_statement: Statement, concept_name
                     # but the value can't be converted to a number (e.g. '').
                     # This means that the value is 0
                     return 0.0
-    
-    return None
-
-
-def _parse_from_xbrl(xbrl: XBRL, concept_names: list[str], labels: list[str]) -> float | None:
-    for concept in concept_names:
-        df = xbrl.facts.time_series(concept)
-        if df.empty:
-            continue
-
-        df = df.sort_values(by="date")
-        for label in labels:
-            df_with_label = df.loc[df["label"].eq(label)]
-
-            df_quarterly = df_with_label.loc[
-                df_with_label["fiscal_period"].isin(QUARTER_NAMES)
-            ].dropna(subset=["numeric_value"])
-
-            if not df_quarterly.empty:
-                return float(df_quarterly.iloc[-1]["numeric_value"])
-
-            # We might have only YTD values in which case current quarter should be estimated from it
-            df_ytd = df_with_label.loc[
-                df_with_label["fiscal_period"].astype(str).str.startswith("YTD")
-            ].dropna(subset=["numeric_value"])
-
-            if df_ytd.empty:
-                continue
-
-            df_latest_ytd = df_ytd.iloc[-1]
-            ytd = df_ytd.iloc[-1]["fiscal_period"]
-
-            if len(ytd) != 4 or ytd[:3] != "YTD" or not ytd[3].isdigit():
-                raise _CouldNotParseYTDLabelError(f"Couldn't parse YTD label: {ytd}.")
-            
-            return float(df_latest_ytd["numeric_value"] * 3 / int(ytd[3]))
 
     return None
 
