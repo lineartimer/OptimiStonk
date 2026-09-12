@@ -1,3 +1,4 @@
+import math
 import numpy as np
 
 
@@ -141,16 +142,8 @@ class Company:
 
     def to_json(self) -> dict:
         price_to_revenue = self.price_to_revenue_ratio()
-        if price_to_revenue == float("inf"):
-            price_to_revenue = str(price_to_revenue)
-
         price_to_backlog = self.price_to_backlog_ratio()
-        if price_to_backlog == float("inf"):
-            price_to_backlog = str(price_to_backlog)
-
         relative_hype = self.relative_hype()
-        if relative_hype == float("inf"):
-            relative_hype = str(relative_hype)
         
         return {
             "name": self.name,
@@ -172,12 +165,18 @@ class Company:
                 quarter: data["price"] for quarter, data in self._historical_data.items()
             },
             "metrics": {
-                "price_to_revenue_ratio": price_to_revenue,
-                "price_to_backlog_ratio": price_to_backlog,
+                "price_to_revenue_ratio": self._normalize_for_json(price_to_revenue),
+                "price_to_backlog_ratio": self._normalize_for_json(price_to_backlog),
                 "revenue_growth_per_year": self.revenue_growth_per_year(),
-                "relative_hype": relative_hype
+                "relative_hype": self._normalize_for_json(relative_hype)
             }
         }
 
     def _get_last_quarter(self) -> str:
         return list(self._historical_data)[-1] if self._historical_data else None
+
+    def _normalize_for_json(self, input: float) -> float | str:
+        if input in [float("inf"), float("-inf")] or math.isnan(input):
+            return str(input)
+
+        return input

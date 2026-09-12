@@ -117,8 +117,9 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
                 break
 
             quarterly_revenue = round(_get_optional_financial_data(xbrl, "revenue") / UNIT)
+
+            # In some rare, esoteric cases, revenue can be negative
             if quarterly_revenue < 0:
-                # In some rare, esoteric cases, revenue can be negative
                 _logger.warning("Negative revenue found.", ticker=ticker, quarter=f"{year}/{quarter}")
                 break
 
@@ -205,7 +206,7 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
     form_10ks = company.get_filings(form="10-K")
     if form_10ks.empty and len(quarterly_revenues) < 2:
-        raise EdgarParseError("Neither a 10-K nor at least 2 quarters of financial data has been found.")
+        raise EdgarParseError(f"Neither a 10-K nor at least 2 quarters of financial data has been found for {company.name}")
     
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
@@ -281,13 +282,13 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     concept_names = constants["concept_names"]
     labels = constants["labels"]
 
-    # Try to find the value in the rendered income statement
+    # Try to find the value in the income statement
     income_statement = xbrl.statements.income_statement()
     value = _parse_from_financial_statement(income_statement, concept_names)
     if value is not None:
         return value
 
-    # Try to find the value in the rendered cash flow
+    # Try to find the value in the cash flow
     cash_flow = xbrl.statements.cash_flow_statement()
     value = _parse_from_financial_statement(cash_flow, concept_names)
     if value is not None:
@@ -311,9 +312,16 @@ def _parse_from_financial_statement(financial_statement: Statement, concept_name
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
 
         if concept in concept_names:
-            if row.cells and row.cells[0].value is not None:
-                return row.cells[0].value
-
+            if row.cells and row.cells[0]:
+                try:
+                    return float(row.cells[0].value)
+                
+                except:
+                    # We have found the row in the financial statement
+                    # but the value can't be converted to a number (e.g. '').
+                    # This means that the value is 0
+                    return 0.0
+    
     return None
 
 
