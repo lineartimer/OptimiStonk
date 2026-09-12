@@ -8,7 +8,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import load_web_page
 from backend.core.tools.yahoo_finance import get_price_history
-from backend.db.database import get_stock_data, save_stock_data
+from backend.database.database import get_stock_data, save_stock_data
 
 
 _logger = structlog.get_logger(__name__)

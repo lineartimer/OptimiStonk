@@ -4,7 +4,7 @@ import structlog
 from backend.core.financials import get_stock
 from backend.core.tools.edgar import EdgarParseError, EdgarTickerNotFoundError
 from backend.core.tools.yahoo_finance import YahooFinanceTickerNotFoundError
-from backend.db.database import save_failed_stock
+from backend.database.database import save_failed_stock
 
 
 router = APIRouter()

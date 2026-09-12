@@ -2,7 +2,7 @@ import httpx
 from markdownify import markdownify
 import structlog
 
-from backend.db.database import get_web_page, save_web_page
+from backend.database.database import get_web_page, save_web_page
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"

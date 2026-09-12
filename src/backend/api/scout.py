@@ -3,8 +3,8 @@ from sqlalchemy import func, select
 import structlog
 
 from backend.api.get_stock import get_stock_api
-from backend.db.database import SessionFactory
-from backend.db.models import Failed, Market, Stock
+from backend.database.database import SessionFactory
+from backend.database.models import Failed, Market, Stock
 
 
 router = APIRouter()

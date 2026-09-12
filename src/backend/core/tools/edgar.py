@@ -78,8 +78,16 @@ class _CouldNotFindFinancialDataError(LookupError):
     pass
 
 
-class _CouldNotParseYTDLabelError(KeyError):
-    pass
+async def discover_document_structure(tickers: list) -> tuple:
+    """
+    Builds a list of possible concept names and labels based on the 10-Qs
+    of the given companies.
+    """
+    
+    concepts = []
+    labels = []
+
+    return concepts, labels
 
 
 async def get_financial_data(ticker: str, years: int = 5) -> dict:

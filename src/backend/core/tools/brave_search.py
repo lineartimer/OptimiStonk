@@ -2,7 +2,7 @@ import httpx
 import os
 import structlog
 
-from backend.db.database import get_web_search, save_web_search
+from backend.database.database import get_web_search, save_web_search
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"

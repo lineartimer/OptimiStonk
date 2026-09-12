@@ -7,7 +7,7 @@ import uvicorn
 
 from backend.api.get_stock import router as get_stock_router
 from backend.api.scout import router as scout_router
-from backend.db.database import initialize_database
+from backend.database.database import initialize_database
 
 
 @asynccontextmanager

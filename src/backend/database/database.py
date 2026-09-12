@@ -3,7 +3,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
-from backend.db.models import (
+from backend.database.models import (
     Base, Failed, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
 )
 
@@ -33,6 +33,9 @@ SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 async def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
 
+    # Discover Edgar document structure
+
+    # Download stock list
     with SessionFactory() as session:
         market_is_populated = session.scalar(select(Market.ticker).limit(1)) is not None
 
