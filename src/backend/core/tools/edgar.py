@@ -71,6 +71,10 @@ class EdgarParseError(Exception):
     pass
 
 
+class _FinancialStatementNotFoundError(LookupError):
+    pass
+
+
 class _CouldNotFindPeriodError(LookupError):
     pass
 
@@ -129,6 +133,10 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
+            _logger.warning("Stopped processing EDGAR data because of a parsing error.", ticker=ticker, quarter=f"{year}/{quarter}", error=str(e))
+            break
+
+        except Exception as e:
             _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=f"{year}/{quarter}", error=str(e))
             break
 
@@ -238,6 +246,9 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     xbrl = form_10q.xbrl()
     income_statement = xbrl.statements.income_statement()
+    if not income_statement:
+        raise _FinancialStatementNotFoundError("Couldn't find income statement when parsing period.")
+
     rendered_income_statement = income_statement.render()
 
     period = None
@@ -284,12 +295,18 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
 
     # Try to find the value in the income statement
     income_statement = xbrl.statements.income_statement()
+    if not income_statement:
+        raise _FinancialStatementNotFoundError(f"Couldn't find income statement when parsing {name}.")
+    
     value = _parse_from_financial_statement(income_statement, concept_names, labels)
     if value is not None:
         return value
 
     # Try to find the value in the cash flow
     cash_flow = xbrl.statements.cash_flow_statement()
+    if not cash_flow:
+        raise _FinancialStatementNotFoundError(f"Couldn't find cash-flow when parsing {name}.")
+    
     value = _parse_from_financial_statement(cash_flow, concept_names, labels)
     if value is not None:
         return value
