@@ -121,8 +121,11 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
                 break
 
             quarterly_r_and_d_expense = round(_get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT)
+
+            # Of these financial data, only share count is not optional
             quarterly_share_count = round(split * _get_financial_data(xbrl, "share_count") / UNIT)
-            quarterly_investment = round(_get_financial_data(xbrl, "investment_cash_flow") / UNIT)
+
+            quarterly_investment = round(_get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT)
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
