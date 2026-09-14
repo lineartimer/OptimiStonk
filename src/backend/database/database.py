@@ -1,16 +1,31 @@
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
-from backend.db.models import (
-    Base, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
+from backend.database.models import (
+    Base, Failed, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
 )
 
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False}
+    connect_args=(
+        {"check_same_thread": False}
+        if make_url(DATABASE_URL).get_backend_name() == "sqlite"
+        else {}
+    )
 )
+
+if engine.dialect.name == "sqlite":
+    @event.listens_for(engine, "connect")
+    def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA foreign_keys = ON")
+        finally:
+            cursor.close()
+
 
 SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 
@@ -18,6 +33,7 @@ SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 async def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
 
+    # Download stock list
     with SessionFactory() as session:
         market_is_populated = session.scalar(select(Market.ticker).limit(1)) is not None
 
@@ -97,6 +113,7 @@ def get_stock_data(ticker: str) -> dict | None:
             "ticker": stock.ticker,
             "last_price": stock.last_price,
             "backlog": stock.backlog,
+            "summary": stock.summary,
             "historical_prices": {
                 row.quarter: prices[row.quarter] for row in financial_rows
             },
@@ -109,18 +126,33 @@ def get_stock_data(ticker: str) -> dict | None:
         }
 
 
+def save_failed_stock(ticker: str, reason: str) -> None:
+    ticker = ticker.strip().upper()
+
+    with SessionFactory() as session:
+        failed = session.get(Failed, ticker)
+        if failed is None:
+            session.add(Failed(ticker=ticker, reason=reason))
+        else:
+            failed.reason = reason
+
+        session.commit()
+
+
 def save_stock_data(company, reports: dict) -> None:
     with SessionFactory() as session:
         stock = Stock(
             name=company.name,
             ticker=company.ticker.upper(),
             last_price=company.last_price,
-            rank=company.rank(),
+            rank_backlog=company.rank_backlog(),
+            rank_market=company.rank_market(),
             backlog=company.backlog,
             price_to_revenue=company.price_to_revenue_ratio(),
             price_to_backlog=company.price_to_backlog_ratio(),
             revenue_growth=company.revenue_growth_per_year(),
             relative_hype=company.relative_hype(),
+            summary=company.summary,
             annual_report=reports["latest_10k"],
             quarterly_report=reports["latest_10q"]
         )

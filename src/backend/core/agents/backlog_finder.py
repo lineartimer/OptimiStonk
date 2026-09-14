@@ -1,6 +1,7 @@
 import json
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 import structlog
 
@@ -23,24 +24,30 @@ class BacklogResult(BaseModel):
 
 class BacklogFinder:
     def __init__(self):
-        self._provider = "openai"
-        self._model = "gpt-5.4-nano"
-        
+        model = ChatOpenAI(
+            model="gpt-5.6-luna",
+            use_responses_api=True,
+            reasoning_effort="medium"
+        )
+
         self._agent = create_agent(
-            model=f"{self._provider}:{self._model}",
+            model=model,
             system_prompt=SYSTEM_PROMPT,
             response_format=ToolStrategy(BacklogResult)
         )
     
     async def run(self, company_name: str, prompt: dict) -> int:
+        prompt = json.dumps(prompt, ensure_ascii=False)
+        _logger.info("Running backlog finder agent.", prompt_size=len(prompt))
+
         result = await self._agent.ainvoke({
             "messages": [{
                 "role": "user",
-                "content": json.dumps(prompt, ensure_ascii=False)
+                "content": prompt
             }]
         })
 
         backlog = result["structured_response"].backlog_millions
 
-        _logger.info(f"{company_name}'s backlog found.")
+        _logger.info(f"{company_name}'s backlog is {backlog}.")
         return backlog

@@ -32,6 +32,13 @@ class Market(Base):
     stock_type: Mapped[str] = mapped_column(Text)
 
 
+class Failed(Base):
+    __tablename__ = "failed"
+
+    ticker: Mapped[str] = mapped_column(Text, primary_key=True)
+    reason: Mapped[str] = mapped_column(Text)
+
+
 class Stock(Base):
     __tablename__ = "stocks"
 
@@ -39,14 +46,16 @@ class Stock(Base):
     name: Mapped[str] = mapped_column(Text)
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
     last_price: Mapped[float] = mapped_column(Float)
-    rank: Mapped[float] = mapped_column(Float)
-    backlog: Mapped[int]
-    price_to_revenue: Mapped[float] = mapped_column(Float)
-    price_to_backlog: Mapped[float] = mapped_column(Float)
-    revenue_growth: Mapped[float] = mapped_column(Float)
-    relative_hype: Mapped[float] = mapped_column(Float)
-    annual_report: Mapped[dict] = mapped_column(JSON)
-    quarterly_report: Mapped[dict] = mapped_column(JSON)
+    rank_market: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rank_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
+    backlog: Mapped[int | None] = mapped_column(nullable=True)
+    price_to_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price_to_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
+    revenue_growth: Mapped[float | None] = mapped_column(Float, nullable=True)
+    relative_hype: Mapped[float | None] = mapped_column(Float, nullable=True)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    annual_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     financial_data: Mapped[list[FinancialData]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
@@ -62,7 +71,10 @@ class FinancialData(Base):
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"), index=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+    
     quarter: Mapped[str] = mapped_column(Text)
     revenue: Mapped[int]
     r_and_d_expense: Mapped[int]
@@ -77,7 +89,10 @@ class HistoricalPrice(Base):
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"), index=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+
     quarter: Mapped[str] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Float)
 
