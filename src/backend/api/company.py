@@ -13,8 +13,8 @@ router = APIRouter()
 _logger = structlog.get_logger(__name__)
 
 
-@router.get("/api/stock")
-async def get_stock_api(ticker: str):
+@router.get("/api/company")
+async def get_company(ticker: str):
     ticker = ticker.strip().upper()
 
     company = load_company(ticker)

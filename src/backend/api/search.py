@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 import structlog
 
-from backend.api.get_stock import get_stock_api
+from backend.api.company import get_company
 from backend.database.database import SessionFactory
 from backend.database.models import Failed, Market, Stock
 
@@ -22,7 +22,7 @@ async def search():
         _logger.info("All the market has been explored. Nothing left to do.")
         raise HTTPException(status_code=404)
 
-    return await get_stock_api(ticker)
+    return await get_company(ticker)
 
 
 async def _get_random_ticker():
