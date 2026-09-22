@@ -12,8 +12,8 @@ module.exports = {
         destination: `${backendUrl}/api/search`
       },
       {
-        source: "/api/companies",
-        destination: `${backendUrl}/api/companies`
+        source: "/api/company",
+        destination: `${backendUrl}/api/company`
       }
     ];
   }

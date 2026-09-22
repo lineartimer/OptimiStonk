@@ -82,7 +82,7 @@ export default function Home() {
     setCompaniesError("");
 
     try {
-      const data = await request("/api/companies", signal);
+      const data = await request("/api/company", signal);
       setCompanies(Array.isArray(data) ? data : [data]);
     } catch (error) {
       if (!signal?.aborted) setCompaniesError(error.message);

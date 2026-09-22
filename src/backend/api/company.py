@@ -14,13 +14,18 @@ _logger = structlog.get_logger(__name__)
 
 
 @router.get("/api/company")
-async def get_company(ticker: str):
-    ticker = ticker.strip().upper()
+async def get_company(ticker: str | None = None):
+    ticker = ticker.strip().upper() if ticker else None
 
     company = load_company(ticker)
     if company:
         _logger.info("Company data loaded from database.", ticker=ticker)
+        if isinstance(company, list):
+            return [item.to_json() for item in company]
         return company.to_json()
+
+    if not ticker:
+        return []
 
     try:
         stock = await get_stock(ticker)
@@ -50,15 +55,3 @@ async def get_company(ticker: str):
         ) from e
 
     return stock.to_json()
-
-
-@router.get("/api/companies")
-async def get_companies():
-    companies = load_company()
-    if not companies:
-        return []
-    
-    if isinstance(companies, list):
-        return [company.to_json() for company in companies]
-    
-    return companies.to_json()
