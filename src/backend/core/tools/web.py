@@ -2,7 +2,7 @@ import httpx
 from markdownify import markdownify
 import structlog
 
-from backend.database.database import get_web_page, save_web_page
+from backend.database.database import load_web_page, save_web_page
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
@@ -19,7 +19,7 @@ async def load_web_page(url: str) -> str:
         url: Url of the web page.
     """
 
-    stored_page = get_web_page(url)
+    stored_page = load_web_page(url)
     if stored_page:
         _logger.info("Web page loaded from database.", url=url)
         return stored_page.content

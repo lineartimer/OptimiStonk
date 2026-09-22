@@ -3,6 +3,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
+from backend.core.company import Company
 from backend.database.models import (
     Base, Failed, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
 )
@@ -55,7 +56,7 @@ async def initialize_database() -> None:
         session.commit()
 
 
-def get_web_page(url: str) -> WebPage | None:
+def load_web_page(url: str) -> WebPage | None:
     with SessionFactory() as session:
         return session.scalar(select(WebPage).where(WebPage.url == url))
 
@@ -68,7 +69,7 @@ def save_web_page(url: str, content: str) -> WebPage:
         session.commit()
 
 
-def get_web_search(query: str) -> WebSearch | None:
+def load_web_search(query: str) -> WebSearch | None:
     with SessionFactory() as session:
         return session.scalar(
             select(WebSearch).where(WebSearch.query == query)
@@ -85,7 +86,7 @@ def save_web_search(query: str, search_result: list) -> WebSearch:
         return brave_search
 
 
-def get_company(ticker: str) -> dict | None:
+def load_company(ticker: str) -> Company | None:
     with SessionFactory() as session:
         stock = session.scalar(select(Stock).where(Stock.ticker == ticker.upper()))
         if stock is None:
@@ -108,13 +109,13 @@ def get_company(ticker: str) -> dict | None:
         if not financial_rows:
             return None
 
-        return {
-            "name": stock.name,
-            "ticker": stock.ticker,
-            "last_price": stock.last_price,
-            "backlog": stock.backlog,
-            "summary": stock.summary,
-            "historical_prices": {
+        return Company(
+            name=stock.name,
+            ticker=stock.ticker,
+            last_price=stock.last_price,
+            backlog=stock.backlog,
+            summary=stock.summary,
+            historical_prices={
                 row.quarter: prices[row.quarter] for row in financial_rows
             },
             **{
@@ -123,7 +124,7 @@ def get_company(ticker: str) -> dict | None:
                     "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
                 )
             }
-        }
+        )
 
 
 def save_company(company, reports: dict) -> None:

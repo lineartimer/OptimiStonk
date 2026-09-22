@@ -44,7 +44,7 @@ async def get_price_history(ticker: str, years: int) -> dict:
     )
 
     info = stock.get_info()
-    name = info["longName"]
+    name = info["shortName"]
 
     prices_by_quarter = {}
     extra_price_point = {}

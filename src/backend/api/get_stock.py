@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException
 import structlog
 
-from backend.core.company import Company
 from backend.core.financials import get_stock
 from backend.core.tools.edgar import EdgarParseError, EdgarTickerNotFoundError
 from backend.core.tools.yahoo_finance import YahooFinanceParseError, YahooFinanceTickerNotFoundError
-from backend.database.database import get_company, save_failed_stock
+from backend.database.database import load_company, save_failed_stock
 
 
 router = APIRouter()
@@ -18,10 +17,10 @@ _logger = structlog.get_logger(__name__)
 async def get_stock_api(ticker: str):
     ticker = ticker.strip().upper()
 
-    stored_data = get_company(ticker)
-    if stored_data:
+    company = load_company(ticker)
+    if company:
         _logger.info("Company data loaded from database.", ticker=ticker)
-        return Company(**stored_data)
+        return company.to_json()
 
     try:
         stock = await get_stock(ticker)
