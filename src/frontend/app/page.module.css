@@ -64,3 +64,18 @@
   white-space: pre-wrap;
   line-height: 1.5;
 }
+
+.summaryCollapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.summaryToggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #163c73;
+  text-decoration: underline;
+}
