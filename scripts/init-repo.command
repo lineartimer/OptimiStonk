@@ -20,9 +20,9 @@ cd -- "$(dirname -- "$BASH_SOURCE")"
 cd ../src
 
 # Creating Python virtual environment and installing dependencies
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
+pip install -r backend/requirements.txt
 
 echo
 read -p "Press any key to continue..."
