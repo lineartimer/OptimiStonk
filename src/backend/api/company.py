@@ -22,6 +22,7 @@ async def get_company(ticker: str | None = None):
         _logger.info("Company data loaded from database.", ticker=ticker)
         if isinstance(company, list):
             return [item.to_json() for item in company]
+        
         return company.to_json()
 
     if not ticker:

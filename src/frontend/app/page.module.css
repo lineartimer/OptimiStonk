@@ -1,6 +1,6 @@
 .page {
   display: grid;
-  grid-template-columns: 20% 80%;
+  grid-template-columns: min-content minmax(0, 1fr);
   min-height: 100vh;
   font-family: Arial, sans-serif;
 }
@@ -16,19 +16,59 @@
   border-right: 1px solid #ccc;
 }
 
+.sidebar h2 {
+  margin-top: 4px;
+}
+
 .companies {
-  list-style: none;
-  margin: 0;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+
+.companies th,
+.companies td {
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.companies th,
+.companies td:first-child {
   padding: 0;
+}
+
+.companies td + td {
+  padding: 8px 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.companies th + th,
+.companies td + td {
+  text-align: right;
 }
 
 .companies button {
   width: 100%;
-  padding: 8px;
+  padding: 8px 4px;
   border: 0;
   background: transparent;
-  text-align: left;
+  color: inherit;
+  text-align: inherit;
   overflow-wrap: anywhere;
+}
+
+.companies th button {
+  font-weight: bold;
+  white-space: pre;
+}
+
+.companies th button:hover,
+.companies tbody tr:hover {
+  background: #f3f6fa;
+}
+
+.companies button:focus-visible {
+  outline: 2px solid #163c73;
+  outline-offset: -2px;
 }
 
 .tabs {
@@ -53,7 +93,8 @@
   cursor: wait;
 }
 
-.companies button[aria-current="true"],
+.companies .selectedCompany,
+.companies .selectedCompany:hover,
 .tabs button[aria-selected="true"] {
   background: #e8eef8;
   color: #163c73;

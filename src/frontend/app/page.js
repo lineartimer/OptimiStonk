@@ -1,7 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import styles from "./page.module.css";
+
+const companyColumns = [
+  { key: "ticker", label: "Ticker" },
+  { key: "rank_backlog", label: "Rank Backlog" },
+  { key: "rank_market", label: "Rank Market" },
+];
+
+function compareTickers(a, b) {
+  return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
+}
 
 async function request(path, signal) {
   const response = await fetch(path, { cache: "no-store", signal });
@@ -70,6 +80,7 @@ export default function Home() {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
+  const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
   const [tab, setTab] = useState("Company");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
@@ -77,13 +88,38 @@ export default function Home() {
   const company = companies.find(({ ticker }) => ticker === selectedTicker)
     || companies[0];
 
+  const sortedCompanies = useMemo(() => {
+    const direction = sort.direction === "ascending" ? 1 : -1;
+
+    return [...companies].sort((a, b) => {
+      if (sort.key === "ticker") return direction * compareTickers(a, b);
+
+      const aValue = a[sort.key];
+      const bValue = b[sort.key];
+      if (aValue == null && bValue == null) return compareTickers(a, b);
+      if (aValue == null) return 1;
+      if (bValue == null) return -1;
+
+      return direction * (aValue - bValue) || compareTickers(a, b);
+    });
+  }, [companies, sort]);
+
+  function sortBy(key) {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "ascending"
+        ? "descending"
+        : "ascending",
+    }));
+  }
+
   const loadCompanies = useCallback(async (signal) => {
     setCompaniesLoading(true);
     setCompaniesError("");
 
     try {
       const data = await request("/api/company", signal);
-      setCompanies(Array.isArray(data) ? data : [data]);
+      setCompanies((Array.isArray(data) ? data : [data]).sort(compareTickers));
     } catch (error) {
       if (!signal?.aborted) setCompaniesError(error.message);
     } finally {
@@ -123,22 +159,47 @@ export default function Home() {
         {!companiesLoading && !companiesError && companies.length === 0 && (
           <p>No companies yet. Use Search to add one.</p>
         )}
-        <ul className={styles.companies}>
-          {companies.map((item) => (
-            <li key={item.ticker}>
-              <button
-                type="button"
-                aria-current={company?.ticker === item.ticker ? "true" : undefined}
-                onClick={() => {
-                  setSelectedTicker(item.ticker);
-                  setTab("Company");
-                }}
+        <table className={styles.companies} aria-label="Companies">
+          <thead>
+            <tr>
+              {companyColumns.map(({ key, label }) => (
+                <th
+                  key={key}
+                  scope="col"
+                  aria-sort={sort.key === key ? sort.direction : "none"}
+                >
+                  <button type="button" aria-label={label} onClick={() => sortBy(key)}>
+                    {label.split(" ").join("\n")}
+                  </button>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCompanies.map((item) => (
+              <tr
+                key={item.ticker}
+                className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
               >
-                {item.name}
-              </button>
-            </li>
-          ))}
-        </ul>
+                <td>
+                  <button
+                    type="button"
+                    title={item.name}
+                    aria-current={company?.ticker === item.ticker ? "true" : undefined}
+                    onClick={() => {
+                      setSelectedTicker(item.ticker);
+                      setTab("Company");
+                    }}
+                  >
+                    {item.ticker}
+                  </button>
+                </td>
+                <td>{item.rank_backlog ?? "—"}</td>
+                <td>{item.rank_market ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </aside>
 
       <section className={styles.content}>
