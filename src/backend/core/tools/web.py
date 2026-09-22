@@ -11,7 +11,7 @@ BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 _logger = structlog.get_logger(__name__)
 
 
-async def load_web_page(url: str) -> str:
+async def download_web_page(url: str) -> str:
     """
     Loads a web page.
 

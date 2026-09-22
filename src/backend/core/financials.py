@@ -1,19 +1,16 @@
 from datetime import date
-import structlog
 
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
 from backend.core.company import Company
 from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
-from backend.core.tools.web import load_web_page
+from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
 from backend.database.database import save_company
 
 
-_logger = structlog.get_logger(__name__)
-
-SEARCH_QUERY = "How big is {company_name}'s backlog?"
+SEARCH_QUERY = "How big is the backlog of {company_name}?"
 
 
 async def get_stock(ticker: str, years: int = 5) -> Company:
@@ -65,7 +62,7 @@ async def get_stock(ticker: str, years: int = 5) -> Company:
         prompt_backlog["web_pages"].append({
             "title": search_result["title"],
             "publish_date": search_result["publish_date"],
-            "content": await load_web_page(search_result["url"])
+            "content": await download_web_page(search_result["url"])
         })
         cnt += 1
 

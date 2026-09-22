@@ -8,8 +8,8 @@ module.exports = {
   async rewrites() {
     return [
       {
-        source: "/api/scout",
-        destination: `${backendUrl}/api/scout`
+        source: "/api/search",
+        destination: `${backendUrl}/api/search`
       },
       {
         source: "/api/companies",

@@ -96,14 +96,14 @@ export default function Home() {
     return () => controller.abort();
   }, [loadCompanies]);
 
-  async function scout() {
+  async function search() {
     if (loading) return;
 
     setLoading(true);
     setStatus("");
 
     try {
-      await request("/api/scout");
+      await request("/api/search");
       setStatus("Company added successfully.");
       await loadCompanies();
     } catch (error) {
@@ -120,7 +120,7 @@ export default function Home() {
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
         {!companiesLoading && !companiesError && companies.length === 0 && (
-          <p>No companies yet. Use Scout to add one.</p>
+          <p>No companies yet. Use Search to add one.</p>
         )}
         <ul className={styles.companies}>
           {companies.map((item) => (
@@ -142,7 +142,7 @@ export default function Home() {
 
       <section className={styles.content}>
         <div className={styles.tabs} role="tablist" aria-label="Company tools">
-          {["Scout", "Company"].map((name) => (
+          {["Search", "Company"].map((name) => (
             <button
               key={name}
               type="button"
@@ -157,9 +157,9 @@ export default function Home() {
           ))}
         </div>
 
-        <div role="tabpanel" id="panel-Scout" aria-labelledby="tab-Scout" hidden={tab !== "Scout"}>
-          <button type="button" onClick={scout} disabled={loading}>
-            {loading ? "Loading…" : "Scout"}
+        <div role="tabpanel" id="panel-Search" aria-labelledby="tab-Search" hidden={tab !== "Search"}>
+          <button type="button" onClick={search} disabled={loading}>
+            {loading ? "Loading…" : "Search"}
           </button>
           <p role="status">{status}</p>
         </div>

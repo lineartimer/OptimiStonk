@@ -12,8 +12,8 @@ router = APIRouter()
 _logger = structlog.get_logger(__name__)
 
 
-@router.get("/api/scout")
-async def scout():
+@router.get("/api/search")
+async def search():
     ticker = await _get_random_ticker()
 
     _logger.info("Information collection started.", ticker=ticker)
