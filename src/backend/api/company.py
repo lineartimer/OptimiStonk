@@ -4,7 +4,7 @@ import structlog
 from backend.core.financials import get_stock
 from backend.core.tools.edgar import EdgarParseError, EdgarTickerNotFoundError
 from backend.core.tools.yahoo_finance import YahooFinanceParseError, YahooFinanceTickerNotFoundError
-from backend.database.database import load_company, save_failed_stock
+from backend.database.database import load_company, save_failed
 
 
 router = APIRouter()
@@ -26,7 +26,7 @@ async def get_company(ticker: str):
         stock = await get_stock(ticker)
 
     except Exception as e:
-        save_failed_stock(ticker, str(e))
+        save_failed(ticker, str(e))
 
         if (isinstance(e, YahooFinanceTickerNotFoundError) or
             isinstance(e, EdgarTickerNotFoundError)):
@@ -50,3 +50,15 @@ async def get_company(ticker: str):
         ) from e
 
     return stock.to_json()
+
+
+@router.get("/api/companies")
+async def get_companies():
+    companies = load_company()
+    if not companies:
+        return []
+    
+    if isinstance(companies, list):
+        return [company.to_json() for company in companies]
+    
+    return companies.to_json()

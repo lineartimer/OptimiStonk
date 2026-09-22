@@ -86,45 +86,52 @@ def save_web_search(query: str, search_result: list) -> WebSearch:
         return brave_search
 
 
-def load_company(ticker: str) -> Company | None:
+def load_company(ticker: str | None = None) -> Company | list[Company] | None:
     with SessionFactory() as session:
-        stock = session.scalar(select(Stock).where(Stock.ticker == ticker.upper()))
-        if stock is None:
-            return None
+        query = select(Stock).order_by(Stock.name)
+        if ticker:
+            query = query.where(Stock.ticker == ticker.upper())
 
-        financial_rows = list(session.scalars(
-            select(FinancialData)
-            .where(FinancialData.stock_id == stock.id)
-            .order_by(FinancialData.quarter)
-        ))
+        companies = []
+        for company in session.scalars(query).all():
+            financial_rows = list(session.scalars(
+                select(FinancialData)
+                .where(FinancialData.stock_id == company.id)
+                .order_by(FinancialData.quarter)
+            ))
 
-        prices = {
-            row.quarter: row.price for row in session.scalars(
-                select(HistoricalPrice)
-                .where(HistoricalPrice.stock_id == stock.id)
-            )
-        }
-
-        financial_rows = [row for row in financial_rows if row.quarter in prices]
-        if not financial_rows:
-            return None
-
-        return Company(
-            name=stock.name,
-            ticker=stock.ticker,
-            last_price=stock.last_price,
-            backlog=stock.backlog,
-            summary=stock.summary,
-            historical_prices={
-                row.quarter: prices[row.quarter] for row in financial_rows
-            },
-            **{
-                field: {row.quarter: getattr(row, field) for row in financial_rows}
-                for field in (
-                    "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+            prices = {
+                row.quarter: row.price for row in session.scalars(
+                    select(HistoricalPrice)
+                    .where(HistoricalPrice.stock_id == company.id)
                 )
             }
-        )
+
+            financial_rows = [row for row in financial_rows if row.quarter in prices]
+            if not financial_rows:
+                continue
+
+            companies.append(Company(
+                name=company.name,
+                ticker=company.ticker,
+                last_price=company.last_price,
+                backlog=company.backlog,
+                summary=company.summary,
+                historical_prices={
+                    row.quarter: prices[row.quarter] for row in financial_rows
+                },
+                **{
+                    field: {row.quarter: getattr(row, field) for row in financial_rows}
+                    for field in (
+                        "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+                    )
+                }
+            ))
+
+        if not companies:
+            return None
+
+        return companies[0] if len(companies) == 1 else companies
 
 
 def save_company(company, reports: dict) -> None:
@@ -164,7 +171,7 @@ def save_company(company, reports: dict) -> None:
         session.commit()
 
 
-def save_failed_stock(ticker: str, reason: str) -> None:
+def save_failed(ticker: str, reason: str) -> None:
     ticker = ticker.strip().upper()
 
     with SessionFactory() as session:
