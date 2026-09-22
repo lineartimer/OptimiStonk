@@ -19,9 +19,7 @@ export default function Home() {
 
       try {
         formatted = JSON.stringify(JSON.parse(body), null, 2);
-      } catch {
-        // Keep plain-text responses, such as proxy errors, readable.
-      }
+      } catch {}
 
       setOutput(
         response.ok
