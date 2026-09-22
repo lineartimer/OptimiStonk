@@ -21,6 +21,10 @@ eof
 
 cd -- "$(dirname -- "$BASH_SOURCE")"
 
+rm -rf ../src/frontend/.next
+rm -rf ../src/frontend/node_modules
+rm -rf ../src/frontend/package-lock.json
+
 rm -rf ../src/backend/.venv
 
 rm -rf ../src/backend/__pycache__
