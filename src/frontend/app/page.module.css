@@ -1,0 +1,66 @@
+.page {
+  display: grid;
+  grid-template-columns: 20% 80%;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.sidebar,
+.content {
+  min-width: 0;
+  padding: 16px;
+  overflow-wrap: anywhere;
+}
+
+.sidebar {
+  border-right: 1px solid #ccc;
+}
+
+.companies {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.companies button {
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.tabs button {
+  padding: 8px 16px;
+  border: 1px solid #ccc;
+  background: transparent;
+}
+
+.page button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.page button:disabled {
+  cursor: wait;
+}
+
+.companies button[aria-current="true"],
+.tabs button[aria-selected="true"] {
+  background: #e8eef8;
+  color: #163c73;
+  font-weight: bold;
+}
+
+.summary {
+  white-space: pre-wrap;
+  line-height: 1.5;
+}

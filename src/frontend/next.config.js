@@ -10,6 +10,10 @@ module.exports = {
       {
         source: "/api/scout",
         destination: `${backendUrl}/api/scout`
+      },
+      {
+        source: "/api/companies",
+        destination: `${backendUrl}/api/companies`
       }
     ];
   }
