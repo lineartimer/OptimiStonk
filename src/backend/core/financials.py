@@ -8,7 +8,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import load_web_page
 from backend.core.tools.yahoo_finance import get_price_history
-from backend.database.database import get_stock_data, save_stock_data
+from backend.database.database import save_company
 
 
 _logger = structlog.get_logger(__name__)
@@ -18,11 +18,6 @@ SEARCH_QUERY = "How big is {company_name}'s backlog?"
 
 async def get_stock(ticker: str, years: int = 5) -> Company:
     ticker = ticker.strip().upper()
-
-    stored_data = get_stock_data(ticker)
-    if stored_data:
-        _logger.info("Company data loaded from database.", ticker=ticker)
-        return Company(**stored_data)
 
     name, last_price, price_history, extra_price_point = await get_price_history(ticker, years)
     financials, reports = await get_financial_data(ticker, years)
@@ -101,6 +96,6 @@ async def get_stock(ticker: str, years: int = 5) -> Company:
     }
 
     company = Company(**financial_data)
-    save_stock_data(company, reports)
+    save_company(company, reports)
 
     return company

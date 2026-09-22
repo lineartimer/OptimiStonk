@@ -9,6 +9,10 @@ class YahooFinanceTickerNotFoundError(Exception):
     pass
 
 
+class YahooFinanceParseError(Exception):
+    pass
+
+
 async def get_price_history(ticker: str, years: int) -> dict:
     """
     Downloads historical prices of a stock from Yahoo Finance.
@@ -75,8 +79,12 @@ async def get_price_history(ticker: str, years: int) -> dict:
             previous_quarter = quarter
 
     if len(prices_by_quarter) > 0 and not period_finished:
-        quarter, price = prices_by_quarter.popitem()
-        extra_price_point[quarter] = price
+        year_and_quarter, price = prices_by_quarter.popitem()
+        extra_price_point[year_and_quarter] = price
+
+    if len(prices_by_quarter) <= 2:
+        _logger.warning("Stopped processing Yahoo Finance data.", ticker=ticker, quarter=f"{year}/{quarter}")
+        raise YahooFinanceParseError(f"At least 2 quarters of financial data could not be found for {name}")
     
     _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
 

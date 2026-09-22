@@ -2,6 +2,10 @@ import math
 import numpy as np
 
 
+class CompanyError(ValueError):
+    pass
+
+
 class Company:
     def __init__(self,
                  name: str,
@@ -15,6 +19,14 @@ class Company:
                  summary: str,
                  historical_prices: dict
     ):
+        if (len(revenue) <= 2 or
+            len(r_and_d_expense) <= 2 or
+            len(investment_cash_flow) <= 2 or
+            len(share_count) <= 2 or
+            len(historical_prices) <= 2
+        ):
+            raise CompanyError(f"{ticker} has less than 2 quarters of financial data.")
+
         self.name = name
         self.ticker = ticker
         self.last_price = last_price

@@ -85,7 +85,7 @@ def save_web_search(query: str, search_result: list) -> WebSearch:
         return brave_search
 
 
-def get_stock_data(ticker: str) -> dict | None:
+def get_company(ticker: str) -> dict | None:
     with SessionFactory() as session:
         stock = session.scalar(select(Stock).where(Stock.ticker == ticker.upper()))
         if stock is None:
@@ -126,20 +126,7 @@ def get_stock_data(ticker: str) -> dict | None:
         }
 
 
-def save_failed_stock(ticker: str, reason: str) -> None:
-    ticker = ticker.strip().upper()
-
-    with SessionFactory() as session:
-        failed = session.get(Failed, ticker)
-        if failed is None:
-            session.add(Failed(ticker=ticker, reason=reason))
-        else:
-            failed.reason = reason
-
-        session.commit()
-
-
-def save_stock_data(company, reports: dict) -> None:
+def save_company(company, reports: dict) -> None:
     with SessionFactory() as session:
         stock = Stock(
             name=company.name,
@@ -172,5 +159,18 @@ def save_stock_data(company, reports: dict) -> None:
             session.add(HistoricalPrice(
                 stock_id=stock.id, quarter=quarter, price=data["price"]
             ))
+
+        session.commit()
+
+
+def save_failed_stock(ticker: str, reason: str) -> None:
+    ticker = ticker.strip().upper()
+
+    with SessionFactory() as session:
+        failed = session.get(Failed, ticker)
+        if failed is None:
+            session.add(Failed(ticker=ticker, reason=reason))
+        else:
+            failed.reason = reason
 
         session.commit()
