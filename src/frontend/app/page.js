@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import styles from "./page.module.css";
 
 const companyColumns = [
@@ -158,7 +160,16 @@ export default function Home() {
   return (
     <main className={styles.page}>
       <aside className={styles.sidebar} aria-label="Stocks">
-        <h2>Companies</h2>
+        <Link href="/" aria-label="OptimiStonk home">
+          <Image
+            className={styles.logo}
+            src="/images/logo.png"
+            alt="OptimiStonk"
+            width={216}
+            height={72}
+            loading="eager"
+          />
+        </Link>
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
         {!companiesLoading && !companiesError && companies.length === 0 && (

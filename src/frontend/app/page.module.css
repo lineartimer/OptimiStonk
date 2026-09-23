@@ -8,16 +8,23 @@
 .sidebar,
 .content {
   min-width: 0;
-  padding: 16px;
   overflow-wrap: anywhere;
+}
+
+.content {
+  padding: 16px;
 }
 
 .sidebar {
   border-right: 1px solid #ccc;
 }
 
-.sidebar h2 {
-  margin-top: 4px;
+.logo {
+  margin: 6px auto 0 auto;
+  display: block;
+  width: 216px;
+  max-width: 90%;
+  height: auto;
 }
 
 .companies {
