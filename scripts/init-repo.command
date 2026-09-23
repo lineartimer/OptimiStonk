@@ -17,12 +17,15 @@ end tell
 eof
 
 cd -- "$(dirname -- "$BASH_SOURCE")"
-cd ../src
 
-# Creating Python virtual environment and installing dependencies
+cd ../src/backend
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
+
+cd ../frontend
+npm install
 
 echo
 read -p "Press any key to continue..."

@@ -21,6 +21,12 @@ eof
 
 cd -- "$(dirname -- "$BASH_SOURCE")"
 
+rm -rf ../src/frontend/.next
+rm -rf ../src/frontend/node_modules
+rm -rf ../src/frontend/package-lock.json
+
+rm -rf ../src/backend/.venv
+
 rm -rf ../src/backend/__pycache__
 rm -rf ../src/backend/api/__pycache__
 rm -rf ../src/backend/core/__pycache__
@@ -30,8 +36,6 @@ rm -rf ../src/backend/database/__pycache__
 
 rm -rf ../src/database.db
 rm -rf ../src/database.db-journal
-
-rm -rf ../src/.venv
 
 echo
 read -p "Press any key to continue..."

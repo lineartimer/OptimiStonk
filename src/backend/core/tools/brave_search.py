@@ -1,8 +1,8 @@
 import httpx
-import os
 import structlog
 
-from backend.database.database import get_web_search, save_web_search
+from backend.config import BRAVE_API_KEY
+from backend.database.database import load_web_search, save_web_search
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
@@ -19,7 +19,7 @@ async def web_search(query: str) -> list:
         query: Search query.
     """
 
-    stored_search = get_web_search(query)
+    stored_search = load_web_search(query)
     if stored_search:
         _logger.info(
             "Web search loaded from database.",
@@ -40,7 +40,7 @@ async def web_search(query: str) -> list:
                 },
                 headers={
                     "Accept": "application/json",
-                    "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
+                    "X-Subscription-Token": BRAVE_API_KEY
                 }
             )
 

@@ -111,33 +111,53 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     split = 1
     for form_10q in form_10qs:
         try:
-            # As full-year quarters are not reported, every year will have only 3 quarters
+            # As full-year quarters are not reported,
+            # every year will have only 3 quarters
             xbrl, year, quarter = _get_xbrl_and_period(form_10q)
 
             if year < datetime.now().year - years:
                 break
 
-            quarterly_revenue = round(_get_optional_financial_data(xbrl, "revenue") / UNIT)
+            quarterly_revenue = round(
+                _get_optional_financial_data(xbrl, "revenue") / UNIT
+            )
 
             # In some rare, esoteric cases, revenue can be negative
             if quarterly_revenue < 0:
-                _logger.warning("Negative revenue found.", ticker=ticker, quarter=f"{year}/{quarter}")
+                _logger.warning("Negative revenue found.",
+                    ticker=ticker,
+                    quarter=f"{year}/{quarter}"
+                )
                 break
 
-            quarterly_r_and_d_expense = round(_get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT)
+            quarterly_r_and_d_expense = round(
+                _get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT
+            )
 
             # Of these financial data, only share count is not optional
-            quarterly_share_count = round(split * _get_financial_data(xbrl, "share_count") / UNIT)
+            quarterly_share_count = round(
+                split * _get_financial_data(xbrl, "share_count") / UNIT
+            )
 
-            quarterly_investment = round(_get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT)
+            quarterly_investment = round(
+                _get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT
+            )
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
-            _logger.warning("Stopped processing EDGAR data because of a parsing error.", ticker=ticker, quarter=f"{year}/{quarter}", error=str(e))
+            _logger.warning("Stopped processing EDGAR data because of a parsing error.",
+                ticker=ticker,
+                quarter=f"{year}/{quarter}",
+                error=str(e)
+            )
             break
 
         except Exception as e:
-            _logger.warning("Stopped processing EDGAR data.", ticker=ticker, quarter=f"{year}/{quarter}", error=str(e))
+            _logger.warning("Stopped processing EDGAR data.",
+                ticker=ticker,
+                quarter=f"{year}/{quarter}",
+                error=str(e)
+            )
             break
 
         for s in splits:
@@ -214,7 +234,10 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
     form_10ks = company.get_filings(form="10-K")
     if form_10ks.empty or len(quarterly_revenues) < 2:
-        raise EdgarParseError(f"Either a 10-K or at least 2 quarters of financial data could not be found for {company.name}")
+        raise EdgarParseError(
+            f"Either a 10-K or at least 2 quarters of financial data"
+            f"could not be found for {company.name}"
+        )
     
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
@@ -247,7 +270,9 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     xbrl = form_10q.xbrl()
     income_statement = xbrl.statements.income_statement()
     if not income_statement:
-        raise _FinancialStatementNotFoundError("Couldn't find income statement when parsing period.")
+        raise _FinancialStatementNotFoundError(
+            "Couldn't find income statement when parsing period."
+        )
 
     rendered_income_statement = income_statement.render()
 
@@ -296,7 +321,9 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     # Try to find the value in the income statement
     income_statement = xbrl.statements.income_statement()
     if not income_statement:
-        raise _FinancialStatementNotFoundError(f"Couldn't find income statement when parsing {name}.")
+        raise _FinancialStatementNotFoundError(
+            f"Couldn't find income statement when parsing {name}."
+        )
     
     value = _parse_from_financial_statement(income_statement, concept_names, labels)
     if value is not None:
@@ -305,7 +332,9 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     # Try to find the value in the cash flow
     cash_flow = xbrl.statements.cash_flow_statement()
     if not cash_flow:
-        raise _FinancialStatementNotFoundError(f"Couldn't find cash-flow when parsing {name}.")
+        raise _FinancialStatementNotFoundError(
+            f"Couldn't find cash-flow when parsing {name}."
+        )
     
     value = _parse_from_financial_statement(cash_flow, concept_names, labels)
     if value is not None:
@@ -313,7 +342,12 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
 
     return None
 
-def _parse_from_financial_statement(financial_statement: Statement, concept_names: list[str], labels: list[str]) -> float | None:
+def _parse_from_financial_statement(
+        financial_statement: Statement,
+        concept_names: list[str],
+        labels: list[str]
+    ) -> float | None:
+    
     for row in financial_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
         

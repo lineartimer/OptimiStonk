@@ -1,14 +1,13 @@
 from __future__ import annotations
-
 from sqlalchemy import Float, ForeignKey, JSON, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-class Base(DeclarativeBase):
+class BaseModel(DeclarativeBase):
     pass
 
 
-class WebPage(Base):
+class WebPageModel(BaseModel):
     __tablename__ = "web_pages"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -16,7 +15,7 @@ class WebPage(Base):
     content: Mapped[str] = mapped_column(Text)
 
 
-class WebSearch(Base):
+class WebSearchModel(BaseModel):
     __tablename__ = "web_searches"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -24,7 +23,7 @@ class WebSearch(Base):
     search_result: Mapped[list] = mapped_column(JSON)
 
 
-class Market(Base):
+class MarketModel(BaseModel):
     __tablename__ = "market"
 
     ticker: Mapped[str] = mapped_column(Text, primary_key=True)
@@ -32,14 +31,14 @@ class Market(Base):
     stock_type: Mapped[str] = mapped_column(Text)
 
 
-class Failed(Base):
+class FailedModel(BaseModel):
     __tablename__ = "failed"
 
     ticker: Mapped[str] = mapped_column(Text, primary_key=True)
     reason: Mapped[str] = mapped_column(Text)
 
 
-class Stock(Base):
+class StockModel(BaseModel):
     __tablename__ = "stocks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -57,16 +56,16 @@ class Stock(Base):
     annual_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    financial_data: Mapped[list[FinancialData]] = relationship(
+    financial_data: Mapped[list[FinancialDataModel]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
 
-    historical_prices: Mapped[list[HistoricalPrice]] = relationship(
+    historical_prices: Mapped[list[HistoricalPriceModel]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
 
 
-class FinancialData(Base):
+class FinancialDataModel(BaseModel):
     __tablename__ = "financial_data"
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
@@ -81,10 +80,10 @@ class FinancialData(Base):
     investment_cash_flow: Mapped[int]
     share_count: Mapped[int]
 
-    stock: Mapped[Stock] = relationship(back_populates="financial_data")
+    stock: Mapped[StockModel] = relationship(back_populates="financial_data")
 
 
-class HistoricalPrice(Base):
+class HistoricalPriceModel(BaseModel):
     __tablename__ = "historical_prices"
     __table_args__ = (UniqueConstraint("stock_id", "quarter"),)
 
@@ -96,4 +95,4 @@ class HistoricalPrice(Base):
     quarter: Mapped[str] = mapped_column(Text)
     price: Mapped[float] = mapped_column(Float)
 
-    stock: Mapped[Stock] = relationship(back_populates="historical_prices")
+    stock: Mapped[StockModel] = relationship(back_populates="historical_prices")

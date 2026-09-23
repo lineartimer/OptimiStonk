@@ -3,8 +3,16 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from backend.config import DATABASE_URL
+from backend.core.stock import Stock
 from backend.database.models import (
-    Base, Failed, FinancialData, HistoricalPrice, Market, Stock, WebPage, WebSearch
+    BaseModel,
+    FailedModel,
+    FinancialDataModel,
+    HistoricalPriceModel,
+    MarketModel,
+    StockModel,
+    WebPageModel,
+    WebSearchModel
 )
 
 
@@ -31,11 +39,13 @@ SessionFactory = sessionmaker(bind=engine, expire_on_commit=False)
 
 
 async def initialize_database() -> None:
-    Base.metadata.create_all(bind=engine)
+    BaseModel.metadata.create_all(bind=engine)
 
     # Download stock list
     with SessionFactory() as session:
-        market_is_populated = session.scalar(select(Market.ticker).limit(1)) is not None
+        market_is_populated = session.scalar(
+            select(MarketModel.ticker).limit(1)
+        ) is not None
 
     if market_is_populated:
         return
@@ -45,7 +55,7 @@ async def initialize_database() -> None:
 
     with SessionFactory() as session:
         session.add_all(
-            Market(
+            MarketModel(
                 ticker=ticker,
                 company_name=company["company_name"],
                 stock_type=company["stock_type"]
@@ -55,29 +65,29 @@ async def initialize_database() -> None:
         session.commit()
 
 
-def get_web_page(url: str) -> WebPage | None:
+def load_web_page(url: str) -> WebPageModel | None:
     with SessionFactory() as session:
-        return session.scalar(select(WebPage).where(WebPage.url == url))
+        return session.scalar(select(WebPageModel).where(WebPageModel.url == url))
 
 
-def save_web_page(url: str, content: str) -> WebPage:
+def save_web_page(url: str, content: str) -> WebPageModel:
     with SessionFactory() as session:
-        web_page = WebPage(url=url, content=content)
+        web_page = WebPageModel(url=url, content=content)
 
         session.add(web_page)
         session.commit()
 
 
-def get_web_search(query: str) -> WebSearch | None:
+def load_web_search(query: str) -> WebSearchModel | None:
     with SessionFactory() as session:
         return session.scalar(
-            select(WebSearch).where(WebSearch.query == query)
+            select(WebSearchModel).where(WebSearchModel.query == query)
         )
 
 
-def save_web_search(query: str, search_result: list) -> WebSearch:
+def save_web_search(query: str, search_result: list) -> WebSearchModel:
     with SessionFactory() as session:
-        brave_search = WebSearch(query=query, search_result=search_result)
+        brave_search = WebSearchModel(query=query, search_result=search_result)
 
         session.add(brave_search)
         session.commit()
@@ -85,63 +95,57 @@ def save_web_search(query: str, search_result: list) -> WebSearch:
         return brave_search
 
 
-def get_stock_data(ticker: str) -> dict | None:
+def load_company(ticker: str | None = None) -> Stock | list[Stock] | None:
     with SessionFactory() as session:
-        stock = session.scalar(select(Stock).where(Stock.ticker == ticker.upper()))
-        if stock is None:
-            return None
+        query = select(StockModel).order_by(StockModel.name)
+        if ticker:
+            query = query.where(StockModel.ticker == ticker.upper())
 
-        financial_rows = list(session.scalars(
-            select(FinancialData)
-            .where(FinancialData.stock_id == stock.id)
-            .order_by(FinancialData.quarter)
-        ))
+        companies = []
+        for company in session.scalars(query).all():
+            financial_rows = list(session.scalars(
+                select(FinancialDataModel)
+                .where(FinancialDataModel.stock_id == company.id)
+                .order_by(FinancialDataModel.quarter)
+            ))
 
-        prices = {
-            row.quarter: row.price for row in session.scalars(
-                select(HistoricalPrice)
-                .where(HistoricalPrice.stock_id == stock.id)
-            )
-        }
-
-        financial_rows = [row for row in financial_rows if row.quarter in prices]
-        if not financial_rows:
-            return None
-
-        return {
-            "name": stock.name,
-            "ticker": stock.ticker,
-            "last_price": stock.last_price,
-            "backlog": stock.backlog,
-            "summary": stock.summary,
-            "historical_prices": {
-                row.quarter: prices[row.quarter] for row in financial_rows
-            },
-            **{
-                field: {row.quarter: getattr(row, field) for row in financial_rows}
-                for field in (
-                    "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+            prices = {
+                row.quarter: row.price for row in session.scalars(
+                    select(HistoricalPriceModel)
+                    .where(HistoricalPriceModel.stock_id == company.id)
                 )
             }
-        }
+
+            financial_rows = [row for row in financial_rows if row.quarter in prices]
+            if not financial_rows:
+                continue
+
+            companies.append(Stock(
+                name=company.name,
+                ticker=company.ticker,
+                last_price=company.last_price,
+                backlog=company.backlog,
+                summary=company.summary,
+                historical_prices={
+                    row.quarter: prices[row.quarter] for row in financial_rows
+                },
+                **{
+                    field: {row.quarter: getattr(row, field) for row in financial_rows}
+                    for field in (
+                        "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+                    )
+                }
+            ))
+
+        if not companies:
+            return None
+
+        return companies[0] if len(companies) == 1 else companies
 
 
-def save_failed_stock(ticker: str, reason: str) -> None:
-    ticker = ticker.strip().upper()
-
+def save_company(company, reports: dict) -> None:
     with SessionFactory() as session:
-        failed = session.get(Failed, ticker)
-        if failed is None:
-            session.add(Failed(ticker=ticker, reason=reason))
-        else:
-            failed.reason = reason
-
-        session.commit()
-
-
-def save_stock_data(company, reports: dict) -> None:
-    with SessionFactory() as session:
-        stock = Stock(
+        stock = StockModel(
             name=company.name,
             ticker=company.ticker.upper(),
             last_price=company.last_price,
@@ -160,7 +164,7 @@ def save_stock_data(company, reports: dict) -> None:
         session.flush()
 
         for quarter, data in company._historical_data.items():
-            session.add(FinancialData(
+            session.add(FinancialDataModel(
                 stock_id=stock.id,
                 quarter=quarter,
                 revenue=data["revenue"],
@@ -169,8 +173,21 @@ def save_stock_data(company, reports: dict) -> None:
                 share_count=data["share_count"]
             ))
 
-            session.add(HistoricalPrice(
+            session.add(HistoricalPriceModel(
                 stock_id=stock.id, quarter=quarter, price=data["price"]
             ))
+
+        session.commit()
+
+
+def save_failed(ticker: str, reason: str) -> None:
+    ticker = ticker.strip().upper()
+
+    with SessionFactory() as session:
+        failed = session.get(FailedModel, ticker)
+        if failed is None:
+            session.add(FailedModel(ticker=ticker, reason=reason))
+        else:
+            failed.reason = reason
 
         session.commit()
