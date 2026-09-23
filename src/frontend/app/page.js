@@ -9,6 +9,11 @@ const companyColumns = [
   { key: "rank_market", label: "Rank Market" }
 ];
 
+const tabs = [
+  { id: "discover", label: "Discover" },
+  { id: "stock-details", label: "Stock details" }
+];
+
 function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
@@ -21,7 +26,7 @@ async function request(path, signal) {
   try {
     data = JSON.parse(body);
   } catch {
-    if (response.ok) throw new Error("Invalid response from the server.");
+    if (response.ok) throw new Error("Failed to interpret response from backend.");
   }
 
   if (!response.ok) {
@@ -81,7 +86,7 @@ export default function Home() {
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
   const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
-  const [tab, setTab] = useState("Company");
+  const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -152,14 +157,14 @@ export default function Home() {
 
   return (
     <main className={styles.page}>
-      <aside className={styles.sidebar} aria-label="Companies">
+      <aside className={styles.sidebar} aria-label="Stocks">
         <h2>Companies</h2>
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
         {!companiesLoading && !companiesError && companies.length === 0 && (
           <p>Use Discover to add companies.</p>
         )}
-        <table className={styles.companies} aria-label="Companies">
+        <table className={styles.companies} aria-label="Stocks">
           <thead>
             <tr>
               {companyColumns.map(({ key, label }) => (
@@ -188,7 +193,7 @@ export default function Home() {
                     aria-current={company?.ticker === item.ticker ? "true" : undefined}
                     onClick={() => {
                       setSelectedTicker(item.ticker);
-                      setTab("Company");
+                      setTab("stock-details");
                     }}
                   >
                     {item.ticker}
@@ -204,29 +209,29 @@ export default function Home() {
 
       <section className={styles.content}>
         <div className={styles.tabs} role="tablist" aria-label="Stock controls">
-          {["Discover", "Stock details"].map((name) => (
+          {tabs.map(({ id, label }) => (
             <button
-              key={name}
+              key={id}
               type="button"
               role="tab"
-              id={`tab-${name}`}
-              aria-selected={tab === name}
-              aria-controls={`panel-${name}`}
-              onClick={() => setTab(name)}
+              id={`tab-${id}`}
+              aria-selected={tab === id}
+              aria-controls={`panel-${id}`}
+              onClick={() => setTab(id)}
             >
-              {name}
+              {label}
             </button>
           ))}
         </div>
 
-        <div role="tabpanel" id="panel-Search" aria-labelledby="tab-Search" hidden={tab !== "Discover"}>
+        <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
           <button type="button" onClick={search} disabled={loading}>
             {loading ? "Loading…" : "Discover"}
           </button>
           <p role="status">{status}</p>
         </div>
 
-        <div role="tabpanel" id="panel-Company" aria-labelledby="tab-Company" hidden={tab !== "Company"}>
+        <div role="tabpanel" id="panel-stock-details" aria-labelledby="tab-stock-details" hidden={tab !== "stock-details"}>
           {company ? (
             <>
               <h1>{company.name}</h1>
