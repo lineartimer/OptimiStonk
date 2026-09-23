@@ -236,7 +236,7 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     if form_10ks.empty or len(quarterly_revenues) < 2:
         raise EdgarParseError(
             f"Either a 10-K or at least 2 quarters of financial data"
-            f"could not be found for {company.name}."
+            f"could not be found for {company.name}"
         )
     
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)

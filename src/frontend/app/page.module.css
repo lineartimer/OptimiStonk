@@ -1,8 +1,18 @@
 .page {
+  --color-text: #122a4a;
+  --color-focus: #09346c;
+  --color-border: #728698;
+  --color-divider: #d0dce5;
+  --color-highlight: #d9f4ee;
+  --color-hover: #edfaf7;
+  --color-surface: #fff;
+
   display: grid;
   grid-template-columns: min-content minmax(0, 1fr);
   min-height: 100vh;
   font-family: Arial, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .sidebar,
@@ -17,7 +27,7 @@
 
 .sidebar {
   padding: 0 16px 0 16px;
-  border-right: 1px solid #ccc;
+  border-right: 1px solid var(--color-border);
 }
 
 .logo {
@@ -35,7 +45,7 @@
 
 .companies th,
 .companies td {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-divider);
   text-align: left;
 }
 
@@ -71,15 +81,20 @@
 
 .companies th button:hover,
 .companies tbody tr:hover {
-  background: #f3f6fa;
+  background: var(--color-hover);
 }
 
 .companies tbody tr {
   cursor: pointer;
 }
 
+.page button:focus-visible,
+.page a:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
 .companies button:focus-visible {
-  outline: 2px solid #163c73;
   outline-offset: -2px;
 }
 
@@ -95,7 +110,7 @@
   content: "";
   flex: 0 0 16px;
   align-self: flex-end;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .tabs::after {
@@ -104,8 +119,9 @@
 
 .tabs button {
   padding: 8px 16px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   background: transparent;
+  color: var(--color-text);
 }
 
 .tabs button + button {
@@ -123,8 +139,8 @@
 
 .companies .selectedCompany,
 .companies .selectedCompany:hover {
-  background: #e8eef8;
-  color: #163c73;
+  background: var(--color-highlight);
+  color: var(--color-text);
   font-weight: bold;
 }
 
@@ -134,8 +150,12 @@
 }
 
 .tabs button[aria-selected="false"] {
-  background: #e8eef8;
+  background: var(--color-highlight);
   font-weight: normal;
+}
+
+.discoverButton {
+  color: var(--color-text);
 }
 
 .summary {
@@ -154,6 +174,6 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #163c73;
+  color: var(--color-text);
   text-decoration: underline;
 }

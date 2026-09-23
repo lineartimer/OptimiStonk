@@ -232,7 +232,7 @@ export default function Home() {
         </div>
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
-          <button type="button" onClick={search} disabled={loading}>
+          <button className={styles.discoverButton} type="button" onClick={search} disabled={loading}>
             {loading ? "Loading…" : "Discover"}
           </button>
           <p role="status">{status}</p>
