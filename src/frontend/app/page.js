@@ -19,8 +19,36 @@ function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
 
-async function request(path, signal) {
+async function request(path, signal, onStatus) {
   const response = await fetch(path, { cache: "no-store", signal });
+  if (response.ok && onStatus) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const event = JSON.parse(line);
+          if (event.type === "status") onStatus(event.message);
+          if (event.type === "result") return event.data;
+          if (event.type === "error") throw new Error(event.detail);
+        }
+
+        if (done) throw new Error("Discovery stream ended before a result was received.");
+      }
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
+    }
+  }
+
   const body = await response.text();
   let data;
 
@@ -90,6 +118,7 @@ export default function Home() {
   const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
+  const [discoveryMessages, setDiscoveryMessages] = useState([]);
 
   const company = companies.find(({ ticker }) => ticker === selectedTicker)
     || companies[0];
@@ -144,9 +173,12 @@ export default function Home() {
 
     setLoading(true);
     setStatus("");
+    setDiscoveryMessages([]);
 
     try {
-      await request("/api/discover");
+      await request("/api/discover", undefined, (message) => {
+        setDiscoveryMessages((messages) => [...messages, message]);
+      });
       setStatus("Company added successfully.");
       await loadCompanies();
     } catch (error) {
@@ -235,6 +267,14 @@ export default function Home() {
           <button className={styles.discoverButton} type="button" onClick={search} disabled={loading}>
             {loading ? "Loading…" : "Discover"}
           </button>
+          <textarea
+            className={styles.discoveryMessages}
+            aria-label="Discovery status messages"
+            aria-live="polite"
+            readOnly
+            rows={5}
+            value={discoveryMessages.join("\n")}
+          />
           <p role="status">{status}</p>
         </div>
 
