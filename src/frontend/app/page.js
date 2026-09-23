@@ -185,16 +185,13 @@ export default function Home() {
               <tr
                 key={item.ticker}
                 className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
+                onClick={() => setSelectedTicker(item.ticker)}
               >
                 <td>
                   <button
                     type="button"
                     title={item.name}
                     aria-current={company?.ticker === item.ticker ? "true" : undefined}
-                    onClick={() => {
-                      setSelectedTicker(item.ticker);
-                      setTab("stock-details");
-                    }}
                   >
                     {item.ticker}
                   </button>

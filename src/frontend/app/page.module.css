@@ -66,6 +66,10 @@
   background: #f3f6fa;
 }
 
+.companies tbody tr {
+  cursor: pointer;
+}
+
 .companies button:focus-visible {
   outline: 2px solid #163c73;
   outline-offset: -2px;
@@ -74,14 +78,30 @@
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0;
   margin-bottom: 24px;
+}
+
+.tabs::before,
+.tabs::after {
+  content: "";
+  flex: 0 0 16px;
+  align-self: flex-end;
+  border-bottom: 1px solid #ccc;
+}
+
+.tabs::after {
+  flex-basis: 48px;
 }
 
 .tabs button {
   padding: 8px 16px;
   border: 1px solid #ccc;
   background: transparent;
+}
+
+.tabs button + button {
+  margin-left: -1px;
 }
 
 .page button {
@@ -94,11 +114,20 @@
 }
 
 .companies .selectedCompany,
-.companies .selectedCompany:hover,
-.tabs button[aria-selected="true"] {
+.companies .selectedCompany:hover {
   background: #e8eef8;
   color: #163c73;
   font-weight: bold;
+}
+
+.tabs button[aria-selected="true"] {
+  border-bottom: 0;
+  font-weight: bold;
+}
+
+.tabs button[aria-selected="false"] {
+  background: #e8eef8;
+  font-weight: normal;
 }
 
 .summary {
