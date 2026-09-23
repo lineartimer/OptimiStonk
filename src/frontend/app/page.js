@@ -6,7 +6,7 @@ import styles from "./page.module.css";
 const companyColumns = [
   { key: "ticker", label: "Ticker" },
   { key: "rank_backlog", label: "Rank Backlog" },
-  { key: "rank_market", label: "Rank Market" },
+  { key: "rank_market", label: "Rank Market" }
 ];
 
 function compareTickers(a, b) {
@@ -109,7 +109,7 @@ export default function Home() {
       key,
       direction: current.key === key && current.direction === "ascending"
         ? "descending"
-        : "ascending",
+        : "ascending"
     }));
   }
 
@@ -118,7 +118,7 @@ export default function Home() {
     setCompaniesError("");
 
     try {
-      const data = await request("/api/company", signal);
+      const data = await request("/api/stock", signal);
       setCompanies((Array.isArray(data) ? data : [data]).sort(compareTickers));
     } catch (error) {
       if (!signal?.aborted) setCompaniesError(error.message);
@@ -140,7 +140,7 @@ export default function Home() {
     setStatus("");
 
     try {
-      await request("/api/search");
+      await request("/api/discover");
       setStatus("Company added successfully.");
       await loadCompanies();
     } catch (error) {
@@ -157,7 +157,7 @@ export default function Home() {
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
         {!companiesLoading && !companiesError && companies.length === 0 && (
-          <p>No companies yet. Use Search to add one.</p>
+          <p>Use Discover to add companies.</p>
         )}
         <table className={styles.companies} aria-label="Companies">
           <thead>
@@ -203,8 +203,8 @@ export default function Home() {
       </aside>
 
       <section className={styles.content}>
-        <div className={styles.tabs} role="tablist" aria-label="Company tools">
-          {["Search", "Company"].map((name) => (
+        <div className={styles.tabs} role="tablist" aria-label="Stock controls">
+          {["Discover", "Stock details"].map((name) => (
             <button
               key={name}
               type="button"
@@ -219,9 +219,9 @@ export default function Home() {
           ))}
         </div>
 
-        <div role="tabpanel" id="panel-Search" aria-labelledby="tab-Search" hidden={tab !== "Search"}>
+        <div role="tabpanel" id="panel-Search" aria-labelledby="tab-Search" hidden={tab !== "Discover"}>
           <button type="button" onClick={search} disabled={loading}>
-            {loading ? "Loading…" : "Search"}
+            {loading ? "Loading…" : "Discover"}
           </button>
           <p role="status">{status}</p>
         </div>

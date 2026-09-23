@@ -5,8 +5,8 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from backend.api.company import router as get_company_router
-from backend.api.search import router as search_router
+from backend.api.stock import stock_router
+from backend.api.discover import discovery_router
 from backend.database.database import initialize_database
 
 
@@ -19,8 +19,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(get_company_router)
-app.include_router(search_router)
+app.include_router(stock_router)
+app.include_router(discovery_router)
 
 
 if __name__ == "__main__":

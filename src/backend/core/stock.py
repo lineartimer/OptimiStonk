@@ -2,11 +2,11 @@ import math
 import numpy as np
 
 
-class CompanyError(ValueError):
+class StockError(ValueError):
     pass
 
 
-class Company:
+class Stock:
     def __init__(self,
                  name: str,
                  ticker: str,
@@ -25,7 +25,7 @@ class Company:
             len(share_count) <= 2 or
             len(historical_prices) <= 2
         ):
-            raise CompanyError(f"{ticker} has less than 2 quarters of financial data.")
+            raise StockError(f"{ticker} has less than 2 quarters of financial data.")
 
         self.name = name
         self.ticker = ticker
@@ -86,7 +86,10 @@ class Company:
         if revenue == 0:
             return float("inf")
         
-        return round(self.last_price * self.get_share_count(last_quarter) / (4 * revenue), 2)
+        return round(
+            self.last_price * self.get_share_count(last_quarter) / (4 * revenue),
+            2
+        )
 
     def price_to_backlog_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
@@ -96,7 +99,10 @@ class Company:
         if self.backlog == 0:
             return float("inf")
         
-        return round(self.last_price * self.get_share_count(last_quarter) / self.backlog, 2)
+        return round(
+            self.last_price * self.get_share_count(last_quarter) / self.backlog,
+            2
+        )
 
     def revenue_growth_per_year(self) -> float:
         if len(self._historical_data) < 2:

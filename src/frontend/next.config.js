@@ -8,12 +8,12 @@ module.exports = {
   async rewrites() {
     return [
       {
-        source: "/api/search",
-        destination: `${backendUrl}/api/search`
+        source: "/api/discover",
+        destination: `${backendUrl}/api/discover`
       },
       {
-        source: "/api/company",
-        destination: `${backendUrl}/api/company`
+        source: "/api/stock",
+        destination: `${backendUrl}/api/stock`
       }
     ];
   }

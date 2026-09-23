@@ -34,14 +34,7 @@
             "env": {
                 "BACKEND_URL": "http://127.0.0.1:8000"
             },
-            "skipFiles": ["<node_internals>/**"],
-            "serverReadyAction": {
-                "action": "debugWithChrome",
-                "killOnServerStop": true,
-                "pattern": "- Local:.+(https?://\\S+)",
-                "uriFormat": "%s",
-                "webRoot": "${workspaceFolder}/frontend"
-            }
+            "skipFiles": ["<node_internals>/**"]
         }
     ],
     "compounds": [

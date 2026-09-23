@@ -83,10 +83,21 @@ async def get_price_history(ticker: str, years: int) -> dict:
         extra_price_point[year_and_quarter] = price
 
     if len(prices_by_quarter) <= 2:
-        _logger.warning("Stopped processing Yahoo Finance data.", ticker=ticker, quarter=f"{year}/{quarter}")
-        raise YahooFinanceParseError(f"At least 2 quarters of financial data could not be found for {name}")
+        _logger.warning(
+            "Stopped processing Yahoo Finance data.",
+            ticker=ticker,
+            quarter=f"{year}/{quarter}"
+        )
+        raise YahooFinanceParseError(
+            f"At least 2 quarters of financial data could not be found for {name}"
+        )
     
     _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
 
     # Return prices in normal order
-    return name, last_price, dict(reversed(prices_by_quarter.items())), extra_price_point
+    return (
+        name,
+        last_price,
+        dict(reversed(prices_by_quarter.items())),
+        extra_price_point
+    )

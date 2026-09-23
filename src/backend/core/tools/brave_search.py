@@ -1,7 +1,7 @@
 import httpx
-import os
 import structlog
 
+from backend.config import BRAVE_API_KEY
 from backend.database.database import load_web_search, save_web_search
 
 
@@ -40,7 +40,7 @@ async def web_search(query: str) -> list:
                 },
                 headers={
                     "Accept": "application/json",
-                    "X-Subscription-Token": os.getenv("BRAVE_API_KEY")
+                    "X-Subscription-Token": BRAVE_API_KEY
                 }
             )
 

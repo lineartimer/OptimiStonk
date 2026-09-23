@@ -2,18 +2,18 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 import structlog
 
-from backend.api.company import get_company
+from backend.api.stock import get_stock
 from backend.database.database import SessionFactory
-from backend.database.models import Failed, Market, Stock
+from backend.database.models import FailedModel, MarketModel, StockModel
 
 
-router = APIRouter()
+discovery_router = APIRouter()
 
 _logger = structlog.get_logger(__name__)
 
 
-@router.get("/api/search")
-async def search():
+@discovery_router.get("/api/discover")
+async def discover():
     ticker = await _get_random_ticker()
 
     _logger.info("Information collection started.", ticker=ticker)
@@ -22,19 +22,19 @@ async def search():
         _logger.info("All the market has been explored. Nothing left to do.")
         raise HTTPException(status_code=404)
 
-    return await get_company(ticker)
+    return await get_stock(ticker)
 
 
 async def _get_random_ticker():
     with SessionFactory() as session:
         ticker = session.scalar(
-            select(Market.ticker)
+            select(MarketModel.ticker)
             .where(
-                ~select(Stock.id)
-                .where(Stock.ticker == Market.ticker)
+                ~select(StockModel.id)
+                .where(StockModel.ticker == MarketModel.ticker)
                 .exists(),
-                ~select(Failed.ticker)
-                .where(Failed.ticker == Market.ticker)
+                ~select(FailedModel.ticker)
+                .where(FailedModel.ticker == MarketModel.ticker)
                 .exists()
             )
             .order_by(func.random())
