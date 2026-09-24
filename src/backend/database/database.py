@@ -143,7 +143,7 @@ def load_company(ticker: str | None = None) -> Stock | list[Stock] | None:
         return companies[0] if len(companies) == 1 else companies
 
 
-def save_company(company, reports: dict) -> None:
+def save_stock(company, reports: dict) -> None:
     with SessionFactory() as session:
         stock = StockModel(
             name=company.name,

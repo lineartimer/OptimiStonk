@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 import structlog
 
-from backend.api.helpers.streamer import stream_api, stream_result, stream_status
+from backend.api.helpers.streamer import stream, stream_result, stream_status
 from backend.api.stock import get_stock
 from backend.database.database import SessionFactory
 from backend.database.models import FailedModel, MarketModel, StockModel
@@ -15,7 +15,7 @@ _logger = structlog.get_logger(__name__)
 
 @discovery_router.get("/api/discover")
 async def discover():
-    return stream_api(_discover())
+    return stream(_discover())
 
 async def _discover():
     ticker = await _get_random_ticker()

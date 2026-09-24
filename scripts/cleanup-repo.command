@@ -29,6 +29,7 @@ rm -rf ../src/backend/.venv
 
 rm -rf ../src/backend/__pycache__
 rm -rf ../src/backend/api/__pycache__
+rm -rf ../src/backend/api/helpers/__pycache__
 rm -rf ../src/backend/core/__pycache__
 rm -rf ../src/backend/core/agents/__pycache__
 rm -rf ../src/backend/core/tools/__pycache__

@@ -1,10 +1,6 @@
 from fastapi import HTTPException
 import json
 from fastapi.responses import StreamingResponse
-import structlog
-
-
-_logger = structlog.get_logger(__name__)
 
 
 def stream_status(message: str):
@@ -15,11 +11,11 @@ def stream_result(data):
     return json.dumps({"type": "result", "data": data}, allow_nan=False) + "\n"
 
 
-def stream_api(func):
+def stream(func):
     async def run(func):
         try:
-            async for chunk in func:
-                yield chunk
+            async for result in func:
+                yield result
 
         except HTTPException as error:
             yield json.dumps({
@@ -29,7 +25,6 @@ def stream_api(func):
             }) + "\n"
 
         except Exception:
-            _logger.exception("Streaming failed.")
             yield json.dumps({
                 "type": "error",
                 "detail": "Internal server error.",

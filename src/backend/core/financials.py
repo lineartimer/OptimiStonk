@@ -7,7 +7,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
-from backend.database.database import save_company
+from backend.database.database import save_stock
 
 
 SEARCH_QUERY = "How big is {company_name}'s backlog?"
@@ -22,6 +22,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         price_history,
         extra_price_point
     ) = await get_price_history(ticker, years)
+    
     financials, reports = await get_financial_data(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet,
@@ -114,7 +115,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "historical_prices": price_history
     }
 
-    company = Stock(**financial_data)
-    save_company(company, reports)
+    stock = Stock(**financial_data)
+    save_stock(stock, reports)
 
-    return company
+    return stock
