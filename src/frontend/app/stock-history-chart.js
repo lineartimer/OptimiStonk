@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { buildStockHistory, getSeriesDomain } from "./stock-history.mjs";
+import { buildStockHistory, getSeriesDomain } from "./stock-history.js";
 import styles from "./page.module.css";
 
 const revenueColor = "#2563eb";

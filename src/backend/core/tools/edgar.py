@@ -248,7 +248,7 @@ def _get_financial_data_impl(ticker: str, years: int):
     form_10ks = company.get_filings(form="10-K")
     if form_10ks.empty or len(quarterly_revenues) < 2:
         raise EdgarParseError(
-            f"Either a 10-K or at least 2 quarters of financial data"
+            f"Either a 10-K or at least 2 quarters of financial data "
             f"could not be found for {company.name}"
         )
     

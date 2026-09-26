@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import StockHistoryChart from "./StockHistoryChart";
-import { log } from "./logger.mjs";
+import StockHistoryChart from "./stock-history-chart.js";
+import { log } from "./logger.js";
 import styles from "./page.module.css";
 
 const stockColumns = [
