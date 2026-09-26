@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import StockHistoryChart from "./StockHistoryChart";
 import { log } from "./logger.mjs";
 import styles from "./page.module.css";
 
@@ -365,6 +366,14 @@ export default function Home() {
                 key={company.ticker}
                 text={company.summary || "No summary available."}
               />
+              {tab === "stock-details" && (
+                <StockHistoryChart
+                  key={`history-${company.ticker}`}
+                  ticker={company.ticker}
+                  financialData={company.financial_data}
+                  historicalPrices={company.historical_prices}
+                />
+              )}
             </>
           ) : (
             <p>{companiesLoading ? "Loading company details…" : "No company selected."}</p>

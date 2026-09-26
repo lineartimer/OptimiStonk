@@ -243,3 +243,23 @@
   color: var(--color-text);
   text-decoration: underline;
 }
+
+.historyChart {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.historyChart h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+}
+
+.chartScroll {
+  overflow-x: auto;
+}
+
+.chartCanvas {
+  min-width: 560px;
+  height: 360px;
+}
