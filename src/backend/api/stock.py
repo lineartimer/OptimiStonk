@@ -10,7 +10,7 @@ from backend.core.tools.yahoo_finance import (
     YahooFinanceParseError,
     YahooFinanceTickerNotFoundError
 )
-from backend.database.database import load_company, save_failed
+from backend.database.database import load_stock, save_failed
 
 
 stock_router = APIRouter()
@@ -23,13 +23,13 @@ _logger = structlog.get_logger(__name__)
 async def get_stock(ticker: str | None = None):
     ticker = ticker.strip().upper() if ticker else None
 
-    company = load_company(ticker)
-    if company:
+    stock = load_stock(ticker)
+    if stock:
         _logger.info("Company data loaded from database.", ticker=ticker)
-        if isinstance(company, list):
-            return [item.to_json() for item in company]
+        if isinstance(stock, list):
+            return [item.to_json() for item in stock]
         
-        return company.to_json()
+        return stock.to_json()
 
     if not ticker:
         return []

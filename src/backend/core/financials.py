@@ -1,5 +1,6 @@
 from datetime import date
 
+from backend.api.helpers.streamer import stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
 from backend.core.stock import Stock
@@ -22,8 +23,10 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         price_history,
         extra_price_point
     ) = await get_price_history(ticker, years)
+    stream_message("Downloaded data from Yahoo Finance.")
     
     financials, reports = await get_financial_data(ticker, years)
+    stream_message("Downloaded data from EDGAR.")
 
     # If current quarter's 10-Q is not in EDGAR yet,
     # shift price history back one quarter
@@ -91,6 +94,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     backlog_finder = BacklogFinder()
     backlog = await backlog_finder.run(name, prompt_backlog)
+    stream_message(f"Company's backlog has been found to be ${backlog} million.")
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -101,6 +105,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     summarizer = Summarizer()
     summary = await summarizer.run(name, prompt_summarizer)
+    stream_message("Summarized latest SEC filings.")
 
     financial_data = {
         "name": name,
@@ -117,5 +122,6 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     stock = Stock(**financial_data)
     save_stock(stock, reports)
+    stream_message("Saved stock to database.")
 
     return stock

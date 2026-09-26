@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
@@ -92,6 +93,10 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
         years: Time period of the financial data.
     """
 
+    return await asyncio.to_thread(_get_financial_data_impl, ticker, years)
+
+
+def _get_financial_data_impl(ticker: str, years: int):
     try:
         company = Company(ticker)
 
@@ -242,9 +247,6 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
 
-    _logger.info(f"Downloaded financial data for {company.name} "
-                 "from the EDGAR database.")
-
     financials = {
         "revenue": _clean_result(quarterly_revenues),
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
@@ -252,16 +254,25 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
 
-    reports = {
-        "latest_10k": {
-            "date": latest_10k.filing_date.isoformat(),
-            "document": latest_10k.markdown()
-        } if latest_10k else {},
-        "latest_10q": {
-            "date": latest_10q.filing_date.isoformat(),
-            "document": latest_10q.markdown()
-        } if latest_10q else {}
-    }
+    try:
+        reports = {
+            "latest_10k": {
+                "date": latest_10k.filing_date.isoformat(),
+                "document": latest_10k.document.markdown()
+            } if latest_10k else {},
+            "latest_10q": {
+                "date": latest_10q.filing_date.isoformat(),
+                "document": latest_10q.document.markdown()
+            } if latest_10q else {}
+        }
+
+    except Exception as e:
+        raise EdgarParseError(
+            f"Couldn't markdownify latest 10-K or 10-Q for {company.name}"
+        )
+
+    _logger.info(f"Downloaded financial data for {company.name} "
+                 f"from the EDGAR database.")
 
     return financials, reports
 
@@ -361,7 +372,7 @@ def _parse_from_financial_statement(
                 
                 except:
                     # We have found the row in the financial statement
-                    # but the value can't be converted to a number (e.g. '').
+                    # but the value can't be converted to a number (e.g. "").
                     # This means that the value is 0
                     return 0.0
 

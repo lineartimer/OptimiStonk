@@ -1,3 +1,4 @@
+import asyncio
 import structlog
 import yfinance as yf
 
@@ -22,6 +23,10 @@ async def get_price_history(ticker: str, years: int) -> dict:
         years: Time period of the prices.
     """
 
+    return await asyncio.to_thread(_get_price_history, ticker, years)
+
+
+def _get_price_history(ticker: str, years: int):
     stock = yf.Ticker(ticker)
 
     try:
@@ -30,7 +35,7 @@ async def get_price_history(ticker: str, years: int) -> dict:
     except KeyError:
         raise YahooFinanceTickerNotFoundError("Ticker not found.")
 
-    # Needed if hovered the mouse over last_price while debugging
+    # Needed if mouse is hovered over last_price while debugging
     if not lp:
         raise YahooFinanceTickerNotFoundError("Ticker not found.")
 
