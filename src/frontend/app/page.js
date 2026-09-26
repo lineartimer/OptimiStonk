@@ -39,7 +39,15 @@ async function request(path, signal, onStatus) {
           const event = JSON.parse(line);
           if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
           if (event.type === "result") return event.data;
-          if (event.type === "error") throw new Error(event.detail);
+          if (event.type === "error") {
+            const error = new Error(event.detail);
+            // Stock failures have already been recorded and can be skipped.
+            // A bare 404 means the market is exhausted, not a missing ticker.
+            error.stockFailure = event.status_code === 422
+              || (event.status_code === 404 && event.detail !== "Not Found")
+              || (event.status_code === 500 && event.detail === "Failed to load stock data.");
+            throw error;
+          }
         }
 
         if (done) throw new Error("Discovery stream ended before a result was received.");
@@ -118,6 +126,8 @@ export default function Home() {
   const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
   const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const discoveryRunRef = useRef(null);
   const [discoveryMessages, setDiscoveryMessages] = useState([]);
   const discoveryMessagesRef = useRef(null);
   const followMessagesRef = useRef(true);
@@ -184,22 +194,43 @@ export default function Home() {
     return () => controller.abort();
   }, [loadCompanies]);
 
-  async function search() {
-    if (loading) return;
+  useEffect(() => () => {
+    if (discoveryRunRef.current) discoveryRunRef.current.stopRequested = true;
+  }, []);
 
+  async function search() {
+    if (discoveryRunRef.current) return;
+
+    const run = { stopRequested: false };
+    discoveryRunRef.current = run;
     setLoading(true);
+    setStopping(false);
     followMessagesRef.current = true;
-    setDiscoveryMessages([]);
 
     try {
-      await request("/api/discover", undefined, addDiscoveryMessage);
-      addDiscoveryMessage("Company added successfully.");
-      await loadCompanies();
-    } catch (error) {
-      addDiscoveryMessage(error.message, "error");
+      while (!run.stopRequested) {
+        try {
+          const stock = await request("/api/discover", undefined, addDiscoveryMessage);
+          if (stock) await loadCompanies();
+        } catch (error) {
+          addDiscoveryMessage(error.message, "error");
+          if (!error.stockFailure) break;
+        }
+        setDiscoveryMessages((messages) => [...messages, { separator: true }]);
+      }
     } finally {
+      discoveryRunRef.current = null;
       setLoading(false);
+      setStopping(false);
     }
+  }
+
+  function stopDiscovery() {
+    const run = discoveryRunRef.current;
+    if (!run || run.stopRequested) return;
+
+    run.stopRequested = true;
+    setStopping(true);
   }
 
   return (
@@ -278,9 +309,16 @@ export default function Home() {
         </div>
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
-          <button className={styles.discoverButton} type="button" onClick={search} disabled={loading}>
-            {loading ? "Loading…" : "Discover"}
-          </button>
+          <div className={styles.discoveryControls}>
+            <button type="button" onClick={search} disabled={loading}>
+              {loading ? "Loading…" : "Discover"}
+            </button>
+            {loading && (
+              <button type="button" onClick={stopDiscovery} disabled={stopping}>
+                {stopping ? "Stopping…" : "Stop"}
+              </button>
+            )}
+          </div>
           <div
             ref={discoveryMessagesRef}
             className={styles.discoveryMessages}
@@ -295,10 +333,11 @@ export default function Home() {
                 - currentTarget.clientHeight - currentTarget.scrollTop <= 1;
             }}
           >
-            {discoveryMessages.map(({ timestamp, messageType, message }, index) => (
+            {discoveryMessages.map(({ timestamp, messageType, message, separator }, index) => (
+              separator ? <br key={index} aria-hidden="true" /> :
               <div key={index}>
                 <time dateTime={timestamp.replace(" ", "T")}>{timestamp}</time>
-                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t"}
+                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t\t"}
                 {message}
               </div>
             ))}

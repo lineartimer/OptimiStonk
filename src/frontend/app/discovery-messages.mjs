@@ -16,7 +16,7 @@ export function appendDiscoveryMessage(
   const lines = message.split(/\r\n|\r|\n/);
   const next = [...messages];
 
-  if (!newLine && next.length > 0) {
+  if (!newLine && next.length > 0 && !next[next.length - 1].separator) {
     const last = next.length - 1;
     next[last] = { ...next[last], message: next[last].message + lines.shift() };
   }

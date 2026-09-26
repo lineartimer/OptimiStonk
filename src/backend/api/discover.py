@@ -24,7 +24,14 @@ async def _discover():
     
     log_and_stream(f"Information collection started for {ticker}.", MessageType.info)
 
-    stock = await get_stock(ticker)
+    try:
+        stock = await get_stock(ticker)
+        
+    except HTTPException as error:
+        # Failed tickers are recorded by get_stock and excluded from future picks.
+        log_and_stream(error.detail, MessageType.error)
+        return stream_result(None)
+
     return stream_result(stock)
 
 

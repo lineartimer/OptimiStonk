@@ -30,7 +30,7 @@ async def get_price_history(ticker: str, years: int) -> dict:
 
 
 def _get_price_history(ticker: str, years: int):
-    stream_message("Downloading data from Yahoo Finance.", MessageType.info)
+    stream_message("Downloading data from Yahoo Finance", MessageType.info)
     
     stock = yf.Ticker(ticker)
 

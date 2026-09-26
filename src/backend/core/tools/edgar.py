@@ -100,7 +100,7 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
 
 def _get_financial_data_impl(ticker: str, years: int):
-    stream_message("Downloading data from EDGAR.", MessageType.info)
+    stream_message("Downloading data from EDGAR", MessageType.info)
 
     try:
         company = Company(ticker)
