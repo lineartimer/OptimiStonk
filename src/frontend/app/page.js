@@ -17,6 +17,18 @@ const tabs = [
   { id: "stock-details", label: "Stock details" }
 ];
 
+const metricNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+const ratioNumber = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+function formatRatio(value) {
+  if (value === "inf") return "∞";
+  if (value === "-inf") return "−∞";
+  return Number.isFinite(value) ? `${ratioNumber.format(value)}×` : "—";
+}
+
 function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
@@ -367,12 +379,29 @@ export default function Home() {
                 text={company.summary || "No summary available."}
               />
               {tab === "stock-details" && (
-                <StockHistoryChart
-                  key={`history-${company.ticker}`}
-                  ticker={company.ticker}
-                  financialData={company.financial_data}
-                  historicalPrices={company.historical_prices}
-                />
+                <div className={styles.stockOverview}>
+                  <StockHistoryChart
+                    key={`history-${company.ticker}`}
+                    ticker={company.ticker}
+                    financialData={company.financial_data}
+                    historicalPrices={company.historical_prices}
+                  />
+                  <section className={styles.financialData} aria-labelledby="financial-data-heading">
+                    <h2 id="financial-data-heading">Financial data and ratios</h2>
+                    <dl className={styles.companyMetrics}>
+                      <dt>Backlog:</dt>
+                      <dd>
+                        {Number.isFinite(company.backlog)
+                          ? `$${metricNumber.format(company.backlog)} million`
+                          : "—"}
+                      </dd>
+                      <dt>Price-to-revenue ratio:</dt>
+                      <dd>{formatRatio(company.metrics?.price_to_revenue_ratio)}</dd>
+                      <dt>Price-to-backlog ratio:</dt>
+                      <dd>{formatRatio(company.metrics?.price_to_backlog_ratio)}</dd>
+                    </dl>
+                  </section>
+                </div>
               )}
             </>
           ) : (

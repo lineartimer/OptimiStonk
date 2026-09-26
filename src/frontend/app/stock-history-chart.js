@@ -49,7 +49,7 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
 
   return (
     <section className={styles.historyChart} aria-labelledby={headingId}>
-      <h2 id={headingId}>Quarterly revenue and stock price</h2>
+      <h2 id={headingId}>Quarterly revenue vs. stock price</h2>
       {!hasRevenue && !hasPrices ? (
         <p>No quarterly revenue or price history available.</p>
       ) : (
@@ -64,7 +64,7 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                   data={data}
                   margin={{ top: 12, right: 12, bottom: 8, left: 12 }}
                   accessibilityLayer
-                  title={`${ticker} quarterly revenue and stock price`}
+                  title={`${ticker} quarterly revenue vs. stock price`}
                   desc="Blue bars show revenue in millions of US dollars on the left axis. The red line shows quarter-end stock prices in US dollars on the right axis. Each axis is scaled independently."
                 >
                   <CartesianGrid yAxisId="revenue" stroke="#d0dce5" strokeDasharray="3 3" vertical={false} />
@@ -85,7 +85,7 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                     stroke={revenueColor}
                     tickLine={false}
                     width={80}
-                    label={{ value: "Revenue ($M)", angle: -90, position: "insideLeft", fill: revenueColor }}
+                    label={{ value: "Revenue ($M)", angle: -90, position: "insideLeft", textAnchor: "middle", fill: revenueColor }}
                   />
                   <YAxis
                     yAxisId="price"
@@ -96,19 +96,19 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                     stroke={priceColor}
                     tickLine={false}
                     width={80}
-                    label={{ value: "Price ($)", angle: 90, position: "insideRight", fill: priceColor }}
+                    label={{ value: "Price ($)", angle: 90, position: "insideRight", textAnchor: "middle", fill: priceColor }}
                   />
                   <Tooltip
                     formatter={formatTooltip}
                     cursor={{ fill: "#122a4a", fillOpacity: 0.04 }}
-                    contentStyle={{ borderColor: "#d0dce5", borderRadius: 4 }}
+                    contentStyle={{ borderColor: "#d0dce5", borderRadius: 4, fontSize: 12 }}
                     labelStyle={{ color: "#122a4a", fontWeight: "bold" }}
                   />
                   <Legend wrapperStyle={{ paddingTop: 8 }} />
                   <Bar
                     yAxisId="revenue"
                     dataKey="revenue"
-                    name="Revenue ($M)"
+                    name="Revenue"
                     fill={revenueColor}
                     maxBarSize={40}
                     isAnimationActive={false}
@@ -116,7 +116,7 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                   <Line
                     yAxisId="price"
                     dataKey="price"
-                    name="Quarter-end price ($)"
+                    name="Price"
                     type="linear"
                     stroke={priceColor}
                     strokeWidth={2}

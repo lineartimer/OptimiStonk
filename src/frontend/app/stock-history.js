@@ -11,7 +11,7 @@ export function buildStockHistory(financialData = {}, historicalPrices = {}) {
 
     return {
       quarter,
-      label: `Q${number} ${year}`,
+      label: `${year}/Q${number}`,
       // Preserve zero revenue; missing values must not become zeroes.
       revenue: Number.isFinite(revenue) ? revenue : null,
       price: Number.isFinite(price) ? price : null
