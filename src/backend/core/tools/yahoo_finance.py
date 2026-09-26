@@ -100,6 +100,7 @@ def _get_price_history(ticker: str, years: int):
             ticker=ticker,
             quarter=f"{year}/{quarter}"
         )
+        
         raise YahooFinanceParseError(
             f"At least 2 quarters of financial data could not be found for {name}"
         )

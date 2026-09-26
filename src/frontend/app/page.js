@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { appendDiscoveryMessage } from "./discovery-messages.mjs";
+import { log } from "./logger.mjs";
 import styles from "./page.module.css";
 
-const companyColumns = [
+const stockColumns = [
   { key: "ticker", label: "Ticker" },
   { key: "rank_backlog", label: "Rank Backlog" },
   { key: "rank_market", label: "Rank Market" }
@@ -31,22 +31,27 @@ async function request(path, signal, onStatus) {
       while (true) {
         const { value, done } = await reader.read();
         buffer += decoder.decode(value, { stream: !done });
+
         const lines = buffer.split("\n");
         buffer = lines.pop();
 
         for (const line of lines) {
           if (!line.trim()) continue;
+
           const event = JSON.parse(line);
+
           if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
           if (event.type === "result") return event.data;
           if (event.type === "error") {
             const error = new Error(event.detail);
+
             // Stock failures have already been recorded and can be skipped.
             // A bare 404 means the market is exhausted, not a missing ticker.
             error.stockFailure = event.status_code === 422
               || (event.status_code === 404 && event.detail !== "Not Found")
               || (event.status_code === 500 && event.detail === "Failed to load stock data.");
-            throw error;
+            
+              throw error;
           }
         }
 
@@ -142,7 +147,7 @@ export default function Home() {
   function addDiscoveryMessage(message, messageType = "info", newLine = true) {
     const receivedAt = new Date();
     setDiscoveryMessages((messages) => (
-      appendDiscoveryMessage(messages, message, messageType, newLine, receivedAt)
+      log(messages, message, messageType, newLine, receivedAt)
     ));
   }
 
@@ -157,8 +162,11 @@ export default function Home() {
 
       const aValue = a[sort.key];
       const bValue = b[sort.key];
+
       if (aValue == null && bValue == null) return compareTickers(a, b);
+      
       if (aValue == null) return 1;
+      
       if (bValue == null) return -1;
 
       return direction * (aValue - bValue) || compareTickers(a, b);
@@ -210,16 +218,18 @@ export default function Home() {
     try {
       while (!run.stopRequested) {
         try {
-          const stock = await request("/api/discover", undefined, addDiscoveryMessage);
-          if (stock) await loadCompanies();
+          await request("/api/discover", undefined, addDiscoveryMessage);
+          await loadCompanies();
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
           if (!error.stockFailure) break;
         }
+        
         setDiscoveryMessages((messages) => [...messages, { separator: true }]);
       }
     } finally {
       discoveryRunRef.current = null;
+
       setLoading(false);
       setStopping(false);
     }
@@ -254,7 +264,7 @@ export default function Home() {
         <table className={styles.companies} aria-label="Stocks">
           <thead>
             <tr>
-              {companyColumns.map(({ key, label }) => (
+              {stockColumns.map(({ key, label }) => (
                 <th
                   key={key}
                   scope="col"
@@ -337,7 +347,7 @@ export default function Home() {
               separator ? <br key={index} aria-hidden="true" /> :
               <div key={index}>
                 <time dateTime={timestamp.replace(" ", "T")}>{timestamp}</time>
-                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t\t"}
+                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t"}
                 {message}
               </div>
             ))}

@@ -18,20 +18,13 @@ async def discover():
 async def _discover():
     ticker = await _get_random_ticker()
 
-    if ticker is None:
+    if not ticker:
         log_and_stream("All the market has been explored. Nothing left to do.", MessageType.warning)
         raise HTTPException(status_code=404)
     
     log_and_stream(f"Information collection started for {ticker}.", MessageType.info)
 
-    try:
-        stock = await get_stock(ticker)
-        
-    except HTTPException as error:
-        # Failed tickers are recorded by get_stock and excluded from future picks.
-        log_and_stream(error.detail, MessageType.error)
-        return stream_result(None)
-
+    stock = await get_stock(ticker)
     return stream_result(stock)
 
 

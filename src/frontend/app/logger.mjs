@@ -4,7 +4,7 @@ function formatTimestamp(date) {
     + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-export function appendDiscoveryMessage(
+export function log(
   messages,
   message,
   messageType = "info",
