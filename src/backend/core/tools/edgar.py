@@ -1,8 +1,12 @@
+import asyncio
 from datetime import datetime
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
 import structlog
+
+from backend.api.helpers.streamer import MessageType, stream_message
+from backend.utils.logger import log_and_stream
 
 
 _logger = structlog.get_logger(__name__)
@@ -92,6 +96,12 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
         years: Time period of the financial data.
     """
 
+    return await asyncio.to_thread(_get_financial_data_impl, ticker, years)
+
+
+def _get_financial_data_impl(ticker: str, years: int):
+    stream_message("Downloading data from EDGAR", MessageType.info)
+
     try:
         company = Company(ticker)
 
@@ -145,7 +155,8 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
-            _logger.warning("Stopped processing EDGAR data because of a parsing error.",
+            log_and_stream("Stopped processing EDGAR data because of a parsing error.",
+                MessageType.warning,
                 ticker=ticker,
                 quarter=f"{year}/{quarter}",
                 error=str(e)
@@ -153,7 +164,8 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
             break
 
         except Exception as e:
-            _logger.warning("Stopped processing EDGAR data.",
+            log_and_stream("Stopped processing EDGAR data.",
+                MessageType.warning,
                 ticker=ticker,
                 quarter=f"{year}/{quarter}",
                 error=str(e)
@@ -224,6 +236,7 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
+        stream_message(".", new_line=False)
         previous_quarter = quarter
 
     while len(quarterly_revenues) > 4 * years:
@@ -242,9 +255,6 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
 
-    _logger.info(f"Downloaded financial data for {company.name} "
-                 "from the EDGAR database.")
-
     financials = {
         "revenue": _clean_result(quarterly_revenues),
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
@@ -252,16 +262,29 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
 
-    reports = {
-        "latest_10k": {
-            "date": latest_10k.filing_date.isoformat(),
-            "document": latest_10k.markdown()
-        } if latest_10k else {},
-        "latest_10q": {
-            "date": latest_10q.filing_date.isoformat(),
-            "document": latest_10q.markdown()
-        } if latest_10q else {}
-    }
+    stream_message(".", new_line=False)
+
+    try:
+        reports = {
+            "latest_10k": {
+                "date": latest_10k.filing_date.isoformat(),
+                "document": latest_10k.document.markdown()
+            } if latest_10k else {},
+            "latest_10q": {
+                "date": latest_10q.filing_date.isoformat(),
+                "document": latest_10q.document.markdown()
+            } if latest_10q else {}
+        }
+
+    except Exception as e:
+        raise EdgarParseError(
+            f"Couldn't markdownify latest 10-K or 10-Q for {company.name}"
+        )
+
+    log_and_stream(
+        f"Downloaded financial data from the EDGAR database.",
+        MessageType.info
+    )
 
     return financials, reports
 
@@ -285,14 +308,14 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
             period = str(period_of_report)[:10]
 
     if not period:
-        raise _CouldNotFindPeriodError("Couldn't find period in 10-Q.")
+        raise _CouldNotFindPeriodError(f"Couldn't find {period} period in 10-Q.")
 
     try:
         year = int(period[:4])
         quarter = (int(period[5:7]) - 1) // 3 + 1
 
     except:
-        raise EdgarParseError("Error parsing quarter of 10-Q.", period=period)
+        raise EdgarParseError(f"Error parsing quarter {period} of 10-Q.")
 
     return xbrl, year, quarter
 
@@ -361,7 +384,7 @@ def _parse_from_financial_statement(
                 
                 except:
                     # We have found the row in the financial statement
-                    # but the value can't be converted to a number (e.g. '').
+                    # but the value can't be converted to a number (e.g. "").
                     # This means that the value is 0
                     return 0.0
 

@@ -1,28 +1,31 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
-import structlog
 
+from backend.api.helpers.streamer import MessageType, stream, stream_result
 from backend.api.stock import get_stock
 from backend.database.database import SessionFactory
 from backend.database.models import FailedModel, MarketModel, StockModel
+from backend.utils.logger import log_and_stream
 
 
 discovery_router = APIRouter()
 
-_logger = structlog.get_logger(__name__)
-
 
 @discovery_router.get("/api/discover")
 async def discover():
+    return stream(_discover)
+
+async def _discover():
     ticker = await _get_random_ticker()
 
-    _logger.info("Information collection started.", ticker=ticker)
-
-    if ticker is None:
-        _logger.info("All the market has been explored. Nothing left to do.")
+    if not ticker:
+        log_and_stream("All the market has been explored. Nothing left to do.", MessageType.warning)
         raise HTTPException(status_code=404)
+    
+    log_and_stream(f"Information collection started for {ticker}.", MessageType.info)
 
-    return await get_stock(ticker)
+    stock = await get_stock(ticker)
+    return stream_result(stock)
 
 
 async def _get_random_ticker():

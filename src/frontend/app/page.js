@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { log } from "./logger.mjs";
 import styles from "./page.module.css";
 
-const companyColumns = [
+const stockColumns = [
   { key: "ticker", label: "Ticker" },
   { key: "rank_backlog", label: "Rank Backlog" },
   { key: "rank_market", label: "Rank Market" }
@@ -19,8 +20,49 @@ function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
 
-async function request(path, signal) {
+async function request(path, signal, onStatus) {
   const response = await fetch(path, { cache: "no-store", signal });
+  if (response.ok && onStatus) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        buffer += decoder.decode(value, { stream: !done });
+
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          const event = JSON.parse(line);
+
+          if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
+          if (event.type === "result") return event.data;
+          if (event.type === "error") {
+            const error = new Error(event.detail);
+
+            // Stock failures have already been recorded and can be skipped.
+            // A bare 404 means the market is exhausted, not a missing ticker.
+            error.stockFailure = event.status_code === 422
+              || (event.status_code === 404 && event.detail !== "Not Found")
+              || (event.status_code === 500 && event.detail === "Failed to load stock data.");
+            
+              throw error;
+          }
+        }
+
+        if (done) throw new Error("Discovery stream ended before a result was received.");
+      }
+    } finally {
+      await reader.cancel();
+      reader.releaseLock();
+    }
+  }
+
   const body = await response.text();
   let data;
 
@@ -89,7 +131,25 @@ export default function Home() {
   const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
   const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
+  const [stopping, setStopping] = useState(false);
+  const discoveryRunRef = useRef(null);
+  const [discoveryMessages, setDiscoveryMessages] = useState([]);
+  const discoveryMessagesRef = useRef(null);
+  const followMessagesRef = useRef(true);
+
+  useLayoutEffect(() => {
+    const textbox = discoveryMessagesRef.current;
+    if (tab === "discover" && followMessagesRef.current) {
+      textbox.scrollTop = textbox.scrollHeight;
+    }
+  }, [discoveryMessages, tab]);
+
+  function addDiscoveryMessage(message, messageType = "info", newLine = true) {
+    const receivedAt = new Date();
+    setDiscoveryMessages((messages) => (
+      log(messages, message, messageType, newLine, receivedAt)
+    ));
+  }
 
   const company = companies.find(({ ticker }) => ticker === selectedTicker)
     || companies[0];
@@ -102,8 +162,11 @@ export default function Home() {
 
       const aValue = a[sort.key];
       const bValue = b[sort.key];
+
       if (aValue == null && bValue == null) return compareTickers(a, b);
+      
       if (aValue == null) return 1;
+      
       if (bValue == null) return -1;
 
       return direction * (aValue - bValue) || compareTickers(a, b);
@@ -139,21 +202,45 @@ export default function Home() {
     return () => controller.abort();
   }, [loadCompanies]);
 
-  async function search() {
-    if (loading) return;
+  useEffect(() => () => {
+    if (discoveryRunRef.current) discoveryRunRef.current.stopRequested = true;
+  }, []);
 
+  async function search() {
+    if (discoveryRunRef.current) return;
+
+    const run = { stopRequested: false };
+    discoveryRunRef.current = run;
     setLoading(true);
-    setStatus("");
+    setStopping(false);
+    followMessagesRef.current = true;
 
     try {
-      await request("/api/discover");
-      setStatus("Company added successfully.");
-      await loadCompanies();
-    } catch (error) {
-      setStatus(error.message);
+      while (!run.stopRequested) {
+        try {
+          await request("/api/discover", undefined, addDiscoveryMessage);
+          await loadCompanies();
+        } catch (error) {
+          addDiscoveryMessage(error.message, "error");
+          if (!error.stockFailure) break;
+        }
+        
+        setDiscoveryMessages((messages) => [...messages, { separator: true }]);
+      }
     } finally {
+      discoveryRunRef.current = null;
+
       setLoading(false);
+      setStopping(false);
     }
+  }
+
+  function stopDiscovery() {
+    const run = discoveryRunRef.current;
+    if (!run || run.stopRequested) return;
+
+    run.stopRequested = true;
+    setStopping(true);
   }
 
   return (
@@ -174,44 +261,46 @@ export default function Home() {
         {!companiesLoading && !companiesError && companies.length === 0 && (
           <p>Use Discover to add companies.</p>
         )}
-        <table className={styles.companies} aria-label="Stocks">
-          <thead>
-            <tr>
-              {companyColumns.map(({ key, label }) => (
-                <th
-                  key={key}
-                  scope="col"
-                  aria-sort={sort.key === key ? sort.direction : "none"}
-                >
-                  <button type="button" aria-label={label} onClick={() => sortBy(key)}>
-                    {label.split(" ").join("\n")}
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedCompanies.map((item) => (
-              <tr
-                key={item.ticker}
-                className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
-                onClick={() => setSelectedTicker(item.ticker)}
-              >
-                <td>
-                  <button
-                    type="button"
-                    title={item.name}
-                    aria-current={company?.ticker === item.ticker ? "true" : undefined}
+        <div className={styles.companiesScroll}>
+          <table className={styles.companies} aria-label="Stocks">
+            <thead>
+              <tr>
+                {stockColumns.map(({ key, label }) => (
+                  <th
+                    key={key}
+                    scope="col"
+                    aria-sort={sort.key === key ? sort.direction : "none"}
                   >
-                    {item.ticker}
-                  </button>
-                </td>
-                <td>{item.rank_backlog ?? "—"}</td>
-                <td>{item.rank_market ?? "—"}</td>
+                    <button type="button" aria-label={label} onClick={() => sortBy(key)}>
+                      {label.split(" ").join("\n")}
+                    </button>
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedCompanies.map((item) => (
+                <tr
+                  key={item.ticker}
+                  className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
+                  onClick={() => setSelectedTicker(item.ticker)}
+                >
+                  <td>
+                    <button
+                      type="button"
+                      title={item.name}
+                      aria-current={company?.ticker === item.ticker ? "true" : undefined}
+                    >
+                      {item.ticker}
+                    </button>
+                  </td>
+                  <td>{item.rank_backlog ?? "—"}</td>
+                  <td>{item.rank_market ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </aside>
 
       <section className={styles.content}>
@@ -232,10 +321,39 @@ export default function Home() {
         </div>
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
-          <button className={styles.discoverButton} type="button" onClick={search} disabled={loading}>
-            {loading ? "Loading…" : "Discover"}
-          </button>
-          <p role="status">{status}</p>
+          <div className={styles.discoveryControls}>
+            <button type="button" onClick={search} disabled={loading}>
+              {loading ? "Loading…" : "Discover"}
+            </button>
+            {loading && (
+              <button type="button" onClick={stopDiscovery} disabled={stopping}>
+                {stopping ? "Stopping…" : "Stop"}
+              </button>
+            )}
+          </div>
+          <div
+            ref={discoveryMessagesRef}
+            className={styles.discoveryMessages}
+            role="log"
+            aria-label="Discovery status messages"
+            aria-live="polite"
+            aria-relevant="additions text"
+            tabIndex={0}
+            onScroll={({ currentTarget }) => {
+              if (currentTarget.clientHeight === 0) return;
+              followMessagesRef.current = currentTarget.scrollHeight
+                - currentTarget.clientHeight - currentTarget.scrollTop <= 1;
+            }}
+          >
+            {discoveryMessages.map(({ timestamp, messageType, message, separator }, index) => (
+              separator ? <br key={index} aria-hidden="true" /> :
+              <div key={index}>
+                <time dateTime={timestamp.replace(" ", "T")}>{timestamp}</time>
+                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t"}
+                {message}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div role="tabpanel" id="panel-stock-details" aria-labelledby="tab-stock-details" hidden={tab !== "stock-details"}>

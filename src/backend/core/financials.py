@@ -1,5 +1,6 @@
 from datetime import date
 
+from backend.api.helpers.streamer import MessageType, stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
 from backend.core.stock import Stock
@@ -7,7 +8,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
-from backend.database.database import save_company
+from backend.database.database import save_stock
 
 
 SEARCH_QUERY = "How big is {company_name}'s backlog?"
@@ -22,6 +23,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         price_history,
         extra_price_point
     ) = await get_price_history(ticker, years)
+
     financials, reports = await get_financial_data(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet,
@@ -77,6 +79,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     cnt = 1
     search_results = await web_search(SEARCH_QUERY.format(company_name=name))
+
+    stream_message("Downloading web pages.", MessageType.info)
     for search_result in search_results:
         if cnt > 5:
             break
@@ -88,8 +92,13 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         })
         cnt += 1
 
+        stream_message(".", new_line=False)
+
+    stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
+
     backlog_finder = BacklogFinder()
     backlog = await backlog_finder.run(name, prompt_backlog)
+    stream_message(f"{name}'s backlog: ${backlog} million.", MessageType.info)
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -97,6 +106,11 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "latest_10k": reports["latest_10k"]["document"],
         "latest_10q": reports["latest_10q"]["document"]
     }
+
+    stream_message(
+        "Creating a summary based on the latest SEC filings.",
+        MessageType.info
+    )
 
     summarizer = Summarizer()
     summary = await summarizer.run(name, prompt_summarizer)
@@ -114,7 +128,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "historical_prices": price_history
     }
 
-    company = Stock(**financial_data)
-    save_company(company, reports)
+    stock = Stock(**financial_data)
+    save_stock(stock, reports)
+    stream_message("Saved stock to database.", MessageType.info)
 
-    return company
+    return stock

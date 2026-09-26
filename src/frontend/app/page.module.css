@@ -26,8 +26,17 @@
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
+  /* Fill the grid row without contributing to its height. */
+  height: 0;
+  min-height: 100%;
   padding: 0 16px 0 16px;
   border-right: 1px solid var(--color-border);
+}
+
+.sidebar > a {
+  flex-shrink: 0;
 }
 
 .logo {
@@ -38,9 +47,23 @@
   height: auto;
 }
 
+.companiesScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
 .companies {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   white-space: nowrap;
+}
+
+.companies thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
 }
 
 .companies th,
@@ -89,7 +112,8 @@
 }
 
 .page button:focus-visible,
-.page a:focus-visible {
+.page a:focus-visible,
+.discoveryMessages:focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -154,8 +178,50 @@
   font-weight: normal;
 }
 
-.discoverButton {
+.discoveryControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.discoveryControls button {
   color: var(--color-text);
+}
+
+.discoveryMessages {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: calc(11.25em + 27px);
+  min-height: calc(1.5em + 18px);
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: bold 14px / 1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  white-space: pre-wrap;
+  tab-size: 4;
+  overflow: auto;
+  overflow-anchor: none;
+  resize: vertical;
+}
+
+.discoveryMessages time {
+  color: #9ca3af;
+  font-weight: normal;
+}
+
+.info {
+  color: #16803c;
+}
+
+.warning {
+  color: #a87900;
+}
+
+.error {
+  color: #c62828;
 }
 
 .summary {

@@ -1,5 +1,9 @@
+import asyncio
 import structlog
 import yfinance as yf
+
+from backend.api.helpers.streamer import MessageType, stream_message
+from backend.utils.logger import log_and_stream
 
 
 _logger = structlog.get_logger(__name__)
@@ -22,17 +26,23 @@ async def get_price_history(ticker: str, years: int) -> dict:
         years: Time period of the prices.
     """
 
+    return await asyncio.to_thread(_get_price_history, ticker, years)
+
+
+def _get_price_history(ticker: str, years: int):
+    stream_message("Downloading data from Yahoo Finance", MessageType.info)
+    
     stock = yf.Ticker(ticker)
 
     try:
         lp = stock.fast_info.last_price
 
     except KeyError:
-        raise YahooFinanceTickerNotFoundError("Ticker not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
 
-    # Needed if hovered the mouse over last_price while debugging
+    # Needed if mouse is hovered over last_price while debugging
     if not lp:
-        raise YahooFinanceTickerNotFoundError("Ticker not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
 
     last_price = round(float(lp), 2)
 
@@ -75,6 +85,8 @@ async def get_price_history(ticker: str, years: int) -> dict:
                 period_finished = True
                 break
 
+            stream_message(".", new_line=False)
+
             previous_year = year
             previous_quarter = quarter
 
@@ -88,11 +100,12 @@ async def get_price_history(ticker: str, years: int) -> dict:
             ticker=ticker,
             quarter=f"{year}/{quarter}"
         )
+        
         raise YahooFinanceParseError(
             f"At least 2 quarters of financial data could not be found for {name}"
         )
     
-    _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
+    log_and_stream("Downloaded price data from Yahoo Finance.", MessageType.info)
 
     # Return prices in normal order
     return (

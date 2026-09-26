@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 import structlog
 
 from backend.core.financials import collect_stock_data
+from backend.core.stock import StockError
 from backend.core.tools.edgar import (
     EdgarParseError,
     EdgarTickerNotFoundError
@@ -10,7 +11,7 @@ from backend.core.tools.yahoo_finance import (
     YahooFinanceParseError,
     YahooFinanceTickerNotFoundError
 )
-from backend.database.database import load_company, save_failed
+from backend.database.database import load_stock, save_failed
 
 
 stock_router = APIRouter()
@@ -23,13 +24,13 @@ _logger = structlog.get_logger(__name__)
 async def get_stock(ticker: str | None = None):
     ticker = ticker.strip().upper() if ticker else None
 
-    company = load_company(ticker)
-    if company:
-        _logger.info("Company data loaded from database.", ticker=ticker)
-        if isinstance(company, list):
-            return [item.to_json() for item in company]
+    stock = load_stock(ticker)
+    if stock:
+        _logger.info("Stock data loaded from database.", ticker=ticker)
+        if isinstance(stock, list):
+            return [item.to_json() for item in stock]
         
-        return company.to_json()
+        return stock.to_json()
 
     if not ticker:
         return []
@@ -46,7 +47,8 @@ async def get_stock(ticker: str | None = None):
             detail = str(e)
 
         elif (isinstance(e, YahooFinanceParseError) or
-              isinstance(e, EdgarParseError)):
+              isinstance(e, EdgarParseError) or
+              isinstance(e, StockError)):
             status_code = 422
             detail = str(e)
 
