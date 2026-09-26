@@ -79,6 +79,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     cnt = 1
     search_results = await web_search(SEARCH_QUERY.format(company_name=name))
+
+    stream_message("Downloading web pages.", MessageType.info)
     for search_result in search_results:
         if cnt > 5:
             break
@@ -90,9 +92,13 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         })
         cnt += 1
 
+        stream_message(".", new_line=False)
+
+    stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
+
     backlog_finder = BacklogFinder()
     backlog = await backlog_finder.run(name, prompt_backlog)
-    stream_message(f"Company's backlog has been found to be ${backlog} million.", MessageType.info)
+    stream_message(f"{name}'s backlog: ${backlog} million.", MessageType.info)
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -101,9 +107,13 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "latest_10q": reports["latest_10q"]["document"]
     }
 
+    stream_message(
+        "Creating a summary based on the latest SEC filings.",
+        MessageType.info
+    )
+
     summarizer = Summarizer()
     summary = await summarizer.run(name, prompt_summarizer)
-    stream_message("Summarized latest SEC filings.", MessageType.info)
 
     financial_data = {
         "name": name,

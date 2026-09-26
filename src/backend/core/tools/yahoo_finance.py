@@ -3,6 +3,7 @@ import structlog
 import yfinance as yf
 
 from backend.api.helpers.streamer import MessageType, stream_message
+from backend.utils.logger import log_and_stream
 
 
 _logger = structlog.get_logger(__name__)
@@ -37,11 +38,11 @@ def _get_price_history(ticker: str, years: int):
         lp = stock.fast_info.last_price
 
     except KeyError:
-        raise YahooFinanceTickerNotFoundError("Ticker not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
 
     # Needed if mouse is hovered over last_price while debugging
     if not lp:
-        raise YahooFinanceTickerNotFoundError("Ticker not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
 
     last_price = round(float(lp), 2)
 
@@ -103,7 +104,7 @@ def _get_price_history(ticker: str, years: int):
             f"At least 2 quarters of financial data could not be found for {name}"
         )
     
-    _logger.info("Downloaded price data for from Yahoo Finance.", company=name)
+    log_and_stream("Downloaded price data from Yahoo Finance.", MessageType.info)
 
     # Return prices in normal order
     return (

@@ -3,15 +3,14 @@ from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-import structlog
+
+from backend.utils.logger import MessageType, log_and_stream
 
 
 SYSTEM_PROMPT = """
 You are an expert financial analyst. Your job is to create a summary
 introducing the given company based on the SEC filings provided.
 """
-
-_logger = structlog.get_logger(__name__)
 
 
 class SummaryResult(BaseModel):
@@ -36,7 +35,10 @@ class Summarizer:
     
     async def run(self, company_name: str, prompt: dict) -> int:
         prompt = json.dumps(prompt, ensure_ascii=False)
-        _logger.info("Running summarizer agent.", prompt_size=len(prompt))
+        log_and_stream(
+            "Running summarizer agent.",
+            MessageType.info,
+            prompt_size=len(prompt))
 
         result = await self._agent.ainvoke({
             "messages": [{
@@ -47,5 +49,9 @@ class Summarizer:
 
         summary = result["structured_response"].summary
 
-        _logger.info(f"Summary of {company_name}: {summary[:20]}...")
+        log_and_stream(
+            f"Summary of {company_name}: {summary[:20]}...",
+            MessageType.info
+        )
+
         return summary

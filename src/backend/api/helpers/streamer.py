@@ -3,10 +3,11 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from contextvars import ContextVar
-from enum import Enum
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import json
+
+from backend.utils.message_type import MessageType
 
 
 class _MessageStreamer:
@@ -45,12 +46,6 @@ def _emit(event: dict):
     messages = _messages.get()
     if messages is not None and not messages.closed:
         messages.stream_message(json.dumps(event, allow_nan=False) + "\n")
-
-
-class MessageType(str, Enum):
-    info = "info"
-    warning = "warning"
-    error = "error"
 
 
 def stream_message(

@@ -3,16 +3,14 @@ from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-import structlog
+
+from backend.utils.logger import MessageType, log_and_stream
 
 
 SYSTEM_PROMPT = """
 You are an expert financial analyst. Your job is to answer how big a company's
 backlog is based on the web pages provided.
 """
-
-
-_logger = structlog.get_logger(__name__)
 
 
 class BacklogResult(BaseModel):
@@ -38,7 +36,11 @@ class BacklogFinder:
     
     async def run(self, company_name: str, prompt: dict) -> int:
         prompt = json.dumps(prompt, ensure_ascii=False)
-        _logger.info("Running backlog finder agent.", prompt_size=len(prompt))
+        log_and_stream(
+            "Running backlog finder agent.",
+            MessageType.info,
+            prompt_size=len(prompt)
+        )
 
         result = await self._agent.ainvoke({
             "messages": [{
@@ -49,5 +51,8 @@ class BacklogFinder:
 
         backlog = result["structured_response"].backlog_millions
 
-        _logger.info(f"{company_name}'s backlog is {backlog}.")
+        log_and_stream(
+            f"{company_name}'s backlog is {backlog}.",
+            MessageType.info
+        )
         return backlog

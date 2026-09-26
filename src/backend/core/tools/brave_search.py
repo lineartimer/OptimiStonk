@@ -1,8 +1,11 @@
 import httpx
 import structlog
 
+from backend.api.helpers.streamer import stream_message
 from backend.config import BRAVE_API_KEY
 from backend.database.database import load_web_search, save_web_search
+from backend.utils.logger import log_and_stream
+from backend.utils.message_type import MessageType
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
@@ -18,6 +21,8 @@ async def web_search(query: str) -> list:
     Args:
         query: Search query.
     """
+
+    stream_message("Searching the web.", MessageType.info)
 
     stored_search = load_web_search(query)
     if stored_search:
@@ -50,7 +55,7 @@ async def web_search(query: str) -> list:
             search_results = (payload.get("web") or {}).get("results", [])
     
     except Exception as e:
-        _logger.error("Web search failed.", error=str(e))
+        log_and_stream("Web search failed.", MessageType.error, error=str(e))
         return []
 
     cleaned_result = []
