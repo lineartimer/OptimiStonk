@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select
 import structlog
 
-from backend.api.helpers.streamer import stream, stream_result, stream_message
+from backend.api.helpers.streamer import MessageType, stream, stream_result, stream_message
 from backend.api.stock import get_stock
 from backend.database.database import SessionFactory
 from backend.database.models import FailedModel, MarketModel, StockModel
@@ -25,7 +25,7 @@ async def _discover():
         raise HTTPException(status_code=404)
     
     _logger.info("Information collection started.", ticker=ticker)
-    stream_message(f"Information collection started for {ticker}.")
+    stream_message(f"Information collection started for {ticker}.", MessageType.info)
 
     stock = await get_stock(ticker)
     return stream_result(stock)

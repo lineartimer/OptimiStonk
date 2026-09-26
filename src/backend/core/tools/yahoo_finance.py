@@ -2,6 +2,8 @@ import asyncio
 import structlog
 import yfinance as yf
 
+from backend.api.helpers.streamer import MessageType, stream_message
+
 
 _logger = structlog.get_logger(__name__)
 
@@ -27,6 +29,8 @@ async def get_price_history(ticker: str, years: int) -> dict:
 
 
 def _get_price_history(ticker: str, years: int):
+    stream_message("Downloading data from Yahoo Finance.", MessageType.info)
+    
     stock = yf.Ticker(ticker)
 
     try:
@@ -79,6 +83,8 @@ def _get_price_history(ticker: str, years: int):
                 extra_price_point[f"{year}/{quarter}"] = close_price
                 period_finished = True
                 break
+
+            stream_message(".", new_line=False)
 
             previous_year = year
             previous_quarter = quarter

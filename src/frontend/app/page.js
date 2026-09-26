@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { appendDiscoveryMessage } from "./discovery-messages.mjs";
 import styles from "./page.module.css";
 
 const companyColumns = [
@@ -36,7 +37,7 @@ async function request(path, signal, onStatus) {
         for (const line of lines) {
           if (!line.trim()) continue;
           const event = JSON.parse(line);
-          if (event.type === "status") onStatus(event.message);
+          if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
           if (event.type === "result") return event.data;
           if (event.type === "error") throw new Error(event.detail);
         }
@@ -117,8 +118,23 @@ export default function Home() {
   const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
   const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("");
   const [discoveryMessages, setDiscoveryMessages] = useState([]);
+  const discoveryMessagesRef = useRef(null);
+  const followMessagesRef = useRef(true);
+
+  useLayoutEffect(() => {
+    const textbox = discoveryMessagesRef.current;
+    if (tab === "discover" && followMessagesRef.current) {
+      textbox.scrollTop = textbox.scrollHeight;
+    }
+  }, [discoveryMessages, tab]);
+
+  function addDiscoveryMessage(message, messageType = "info", newLine = true) {
+    const receivedAt = new Date();
+    setDiscoveryMessages((messages) => (
+      appendDiscoveryMessage(messages, message, messageType, newLine, receivedAt)
+    ));
+  }
 
   const company = companies.find(({ ticker }) => ticker === selectedTicker)
     || companies[0];
@@ -172,17 +188,15 @@ export default function Home() {
     if (loading) return;
 
     setLoading(true);
-    setStatus("");
+    followMessagesRef.current = true;
     setDiscoveryMessages([]);
 
     try {
-      await request("/api/discover", undefined, (message) => {
-        setDiscoveryMessages((messages) => [...messages, message]);
-      });
-      setStatus("Company added successfully.");
+      await request("/api/discover", undefined, addDiscoveryMessage);
+      addDiscoveryMessage("Company added successfully.");
       await loadCompanies();
     } catch (error) {
-      setStatus(error.message);
+      addDiscoveryMessage(error.message, "error");
     } finally {
       setLoading(false);
     }
@@ -267,15 +281,28 @@ export default function Home() {
           <button className={styles.discoverButton} type="button" onClick={search} disabled={loading}>
             {loading ? "Loading…" : "Discover"}
           </button>
-          <textarea
+          <div
+            ref={discoveryMessagesRef}
             className={styles.discoveryMessages}
+            role="log"
             aria-label="Discovery status messages"
             aria-live="polite"
-            readOnly
-            rows={5}
-            value={discoveryMessages.join("\n")}
-          />
-          <p role="status">{status}</p>
+            aria-relevant="additions text"
+            tabIndex={0}
+            onScroll={({ currentTarget }) => {
+              if (currentTarget.clientHeight === 0) return;
+              followMessagesRef.current = currentTarget.scrollHeight
+                - currentTarget.clientHeight - currentTarget.scrollTop <= 1;
+            }}
+          >
+            {discoveryMessages.map(({ timestamp, messageType, message }, index) => (
+              <div key={index}>
+                <time dateTime={timestamp.replace(" ", "T")}>{timestamp}</time>
+                {" ["}<span className={styles[messageType]}>{messageType}</span>{"]\t"}
+                {message}
+              </div>
+            ))}
+          </div>
         </div>
 
         <div role="tabpanel" id="panel-stock-details" aria-labelledby="tab-stock-details" hidden={tab !== "stock-details"}>

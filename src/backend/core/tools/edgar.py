@@ -5,6 +5,8 @@ from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
 import structlog
 
+from backend.api.helpers.streamer import MessageType, stream_message
+
 
 _logger = structlog.get_logger(__name__)
 
@@ -97,6 +99,8 @@ async def get_financial_data(ticker: str, years: int = 5) -> dict:
 
 
 def _get_financial_data_impl(ticker: str, years: int):
+    stream_message("Downloading data from EDGAR.", MessageType.info)
+
     try:
         company = Company(ticker)
 
@@ -229,6 +233,7 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
+        stream_message(".", new_line=False)
         previous_quarter = quarter
 
     while len(quarterly_revenues) > 4 * years:
@@ -253,6 +258,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
+
+    stream_message(".", new_line=False)
 
     try:
         reports = {

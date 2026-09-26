@@ -3,6 +3,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from contextvars import ContextVar
+from enum import Enum
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import json
@@ -46,8 +47,23 @@ def _emit(event: dict):
         messages.stream_message(json.dumps(event, allow_nan=False) + "\n")
 
 
-def stream_message(message: str):
-    _emit({"type": "status", "message": message})
+class MessageType(str, Enum):
+    info = "info"
+    warning = "warning"
+    error = "error"
+
+
+def stream_message(
+    message: str,
+    message_type: MessageType | None = None,
+    new_line: bool = True
+):
+    _emit({
+        "type": "status",
+        "message": message,
+        "message_type": message_type.value if message_type else MessageType.info,
+        "new_line": new_line
+    })
 
 
 def stream_result(data):
