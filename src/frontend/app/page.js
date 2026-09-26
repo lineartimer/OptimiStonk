@@ -261,44 +261,46 @@ export default function Home() {
         {!companiesLoading && !companiesError && companies.length === 0 && (
           <p>Use Discover to add companies.</p>
         )}
-        <table className={styles.companies} aria-label="Stocks">
-          <thead>
-            <tr>
-              {stockColumns.map(({ key, label }) => (
-                <th
-                  key={key}
-                  scope="col"
-                  aria-sort={sort.key === key ? sort.direction : "none"}
-                >
-                  <button type="button" aria-label={label} onClick={() => sortBy(key)}>
-                    {label.split(" ").join("\n")}
-                  </button>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedCompanies.map((item) => (
-              <tr
-                key={item.ticker}
-                className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
-                onClick={() => setSelectedTicker(item.ticker)}
-              >
-                <td>
-                  <button
-                    type="button"
-                    title={item.name}
-                    aria-current={company?.ticker === item.ticker ? "true" : undefined}
+        <div className={styles.companiesScroll}>
+          <table className={styles.companies} aria-label="Stocks">
+            <thead>
+              <tr>
+                {stockColumns.map(({ key, label }) => (
+                  <th
+                    key={key}
+                    scope="col"
+                    aria-sort={sort.key === key ? sort.direction : "none"}
                   >
-                    {item.ticker}
-                  </button>
-                </td>
-                <td>{item.rank_backlog ?? "—"}</td>
-                <td>{item.rank_market ?? "—"}</td>
+                    <button type="button" aria-label={label} onClick={() => sortBy(key)}>
+                      {label.split(" ").join("\n")}
+                    </button>
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {sortedCompanies.map((item) => (
+                <tr
+                  key={item.ticker}
+                  className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
+                  onClick={() => setSelectedTicker(item.ticker)}
+                >
+                  <td>
+                    <button
+                      type="button"
+                      title={item.name}
+                      aria-current={company?.ticker === item.ticker ? "true" : undefined}
+                    >
+                      {item.ticker}
+                    </button>
+                  </td>
+                  <td>{item.rank_backlog ?? "—"}</td>
+                  <td>{item.rank_market ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </aside>
 
       <section className={styles.content}>
