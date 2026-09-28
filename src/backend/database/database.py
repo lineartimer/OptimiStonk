@@ -143,6 +143,21 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
         return companies[0] if len(companies) == 1 else companies
 
 
+def delete_stock(ticker: str) -> bool:
+    with SessionFactory() as session:
+        stock = session.scalar(
+            select(StockModel).where(StockModel.ticker == ticker.strip().upper())
+        )
+
+        if stock is None:
+            return False
+
+        session.delete(stock)
+        session.commit()
+
+        return True
+
+
 def save_stock(company, reports: dict) -> None:
     with SessionFactory() as session:
         stock = StockModel(
@@ -160,6 +175,7 @@ def save_stock(company, reports: dict) -> None:
             annual_report=reports["latest_10k"],
             quarterly_report=reports["latest_10q"]
         )
+        
         session.add(stock)
         session.flush()
 

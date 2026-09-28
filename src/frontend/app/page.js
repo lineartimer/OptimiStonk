@@ -37,8 +37,9 @@ function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
 
-async function request(path, signal, onStatus) {
-  const response = await fetch(path, { cache: "no-store", signal });
+async function request(path, signal, onStatus, method = "GET") {
+  const response = await fetch(path, { cache: "no-store", signal, method });
+  if (response.status === 204) return;
   
   if (response.ok && response.headers.get("content-type")?.includes("application/x-ndjson")) {
     const reader = response.body.getReader();
@@ -153,6 +154,8 @@ export default function Home() {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
+  const [deletingTicker, setDeletingTicker] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [marketTickers, setMarketTickers] = useState([]);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState("");
@@ -235,26 +238,36 @@ export default function Home() {
     if (collectionRunRef.current) collectionRunRef.current.stopRequested = true;
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
+  const loadMarket = useCallback(async (signal) => {
+    setMarketLoading(true);
+    setMarketError("");
 
-    async function loadMarket() {
-      try {
-        const tickers = await request("/api/market", controller.signal);
-        setMarketTickers(tickers);
-      } catch (error) {
-        if (!controller.signal.aborted) setMarketError(error.message);
-      } finally {
-        if (!controller.signal.aborted) setMarketLoading(false);
+    try {
+      const tickers = await request("/api/market", signal);
+      if (signal?.aborted) return;
+
+      setMarketTickers(tickers);
+      setTickerToAdd((current) => tickers.includes(current) ? current : "");
+    } catch (error) {
+      if (!signal?.aborted) {
+        setMarketError(error.message);
+        setMarketTickers([]);
+        setTickerToAdd("");
       }
+    } finally {
+      if (!signal?.aborted) setMarketLoading(false);
     }
-
-    loadMarket();
-    return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    loadMarket(controller.signal);
+    return () => controller.abort();
+  }, [loadMarket]);
+
   async function collectStocks(ticker) {
-    if (collectionRunRef.current) return;
+    if (collectionRunRef.current || deletingTicker) return;
+    if (ticker && (marketLoading || !marketTickers.includes(ticker))) return;
 
     const run = { stopRequested: false };
     collectionRunRef.current = run;
@@ -273,6 +286,8 @@ export default function Home() {
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
           if (ticker || !error.stockFailure) break;
+        } finally {
+          await loadMarket();
         }
         
         setDiscoveryMessages((messages) => [...messages, { separator: true }]);
@@ -292,6 +307,24 @@ export default function Home() {
 
     run.stopRequested = true;
     setStopping(true);
+  }
+
+  async function deleteCompany(ticker) {
+    if (deletingTicker || loading || companiesLoading) return;
+
+    setDeletingTicker(ticker);
+    setDeleteError(null);
+
+    try {
+      await request(`/api/stock?ticker=${encodeURIComponent(ticker)}`, undefined, undefined, "DELETE");
+      setCompanies((current) => current.filter((item) => item.ticker !== ticker));
+      setSelectedTicker((current) => current === ticker ? null : current);
+      await loadMarket();
+    } catch (error) {
+      setDeleteError({ ticker, message: `Failed to delete ${ticker}: ${error.message}` });
+    } finally {
+      setDeletingTicker(null);
+    }
   }
 
   return (
@@ -373,11 +406,16 @@ export default function Home() {
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
           <div className={styles.discoveryControls}>
-            <button type="button" onClick={() => collectStocks()} disabled={Boolean(loading)}>
+            <button
+              type="button"
+              onClick={() => collectStocks()}
+              disabled={Boolean(loading || deletingTicker)}
+              aria-busy={loading === "discover"}
+            >
               {loading === "discover" ? "Loading…" : "Discover"}
             </button>
             {loading === "discover" && (
-              <button type="button" onClick={stopDiscovery} disabled={stopping}>
+              <button type="button" onClick={stopDiscovery} disabled={stopping} aria-busy={stopping}>
                 {stopping ? "Stopping…" : "Stop"}
               </button>
             )}
@@ -393,15 +431,19 @@ export default function Home() {
               tickers={marketTickers}
               value={tickerToAdd}
               onChange={setTickerToAdd}
-              disabled={Boolean(loading) || marketLoading || marketTickers.length === 0}
+              disabled={Boolean(loading || deletingTicker) || marketLoading || marketTickers.length === 0}
             />
-            <button type="submit" disabled={Boolean(loading) || !tickerToAdd}>
+            <button
+              type="submit"
+              disabled={Boolean(loading || deletingTicker) || marketLoading || !marketTickers.includes(tickerToAdd)}
+              aria-busy={loading === "add"}
+            >
               {loading === "add" ? "Adding…" : "Add"}
             </button>
           </form>
           {marketError && <p role="alert">Failed to load market tickers: {marketError}</p>}
           {!marketLoading && !marketError && marketTickers.length === 0 && (
-            <p>No tickers available in the market table.</p>
+            <p>No new tickers available to add.</p>
           )}
           <div
             ref={discoveryMessagesRef}
@@ -431,7 +473,21 @@ export default function Home() {
         <div role="tabpanel" id="panel-stock-details" aria-labelledby="tab-stock-details" hidden={tab !== "stock-details"}>
           {company ? (
             <>
-              <h1>{company.name}</h1>
+              <div className={styles.companyHeading}>
+                <h1>{company.name}</h1>
+                <button
+                  type="button"
+                  className={styles.deleteButton}
+                  disabled={Boolean(deletingTicker || loading || companiesLoading)}
+                  aria-busy={deletingTicker === company.ticker}
+                  onClick={() => deleteCompany(company.ticker)}
+                >
+                  {deletingTicker === company.ticker ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+              {deleteError?.ticker === company.ticker && (
+                <p className={styles.error} role="alert">{deleteError.message}</p>
+              )}
               <p>Ticker: {company.ticker}</p>
               <CompanySummary
                 key={company.ticker}

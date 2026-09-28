@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 import structlog
 
 from backend.api.helpers.streamer import stream, stream_result
@@ -14,7 +14,7 @@ from backend.core.tools.yahoo_finance import (
 )
 from backend.core.utils.logger import log_and_stream
 from backend.core.utils.message_type import MessageType
-from backend.database.database import load_stock, save_failed
+from backend.database.database import delete_stock as delete_stock_db, load_stock, save_failed
 
 
 _logger = structlog.get_logger(__name__)
@@ -75,3 +75,15 @@ async def get_stock_impl(ticker: str | None = None):
         ) from e
 
     return stream_result(stock.to_json())
+
+
+@stock_router.delete("/api/stock", status_code=204)
+def delete_stock(ticker: str):
+    ticker = ticker.strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=422, detail="Ticker is empty.")
+
+    if not delete_stock_db(ticker):
+        raise HTTPException(status_code=404, detail=f"Stock ({ticker}) not found.")
+
+    return Response(status_code=204)

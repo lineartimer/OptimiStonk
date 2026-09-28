@@ -158,6 +158,10 @@
 }
 
 .page button:disabled {
+  cursor: default;
+}
+
+.page button[aria-busy="true"] {
   cursor: wait;
 }
 
@@ -189,6 +193,27 @@
 .discoveryControls button,
 .addStockControls button {
   color: var(--color-text);
+}
+
+.discoveryControls > button,
+.addStockControls > button,
+.deleteButton {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.discoveryControls > button:hover:not(:disabled),
+.addStockControls > button:hover:not(:disabled) {
+  background: #f0f4f9;
+}
+
+.discoveryControls > button:disabled,
+.addStockControls > button:disabled,
+.deleteButton:disabled {
+  opacity: 0.5;
 }
 
 .addStockControls {
@@ -231,6 +256,25 @@
 
 .error {
   color: #c62828;
+}
+
+.companyHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.companyHeading h1 {
+  min-width: 0;
+}
+
+.deleteButton {
+  color: #c62828;
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: #fff0f0;
 }
 
 .summary {
