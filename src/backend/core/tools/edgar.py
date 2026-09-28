@@ -121,6 +121,8 @@ def _get_financial_data_impl(ticker: str, years: int):
     missing_quarter = None
     split = 1
     for form_10q in form_10qs:
+        year = quarter = None
+        
         try:
             # As full-year quarters are not reported,
             # every year will have only 3 quarters
