@@ -19,11 +19,11 @@ class Stock:
                  summary: str,
                  historical_prices: dict
     ):
-        if (len(revenue) <= 2 or
-            len(r_and_d_expense) <= 2 or
-            len(investment_cash_flow) <= 2 or
-            len(share_count) <= 2 or
-            len(historical_prices) <= 2
+        if (len(revenue) < 2 or
+            len(r_and_d_expense) < 2 or
+            len(investment_cash_flow) < 2 or
+            len(share_count) < 2 or
+            len(historical_prices) < 2
         ):
             raise StockError(f"{ticker} has less than 2 quarters of financial data.")
 
