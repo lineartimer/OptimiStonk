@@ -2,8 +2,9 @@ import asyncio
 import structlog
 import yfinance as yf
 
-from backend.api.helpers.streamer import MessageType, stream_message
-from backend.utils.logger import log_and_stream
+from backend.api.helpers.streamer import stream_message
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 
 
 _logger = structlog.get_logger(__name__)

@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import json
 
-from backend.utils.message_type import MessageType
+from backend.core.utils.message_type import MessageType
 
 
 class _MessageStreamer:

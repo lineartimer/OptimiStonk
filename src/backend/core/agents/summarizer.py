@@ -4,7 +4,8 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from backend.utils.logger import MessageType, log_and_stream
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 
 
 SYSTEM_PROMPT = """

@@ -1,6 +1,6 @@
 from datetime import date
 
-from backend.api.helpers.streamer import MessageType, stream_message
+from backend.api.helpers.streamer import stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
 from backend.core.stock import Stock
@@ -8,6 +8,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
+from backend.core.utils.message_type import MessageType
 from backend.database.database import save_stock
 
 
