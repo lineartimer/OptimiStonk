@@ -367,7 +367,10 @@ export default function Home() {
                 <tr
                   key={item.ticker}
                   className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
-                  onClick={() => setSelectedTicker(item.ticker)}
+                  onClick={() => {
+                    setSelectedTicker(item.ticker);
+                    setTab("stock-details");
+                  }}
                 >
                   <td>
                     <button
