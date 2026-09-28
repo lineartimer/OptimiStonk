@@ -20,7 +20,8 @@ EDGAR_CONSTANTS = {
         "concept_names": [
             "us-gaap_Revenues",
             "us-gaap_SalesRevenueNet",
-            "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
+            "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax",
+            "us-gaap_RevenueFromContractWithCustomerIncludingAssessedTax"
         ],
         "labels": [
             "Revenue",
@@ -292,9 +293,24 @@ def _get_financial_data_impl(ticker: str, years: int):
     return financials, reports
 
 
+def _get_income_statement(xbrl: XBRL) -> Statement | None:
+    statements = xbrl.statements
+    income_statement = statements.income_statement()
+    if income_statement:
+        return income_statement
+
+    # Sometimes, the income_statement() function returns None, in which case
+    # there is another way to get the income statement
+    for statement in xbrl.get_all_statements():
+        if statement.get("type") == "IncomeStatement":
+            return statements[statement["role"]]
+
+    return None
+
+
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     xbrl = form_10q.xbrl()
-    income_statement = xbrl.statements.income_statement()
+    income_statement = _get_income_statement(xbrl)
     if not income_statement:
         raise _FinancialStatementNotFoundError(
             "Couldn't find income statement when parsing period."
@@ -345,7 +361,7 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     labels = constants["labels"]
 
     # Try to find the value in the income statement
-    income_statement = xbrl.statements.income_statement()
+    income_statement = _get_income_statement(xbrl)
     if not income_statement:
         raise _FinancialStatementNotFoundError(
             f"Couldn't find income statement when parsing {name}."
