@@ -128,7 +128,7 @@ class Stock:
 
         return round(float(annual_growth), 4)
 
-    def relative_hype(self) -> float:
+    def relative_hype(self) -> float | None:
         if len(self._historical_data) == 0:
             return None
         
@@ -150,6 +150,10 @@ class Stock:
 
             if price_to_revenue > max:
                 max = price_to_revenue
+
+        # A relative position is undefined without a historical range.
+        if min >= max:
+            return None
 
         if revenue == 0:
             current = float("inf")
@@ -193,7 +197,10 @@ class Stock:
     def _get_last_quarter(self) -> str:
         return list(self._historical_data)[-1] if self._historical_data else None
 
-    def _normalize_for_json(self, input: float) -> float | str:
+    def _normalize_for_json(self, input: float | None) -> float | str | None:
+        if input is None:
+            return None
+
         if input in [float("inf"), float("-inf")] or math.isnan(input):
             return str(input)
 

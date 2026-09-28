@@ -66,7 +66,7 @@ def stream_result(data):
     return data
 
 
-def stream(func: Callable[[], Awaitable[object]]) -> StreamingResponse:
+def stream(func: Callable[..., Awaitable[object]], *args, **kwargs) -> StreamingResponse:
     async def run():
         messages = _MessageStreamer()
 
@@ -74,7 +74,7 @@ def stream(func: Callable[[], Awaitable[object]]) -> StreamingResponse:
             token = _messages.set(messages)
 
             try:
-                await func()
+                await func(*args, **kwargs)
 
             except HTTPException as error:
                 _emit({

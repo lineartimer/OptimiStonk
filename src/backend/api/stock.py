@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 import structlog
 
+from backend.api.helpers.streamer import stream, stream_result
 from backend.core.financials import collect_stock_data
 from backend.core.stock import StockError
 from backend.core.tools.edgar import (
@@ -11,29 +12,39 @@ from backend.core.tools.yahoo_finance import (
     YahooFinanceParseError,
     YahooFinanceTickerNotFoundError
 )
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 from backend.database.database import load_stock, save_failed
-
-
-stock_router = APIRouter()
 
 
 _logger = structlog.get_logger(__name__)
 
 
+stock_router = APIRouter()
+
+
 @stock_router.get("/api/stock")
 async def get_stock(ticker: str | None = None):
+    return stream(get_stock_impl, ticker)
+
+
+async def get_stock_impl(ticker: str | None = None):
     ticker = ticker.strip().upper() if ticker else None
 
     stock = load_stock(ticker)
     if stock:
-        _logger.info("Stock data loaded from database.", ticker=ticker)
+        log_and_stream(
+            f"Stock ({ticker}) loaded from database.",
+            MessageType.info
+        )
+
         if isinstance(stock, list):
-            return [item.to_json() for item in stock]
+            return stream_result([item.to_json() for item in stock])
         
-        return stock.to_json()
+        return stream_result(stock.to_json())
 
     if not ticker:
-        return []
+        return stream_result([])
 
     try:
         stock = await collect_stock_data(ticker)
@@ -63,4 +74,4 @@ async def get_stock(ticker: str | None = None):
             detail=detail
         ) from e
 
-    return stock.to_json()
+    return stream_result(stock.to_json())

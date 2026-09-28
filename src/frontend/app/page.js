@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import StockHistoryChart from "./stock-history-chart.js";
+import TickerSelect from "./ticker-select.js";
 import { log } from "./logger.js";
 import styles from "./page.module.css";
 
@@ -13,7 +14,7 @@ const stockColumns = [
 ];
 
 const tabs = [
-  { id: "discover", label: "Discover" },
+  { id: "discover", label: "Add stock(s)" },
   { id: "stock-details", label: "Stock details" }
 ];
 
@@ -39,7 +40,7 @@ function compareTickers(a, b) {
 async function request(path, signal, onStatus) {
   const response = await fetch(path, { cache: "no-store", signal });
   
-  if (response.ok && onStatus) {
+  if (response.ok && response.headers.get("content-type")?.includes("application/x-ndjson")) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -58,7 +59,7 @@ async function request(path, signal, onStatus) {
           const event = JSON.parse(line);
 
           if (event.type === "status") {
-            onStatus(event.message, event.message_type, event.new_line);
+            onStatus?.(event.message, event.message_type, event.new_line);
           }
 
           if (event.type === "result") return event.data;
@@ -70,13 +71,16 @@ async function request(path, signal, onStatus) {
             // A bare 404 means the market is exhausted, not a missing ticker.
             error.stockFailure = event.status_code === 422
               || (event.status_code === 404 && event.detail !== "Not Found")
-              || (event.status_code === 500 && event.detail === "Failed to load stock data.");
+              || (event.status_code === 500 && (
+                event.detail === "Failed to load stock data."
+                || event.detail.startsWith("Failed to load stock data: ")
+              ));
             
-              throw error;
+            throw error;
           }
         }
 
-        if (done) throw new Error("Discovery stream ended before a result was received.");
+        if (done) throw new Error("Stock collection stream ended before a result was received.");
       }
     } finally {
       await reader.cancel();
@@ -149,11 +153,15 @@ export default function Home() {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
+  const [marketTickers, setMarketTickers] = useState([]);
+  const [marketLoading, setMarketLoading] = useState(true);
+  const [marketError, setMarketError] = useState("");
+  const [tickerToAdd, setTickerToAdd] = useState("");
   const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
   const [tab, setTab] = useState("stock-details");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(null);
   const [stopping, setStopping] = useState(false);
-  const discoveryRunRef = useRef(null);
+  const collectionRunRef = useRef(null);
   const [discoveryMessages, setDiscoveryMessages] = useState([]);
   const discoveryMessagesRef = useRef(null);
   const followMessagesRef = useRef(true);
@@ -224,40 +232,62 @@ export default function Home() {
   }, [loadCompanies]);
 
   useEffect(() => () => {
-    if (discoveryRunRef.current) discoveryRunRef.current.stopRequested = true;
+    if (collectionRunRef.current) collectionRunRef.current.stopRequested = true;
   }, []);
 
-  async function search() {
-    if (discoveryRunRef.current) return;
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadMarket() {
+      try {
+        const tickers = await request("/api/market", controller.signal);
+        setMarketTickers(tickers);
+      } catch (error) {
+        if (!controller.signal.aborted) setMarketError(error.message);
+      } finally {
+        if (!controller.signal.aborted) setMarketLoading(false);
+      }
+    }
+
+    loadMarket();
+    return () => controller.abort();
+  }, []);
+
+  async function collectStocks(ticker) {
+    if (collectionRunRef.current) return;
 
     const run = { stopRequested: false };
-    discoveryRunRef.current = run;
-    setLoading(true);
+    collectionRunRef.current = run;
+    setLoading(ticker ? "add" : "discover");
     setStopping(false);
     followMessagesRef.current = true;
 
     try {
       while (!run.stopRequested) {
         try {
-          await request("/api/discover", undefined, addDiscoveryMessage);
+          const path = ticker
+            ? `/api/stock?ticker=${encodeURIComponent(ticker)}`
+            : "/api/discover";
+          await request(path, undefined, addDiscoveryMessage);
           await loadCompanies();
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
-          if (!error.stockFailure) break;
+          if (ticker || !error.stockFailure) break;
         }
         
         setDiscoveryMessages((messages) => [...messages, { separator: true }]);
+        if (ticker) break;
       }
     } finally {
-      discoveryRunRef.current = null;
+      collectionRunRef.current = null;
 
-      setLoading(false);
+      setLoading(null);
       setStopping(false);
     }
   }
 
   function stopDiscovery() {
-    const run = discoveryRunRef.current;
+    const run = collectionRunRef.current;
     if (!run || run.stopRequested) return;
 
     run.stopRequested = true;
@@ -280,7 +310,7 @@ export default function Home() {
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
         {!companiesLoading && !companiesError && companies.length === 0 && (
-          <p>Use Discover to add companies.</p>
+          <p>Use Add stock(s) to add companies.</p>
         )}
         <div className={styles.companiesScroll}>
           <table className={styles.companies} aria-label="Stocks">
@@ -343,20 +373,41 @@ export default function Home() {
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
           <div className={styles.discoveryControls}>
-            <button type="button" onClick={search} disabled={loading}>
-              {loading ? "Loading…" : "Discover"}
+            <button type="button" onClick={() => collectStocks()} disabled={Boolean(loading)}>
+              {loading === "discover" ? "Loading…" : "Discover"}
             </button>
-            {loading && (
+            {loading === "discover" && (
               <button type="button" onClick={stopDiscovery} disabled={stopping}>
                 {stopping ? "Stopping…" : "Stop"}
               </button>
             )}
           </div>
+          <form
+            className={styles.addStockControls}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (tickerToAdd) collectStocks(tickerToAdd);
+            }}
+          >
+            <TickerSelect
+              tickers={marketTickers}
+              value={tickerToAdd}
+              onChange={setTickerToAdd}
+              disabled={Boolean(loading) || marketLoading || marketTickers.length === 0}
+            />
+            <button type="submit" disabled={Boolean(loading) || !tickerToAdd}>
+              {loading === "add" ? "Adding…" : "Add"}
+            </button>
+          </form>
+          {marketError && <p role="alert">Failed to load market tickers: {marketError}</p>}
+          {!marketLoading && !marketError && marketTickers.length === 0 && (
+            <p>No tickers available in the market table.</p>
+          )}
           <div
             ref={discoveryMessagesRef}
             className={styles.discoveryMessages}
             role="log"
-            aria-label="Discovery status messages"
+            aria-label="Stock collection status messages"
             aria-live="polite"
             aria-relevant="additions text"
             tabIndex={0}

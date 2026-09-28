@@ -99,7 +99,6 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     backlog_finder = BacklogFinder()
     backlog = await backlog_finder.run(name, prompt_backlog)
-    stream_message(f"{name}'s backlog: ${backlog} million.", MessageType.info)
 
     # Create a summary of the company
     prompt_summarizer = {

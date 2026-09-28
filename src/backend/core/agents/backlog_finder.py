@@ -53,7 +53,7 @@ class BacklogFinder:
         backlog = result["structured_response"].backlog_millions
 
         log_and_stream(
-            f"{company_name}'s backlog is {backlog}.",
+            f"{company_name}'s backlog is ${backlog} million.",
             MessageType.info
         )
         return backlog
