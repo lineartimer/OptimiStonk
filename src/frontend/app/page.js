@@ -17,7 +17,10 @@ const tabs = [
   { id: "stock-details", label: "Stock details" }
 ];
 
-const metricNumber = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+const metricNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2
+});
+
 const ratioNumber = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -26,7 +29,7 @@ const ratioNumber = new Intl.NumberFormat("en-US", {
 function formatRatio(value) {
   if (value === "inf") return "∞";
   if (value === "-inf") return "−∞";
-  return Number.isFinite(value) ? `${ratioNumber.format(value)}×` : "—";
+  return Number.isFinite(value) ? `${ratioNumber.format(value)}` : "—";
 }
 
 function compareTickers(a, b) {
@@ -35,6 +38,7 @@ function compareTickers(a, b) {
 
 async function request(path, signal, onStatus) {
   const response = await fetch(path, { cache: "no-store", signal });
+  
   if (response.ok && onStatus) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -53,8 +57,12 @@ async function request(path, signal, onStatus) {
 
           const event = JSON.parse(line);
 
-          if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
+          if (event.type === "status") {
+            onStatus(event.message, event.message_type, event.new_line);
+          }
+
           if (event.type === "result") return event.data;
+          
           if (event.type === "error") {
             const error = new Error(event.detail);
 
