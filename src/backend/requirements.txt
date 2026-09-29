@@ -3,6 +3,7 @@ fastapi
 langchain
 langchain-openai
 markdownify
+playwright
 sqlalchemy
 structlog
 yfinance

@@ -5,21 +5,25 @@ from fastapi import FastAPI
 import os
 import uvicorn
 
-from backend.api.stock import stock_router
 from backend.api.discover import discovery_router
 from backend.api.market import market_router
+from backend.api.stock import stock_router
+from backend.core.tools.web import web_session
 from backend.database.database import initialize_database
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     set_identity(os.getenv("EDGAR_IDENTITY"))
-    await initialize_database()
 
-    yield
+    # One browser (and its cookies) will be shared for the application's lifetime
+    async with web_session():
+        await initialize_database()
+        yield
 
 
 app = FastAPI(lifespan=lifespan)
+
 app.include_router(stock_router)
 app.include_router(discovery_router)
 app.include_router(market_router)
