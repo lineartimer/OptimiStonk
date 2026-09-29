@@ -66,10 +66,14 @@ class Stock:
     def get_share_count(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("share_count")
 
-    def average_revenue(self) -> float:
-        return sum(
-            data["revenue"] for data in self._historical_data.values()
-        ) / len(self._historical_data)
+    def get_average_revenue(self) -> float:
+        return self._get_average_value("revenue")
+
+    def get_average_r_and_d_expense(self) -> float:
+        return self._get_average_value("r_and_d_expense")
+
+    def get_average_operating_income(self) -> float:
+        return self._get_average_value("operating_income")
 
     def rank_market(self) -> float:
         revenue_growth_per_year = self.revenue_growth_per_year()
@@ -172,6 +176,11 @@ class Stock:
 
     def _get_last_quarter(self) -> str:
         return list(self._historical_data)[-1] if self._historical_data else None
+    
+    def _get_average_value(self, key: str) -> float:
+        return sum(
+            data[key] for data in self._historical_data.values()
+        ) / len(self._historical_data)
 
     def _normalize_for_json(self, input: float | None) -> float | str | None:
         if input is None:
