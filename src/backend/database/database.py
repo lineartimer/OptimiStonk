@@ -170,7 +170,6 @@ def save_stock(company, reports: dict) -> None:
             price_to_revenue=company.price_to_revenue_ratio(),
             price_to_backlog=company.price_to_backlog_ratio(),
             revenue_growth=company.revenue_growth_per_year(),
-            relative_hype=company.relative_hype(),
             summary=company.summary,
             annual_report=reports["latest_10k"],
             quarterly_report=reports["latest_10q"]

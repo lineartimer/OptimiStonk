@@ -128,44 +128,9 @@ class Stock:
 
         return round(float(annual_growth), 4)
 
-    def relative_hype(self) -> float | None:
-        if len(self._historical_data) == 0:
-            return None
-        
-        min = float("inf")
-        max = float("-inf")
-        for quarter in self._historical_data.keys():
-            share_count = self.get_share_count(quarter)
-            price = self.get_price(quarter)
-            revenue = self.get_revenue(quarter)
-
-            # Ignore years with 0 revenues
-            if revenue == 0:
-                continue
-
-            price_to_revenue = share_count * price / (4 * revenue)
-
-            if price_to_revenue < min:
-                min = price_to_revenue
-
-            if price_to_revenue > max:
-                max = price_to_revenue
-
-        # A relative position is undefined without a historical range.
-        if min >= max:
-            return None
-
-        if revenue == 0:
-            current = float("inf")
-        else:
-            current = share_count * self.last_price / (4 * revenue)
-
-        return round((current - min) / (max - min), 4)
-
     def to_json(self) -> dict:
         price_to_revenue = self.price_to_revenue_ratio()
         price_to_backlog = self.price_to_backlog_ratio()
-        relative_hype = self.relative_hype()
         
         return {
             "name": self.name,
@@ -189,8 +154,7 @@ class Stock:
             "metrics": {
                 "price_to_revenue_ratio": self._normalize_for_json(price_to_revenue),
                 "price_to_backlog_ratio": self._normalize_for_json(price_to_backlog),
-                "revenue_growth_per_year": self.revenue_growth_per_year(),
-                "relative_hype": self._normalize_for_json(relative_hype)
+                "revenue_growth_per_year": self.revenue_growth_per_year()
             }
         }
 
