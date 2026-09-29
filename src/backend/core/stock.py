@@ -14,6 +14,8 @@ class Stock:
                  revenue: dict,
                  r_and_d_expense: dict,
                  operating_income: dict,
+                 net_income: dict,
+                 eps: dict,
                  cash_and_equivalents: dict,
                  marketable_securities: dict,
                  accounts_receivable: dict,
@@ -30,6 +32,8 @@ class Stock:
         if (len(revenue) < 2 or
             len(r_and_d_expense) < 2 or
             len(operating_income) < 2 or
+            len(net_income) < 2 or
+            len(eps) < 2 or
             len(cash_and_equivalents) < 2 or
             len(marketable_securities) < 2 or
             len(accounts_receivable) < 2 or
@@ -55,6 +59,8 @@ class Stock:
                 "revenue": revenue[quarter],
                 "r_and_d_expense": r_and_d_expense[quarter],
                 "operating_income": operating_income[quarter],
+                "net_income": net_income[quarter],
+                "eps": eps[quarter],
                 "cash_and_equivalents": cash_and_equivalents[quarter],
                 "marketable_securities": marketable_securities[quarter],
                 "accounts_receivable": accounts_receivable[quarter],
@@ -80,6 +86,12 @@ class Stock:
 
     def get_operating_income(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("operating_income")
+
+    def get_net_income(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("net_income")
+
+    def get_eps(self, quarter: str) -> float | None:
+        return self._historical_data.get(quarter, {}).get("eps")
 
     def get_cash_and_equivalents(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("cash_and_equivalents")
@@ -202,6 +214,8 @@ class Stock:
                     "revenue": data["revenue"],
                     "r_and_d_expense": data["r_and_d_expense"],
                     "operating_income": data["operating_income"],
+                    "net_income": data["net_income"],
+                    "eps": data["eps"],
                     "cash_and_equivalents": data["cash_and_equivalents"],
                     "marketable_securities": data["marketable_securities"],
                     "accounts_receivable": data["accounts_receivable"],

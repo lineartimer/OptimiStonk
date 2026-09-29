@@ -57,6 +57,38 @@ EDGAR_CONSTANTS = {
             "Loss (income) from operations"
         ]
     },
+    "net_income": {
+        "concept_names": [
+            "us-gaap_NetIncomeLoss",
+            "us-gaap_ProfitLoss"
+        ],
+        "labels": [
+            "Net income",
+            "Net loss",
+            "Net income (loss)",
+            "Net (loss) income",
+            "Net earnings",
+            "Net earnings (loss)"
+        ]
+    },
+    "eps": {
+        "concept_names": [
+            "us-gaap_EarningsPerShareDiluted",
+            "us-gaap_EarningsPerShareBasicAndDiluted"
+        ],
+        "labels": [
+            "Diluted earnings per share",
+            "Diluted loss per share",
+            "Diluted earnings (loss) per share",
+            "Earnings per share, diluted",
+            "Earnings (loss) per share, diluted",
+            "Net income per diluted share",
+            "Net income (loss) per diluted share",
+            "Basic and diluted earnings per share",
+            "Basic and diluted loss per share",
+            "Basic and diluted earnings (loss) per share"
+        ]
+    },
     "cash_and_equivalents": {
         "concept_names": [
             "us-gaap_CashAndCashEquivalentsAtCarryingValue"
@@ -115,7 +147,6 @@ EDGAR_CONSTANTS = {
         ]
     },
     "long_term_debt": {
-        # Current maturities are already included in current liabilities.
         "concept_names": [
             "us-gaap_LongTermDebtNoncurrent"
         ],
@@ -235,6 +266,8 @@ def _get_financial_data_impl(ticker: str, years: int):
     quarterly_revenues = {}
     quarterly_r_and_d_expenses = {}
     quarterly_operating_incomes = {}
+    quarterly_net_incomes = {}
+    quarterly_eps = {}
     quarterly_cash_and_equivalents = {}
     quarterly_marketable_securities = {}
     quarterly_accounts_receivable = {}
@@ -278,6 +311,13 @@ def _get_financial_data_impl(ticker: str, years: int):
             quarterly_operating_income = round(
                 _get_optional_financial_data(xbrl, "operating_income") / UNIT
             )
+
+            quarterly_net_income = round(
+                _get_optional_financial_data(xbrl, "net_income") / UNIT
+            )
+
+            # EPS is dollars per share, adjusted inversely to the share count.
+            eps = _get_optional_financial_data(xbrl, "eps") / split
 
             quarterly_cash_balance = round(
                 _get_optional_financial_data(xbrl, "cash_and_equivalents") / UNIT
@@ -382,6 +422,19 @@ def _get_financial_data_impl(ticker: str, years: int):
                 )
                 quarterly_operating_incomes[key] = missing_operating_income
 
+                missing_net_income = round(
+                    (
+                        list(quarterly_net_incomes.values())[-1] +
+                        quarterly_net_income
+                    ) / 2
+                )
+                quarterly_net_incomes[key] = missing_net_income
+
+                missing_eps = (
+                    list(quarterly_eps.values())[-1] + eps
+                ) / 2
+                quarterly_eps[key] = missing_eps
+
                 missing_cash_and_equivalents = round(
                     (
                         list(quarterly_cash_and_equivalents.values())[-1] +
@@ -461,6 +514,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_revenues[key] = quarterly_revenue
         quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
         quarterly_operating_incomes[key] = quarterly_operating_income
+        quarterly_net_incomes[key] = quarterly_net_income
+        quarterly_eps[key] = eps
         quarterly_cash_and_equivalents[key] = quarterly_cash_balance
         quarterly_marketable_securities[key] = quarterly_marketable_securities_balance
         quarterly_accounts_receivable[key] = quarterly_receivables_balance
@@ -478,6 +533,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_revenues.popitem()
         quarterly_r_and_d_expenses.popitem()
         quarterly_operating_incomes.popitem()
+        quarterly_net_incomes.popitem()
+        quarterly_eps.popitem()
         quarterly_cash_and_equivalents.popitem()
         quarterly_marketable_securities.popitem()
         quarterly_accounts_receivable.popitem()
@@ -502,6 +559,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         "revenue": _clean_result(quarterly_revenues),
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
         "operating_income": _clean_result(quarterly_operating_incomes),
+        "net_income": _clean_result(quarterly_net_incomes),
+        "eps": _clean_result(quarterly_eps),
         "cash_and_equivalents": _clean_result(quarterly_cash_and_equivalents),
         "marketable_securities": _clean_result(quarterly_marketable_securities),
         "accounts_receivable": _clean_result(quarterly_accounts_receivable),

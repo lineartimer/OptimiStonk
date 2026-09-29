@@ -77,6 +77,8 @@ class FinancialDataModel(BaseModel):
     revenue: Mapped[int]
     r_and_d_expense: Mapped[int]
     operating_income: Mapped[int | None] = mapped_column(nullable=True)
+    net_income: Mapped[int | None] = mapped_column(nullable=True)
+    eps: Mapped[float | None] = mapped_column(Float, nullable=True)
     cash_and_equivalents: Mapped[int | None] = mapped_column(nullable=True)
     marketable_securities: Mapped[int | None] = mapped_column(nullable=True)
     accounts_receivable: Mapped[int | None] = mapped_column(nullable=True)
