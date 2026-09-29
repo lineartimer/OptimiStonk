@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from enum import Enum
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
@@ -56,6 +57,16 @@ EDGAR_CONSTANTS = {
             "Loss (income) from operations"
         ]
     },
+    "cash_and_equivalents": {
+        "concept_names": [
+            "us-gaap_CashAndCashEquivalentsAtCarryingValue"
+        ],
+        "labels": [
+            "Cash and cash equivalents",
+            "Cash and equivalents",
+            "Cash & cash equivalents"
+        ]
+    },
     "share_count": {
         "concept_names": [
             "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
@@ -82,6 +93,12 @@ EDGAR_CONSTANTS = {
         ]
     }
 }
+
+
+class FinancialStatementType(str, Enum):
+    income_statement = "IncomeStatement"
+    balance_sheet = "BalanceSheet"
+    cash_flow = "CashFlowStatement"
 
 
 class EdgarTickerNotFoundError(Exception):
@@ -131,6 +148,7 @@ def _get_financial_data_impl(ticker: str, years: int):
     quarterly_revenues = {}
     quarterly_r_and_d_expenses = {}
     quarterly_operating_incomes = {}
+    quarterly_cash_and_equivalents = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -166,6 +184,10 @@ def _get_financial_data_impl(ticker: str, years: int):
 
             quarterly_operating_income = round(
                 _get_optional_financial_data(xbrl, "operating_income") / UNIT
+            )
+
+            quarterly_cash_balance = round(
+                _get_optional_financial_data(xbrl, "cash_and_equivalents") / UNIT
             )
 
             # Of these financial data, only share count is not optional
@@ -243,6 +265,14 @@ def _get_financial_data_impl(ticker: str, years: int):
                 )
                 quarterly_operating_incomes[key] = missing_operating_income
 
+                missing_cash_and_equivalents = round(
+                    (
+                        list(quarterly_cash_and_equivalents.values())[-1] +
+                        quarterly_cash_balance
+                    ) / 2
+                )
+                quarterly_cash_and_equivalents[key] = missing_cash_and_equivalents
+
                 missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
@@ -266,6 +296,7 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_revenues[key] = quarterly_revenue
         quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
         quarterly_operating_incomes[key] = quarterly_operating_income
+        quarterly_cash_and_equivalents[key] = quarterly_cash_balance
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
@@ -276,6 +307,7 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_revenues.popitem()
         quarterly_r_and_d_expenses.popitem()
         quarterly_operating_incomes.popitem()
+        quarterly_cash_and_equivalents.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
@@ -293,6 +325,7 @@ def _get_financial_data_impl(ticker: str, years: int):
         "revenue": _clean_result(quarterly_revenues),
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
         "operating_income": _clean_result(quarterly_operating_incomes),
+        "cash_and_equivalents": _clean_result(quarterly_cash_and_equivalents),
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
@@ -324,16 +357,26 @@ def _get_financial_data_impl(ticker: str, years: int):
     return financials, reports
 
 
-def _get_income_statement(xbrl: XBRL) -> Statement | None:
+def _get_financial_statement(
+    xbrl: XBRL,
+    statement_type: FinancialStatementType
+) -> Statement | None:
+    
     statements = xbrl.statements
-    income_statement = statements.income_statement()
-    if income_statement:
-        return income_statement
+    get_statement = {
+        FinancialStatementType.income_statement: statements.income_statement,
+        FinancialStatementType.balance_sheet: statements.balance_sheet,
+        FinancialStatementType.cash_flow: statements.cash_flow_statement
+    }[statement_type]
 
-    # Sometimes, the income_statement() function returns None, in which case
-    # there is another way to get the income statement
+    financial_statement = get_statement()
+    if financial_statement:
+        return financial_statement
+
+    # If the accessor returns None (can happen),
+    # look up the financial statement in another way
     for statement in xbrl.get_all_statements():
-        if statement.get("type") == "IncomeStatement":
+        if statement.get("type") == statement_type.value:
             return statements[statement["role"]]
 
     return None
@@ -341,7 +384,9 @@ def _get_income_statement(xbrl: XBRL) -> Statement | None:
 
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     xbrl = form_10q.xbrl()
-    income_statement = _get_income_statement(xbrl)
+    income_statement = _get_financial_statement(
+        xbrl, FinancialStatementType.income_statement
+    )
     if not income_statement:
         raise _FinancialStatementNotFoundError(
             "Couldn't find income statement when parsing period."
@@ -392,7 +437,9 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     labels = constants["labels"]
 
     # Try to find the value in the income statement
-    income_statement = _get_income_statement(xbrl)
+    income_statement = _get_financial_statement(
+        xbrl, FinancialStatementType.income_statement
+    )
     if not income_statement:
         raise _FinancialStatementNotFoundError(
             f"Couldn't find income statement when parsing {name}."
@@ -402,8 +449,23 @@ def _parse_value(xbrl: XBRL, name: str) -> float | None:
     if value is not None:
         return value
 
+    # Try to find the value in the balance sheet
+    balance_sheet = _get_financial_statement(
+        xbrl, FinancialStatementType.balance_sheet
+    )
+    if not balance_sheet:
+        raise _FinancialStatementNotFoundError(
+            f"Couldn't find balance sheet when parsing {name}."
+        )
+
+    value = _parse_from_financial_statement(balance_sheet, concept_names, labels)
+    if value is not None:
+        return value
+
     # Try to find the value in the cash flow
-    cash_flow = xbrl.statements.cash_flow_statement()
+    cash_flow = _get_financial_statement(
+        xbrl, FinancialStatementType.cash_flow
+    )
     if not cash_flow:
         raise _FinancialStatementNotFoundError(
             f"Couldn't find cash-flow when parsing {name}."

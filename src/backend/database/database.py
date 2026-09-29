@@ -135,6 +135,7 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
                         "revenue",
                         "r_and_d_expense",
                         "operating_income",
+                        "cash_and_equivalents",
                         "investment_cash_flow",
                         "share_count"
                     )
@@ -189,6 +190,7 @@ def save_stock(company, reports: dict) -> None:
                 revenue=data["revenue"],
                 r_and_d_expense=data["r_and_d_expense"],
                 operating_income=data["operating_income"],
+                cash_and_equivalents=data["cash_and_equivalents"],
                 investment_cash_flow=data["investment_cash_flow"],
                 share_count=data["share_count"]
             ))

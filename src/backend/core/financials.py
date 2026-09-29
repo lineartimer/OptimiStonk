@@ -51,6 +51,9 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     financials["operating_income"] = {
         k: financials["operating_income"][k] for k in common_keys
     }
+    financials["cash_and_equivalents"] = {
+        k: financials["cash_and_equivalents"][k] for k in common_keys
+    }
     financials["share_count"] = {
         k: financials["share_count"][k] for k in common_keys
     }
@@ -69,6 +72,9 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
     financials["operating_income"] = dict(
         sorted(financials["operating_income"].items())
+    )
+    financials["cash_and_equivalents"] = dict(
+        sorted(financials["cash_and_equivalents"].items())
     )
     financials["share_count"] = dict(
         sorted(financials["share_count"].items())
@@ -128,6 +134,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "revenue": financials["revenue"],
         "r_and_d_expense": financials["r_and_d_expense"],
         "operating_income": financials["operating_income"],
+        "cash_and_equivalents": financials["cash_and_equivalents"],
         "investment_cash_flow": financials["investment_cash_flow"],
         "share_count": financials["share_count"],
         "backlog": backlog,
