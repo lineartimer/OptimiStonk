@@ -76,6 +76,7 @@ class FinancialDataModel(BaseModel):
     quarter: Mapped[str] = mapped_column(Text)
     revenue: Mapped[int]
     r_and_d_expense: Mapped[int]
+    operating_income: Mapped[int | None] = mapped_column(nullable=True)
     investment_cash_flow: Mapped[int]
     share_count: Mapped[int]
 

@@ -13,6 +13,7 @@ class Stock:
                  last_price: int,
                  revenue: dict,
                  r_and_d_expense: dict,
+                 operating_income: dict,
                  investment_cash_flow: dict,
                  share_count: dict,
                  backlog: int,
@@ -21,6 +22,7 @@ class Stock:
     ):
         if (len(revenue) < 2 or
             len(r_and_d_expense) < 2 or
+            len(operating_income) < 2 or
             len(investment_cash_flow) < 2 or
             len(share_count) < 2 or
             len(historical_prices) < 2
@@ -38,6 +40,7 @@ class Stock:
                 "price": historical_prices[quarter],
                 "revenue": revenue[quarter],
                 "r_and_d_expense": r_and_d_expense[quarter],
+                "operating_income": operating_income[quarter],
                 "investment_cash_flow": investment_cash_flow[quarter],
                 "share_count": share_count[quarter]
             }
@@ -53,6 +56,9 @@ class Stock:
 
     def get_r_and_d_expense(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("r_and_d_expense")
+
+    def get_operating_income(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("operating_income")
 
     def get_investment_cash_flow(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("investment_cash_flow")
@@ -149,6 +155,7 @@ class Stock:
                 quarter: {
                     "revenue": data["revenue"],
                     "r_and_d_expense": data["r_and_d_expense"],
+                    "operating_income": data["operating_income"],
                     "investment_cash_flow": data["investment_cash_flow"],
                     "share_count": data["share_count"]
                 } for quarter, data in self._historical_data.items()

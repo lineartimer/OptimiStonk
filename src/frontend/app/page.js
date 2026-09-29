@@ -342,9 +342,6 @@ export default function Home() {
         </a>
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
-        {!companiesLoading && !companiesError && companies.length === 0 && (
-          <p>Use Add stock(s) to add companies.</p>
-        )}
         <div className={styles.companiesScroll}>
           <table className={styles.companies} aria-label="Stocks">
             <thead>
@@ -523,7 +520,7 @@ export default function Home() {
               )}
             </>
           ) : (
-            <p>{companiesLoading ? "Loading company details…" : "No company selected."}</p>
+            <p>{companiesLoading ? "Loading company details…" : ""}</p>
           )}
         </div>
       </section>

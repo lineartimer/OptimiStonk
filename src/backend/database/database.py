@@ -132,7 +132,11 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
                 **{
                     field: {row.quarter: getattr(row, field) for row in financial_rows}
                     for field in (
-                        "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+                        "revenue",
+                        "r_and_d_expense",
+                        "operating_income",
+                        "investment_cash_flow",
+                        "share_count"
                     )
                 }
             ))
@@ -184,6 +188,7 @@ def save_stock(company, reports: dict) -> None:
                 quarter=quarter,
                 revenue=data["revenue"],
                 r_and_d_expense=data["r_and_d_expense"],
+                operating_income=data["operating_income"],
                 investment_cash_flow=data["investment_cash_flow"],
                 share_count=data["share_count"]
             ))

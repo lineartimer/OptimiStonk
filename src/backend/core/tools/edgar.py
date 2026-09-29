@@ -41,6 +41,21 @@ EDGAR_CONSTANTS = {
             "Research and development"
         ]
     },
+    "operating_income": {
+        "concept_names": [
+            "us-gaap_OperatingIncomeLoss"
+        ],
+        "labels": [
+            "Operating income",
+            "Operating loss",
+            "Operating income (loss)",
+            "Operating (loss) income",
+            "Income from operations",
+            "Loss from operations",
+            "Income (loss) from operations",
+            "Loss (income) from operations"
+        ]
+    },
     "share_count": {
         "concept_names": [
             "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
@@ -115,6 +130,7 @@ def _get_financial_data_impl(ticker: str, years: int):
 
     quarterly_revenues = {}
     quarterly_r_and_d_expenses = {}
+    quarterly_operating_incomes = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -146,6 +162,10 @@ def _get_financial_data_impl(ticker: str, years: int):
 
             quarterly_r_and_d_expense = round(
                 _get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT
+            )
+
+            quarterly_operating_income = round(
+                _get_optional_financial_data(xbrl, "operating_income") / UNIT
             )
 
             # Of these financial data, only share count is not optional
@@ -215,6 +235,14 @@ def _get_financial_data_impl(ticker: str, years: int):
                 )
                 quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
 
+                missing_operating_income = round(
+                    (
+                        list(quarterly_operating_incomes.values())[-1] +
+                        quarterly_operating_income
+                    ) / 2
+                )
+                quarterly_operating_incomes[key] = missing_operating_income
+
                 missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
@@ -237,6 +265,7 @@ def _get_financial_data_impl(ticker: str, years: int):
 
         quarterly_revenues[key] = quarterly_revenue
         quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
+        quarterly_operating_incomes[key] = quarterly_operating_income
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
@@ -246,6 +275,7 @@ def _get_financial_data_impl(ticker: str, years: int):
     while len(quarterly_revenues) > 4 * years:
         quarterly_revenues.popitem()
         quarterly_r_and_d_expenses.popitem()
+        quarterly_operating_incomes.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
@@ -262,6 +292,7 @@ def _get_financial_data_impl(ticker: str, years: int):
     financials = {
         "revenue": _clean_result(quarterly_revenues),
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
+        "operating_income": _clean_result(quarterly_operating_incomes),
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
