@@ -60,6 +60,11 @@ class Stock:
     def get_share_count(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("share_count")
 
+    def average_revenue(self) -> float:
+        return sum(
+            data["revenue"] for data in self._historical_data.values()
+        ) / len(self._historical_data)
+
     def rank_market(self) -> float:
         revenue_growth_per_year = self.revenue_growth_per_year()
         price_to_revenue_ratio = self.price_to_revenue_ratio()
