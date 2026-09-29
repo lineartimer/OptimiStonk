@@ -51,13 +51,6 @@ async def web_session() -> AsyncIterator[None]:
                 await browser.close()
 
 
-def _get_context() -> BrowserContext:
-    if _context is None:
-        raise RuntimeError("No active web_session.")
-    
-    return _context
-
-
 async def download_web_page(url: str) -> str:
     """
     Loads a web page.
@@ -143,3 +136,10 @@ async def download_file(url: str) -> str:
     
     _logger.info("File downloaded.", url=url)
     return content
+
+
+def _get_context() -> BrowserContext:
+    if _context is None:
+        raise RuntimeError("No active web_session.")
+    
+    return _context
