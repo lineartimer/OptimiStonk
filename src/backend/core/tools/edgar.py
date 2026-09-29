@@ -67,6 +67,44 @@ EDGAR_CONSTANTS = {
             "Cash & cash equivalents"
         ]
     },
+    "marketable_securities": {
+        "concept_names": [
+            "us-gaap_MarketableSecuritiesCurrent",
+            "us-gaap_ShortTermInvestments",
+            "us-gaap_AvailableForSaleSecuritiesCurrent",
+            "us-gaap_MarketableSecurities"
+        ],
+        "labels": [
+            "Marketable securities",
+            "Marketable securities, current",
+            "Short-term marketable securities",
+            "Short term marketable securities",
+            "Short-term investments",
+            "Short term investments"
+        ]
+    },
+    "accounts_receivable": {
+        "concept_names": [
+            "us-gaap_AccountsReceivableNetCurrent",
+            "us-gaap_AccountsReceivableNet"
+        ],
+        "labels": [
+            "Accounts receivable",
+            "Accounts receivable, net",
+            "Accounts receivable net",
+            "Net accounts receivable",
+            "Trade receivables",
+            "Trade receivables, net"
+        ]
+    },
+    "total_assets": {
+        "concept_names": [
+            "us-gaap_Assets"
+        ],
+        "labels": [
+            "Total assets"
+        ]
+    },
     "share_count": {
         "concept_names": [
             "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
@@ -149,6 +187,9 @@ def _get_financial_data_impl(ticker: str, years: int):
     quarterly_r_and_d_expenses = {}
     quarterly_operating_incomes = {}
     quarterly_cash_and_equivalents = {}
+    quarterly_marketable_securities = {}
+    quarterly_accounts_receivable = {}
+    quarterly_total_assets = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -188,6 +229,18 @@ def _get_financial_data_impl(ticker: str, years: int):
 
             quarterly_cash_balance = round(
                 _get_optional_financial_data(xbrl, "cash_and_equivalents") / UNIT
+            )
+
+            quarterly_marketable_securities_balance = round(
+                _get_optional_financial_data(xbrl, "marketable_securities") / UNIT
+            )
+
+            quarterly_receivables_balance = round(
+                _get_optional_financial_data(xbrl, "accounts_receivable") / UNIT
+            )
+
+            quarterly_asset_balance = round(
+                _get_optional_financial_data(xbrl, "total_assets") / UNIT
             )
 
             # Of these financial data, only share count is not optional
@@ -273,6 +326,30 @@ def _get_financial_data_impl(ticker: str, years: int):
                 )
                 quarterly_cash_and_equivalents[key] = missing_cash_and_equivalents
 
+                missing_marketable_securities = round(
+                    (
+                        list(quarterly_marketable_securities.values())[-1] +
+                        quarterly_marketable_securities_balance
+                    ) / 2
+                )
+                quarterly_marketable_securities[key] = missing_marketable_securities
+
+                missing_accounts_receivable = round(
+                    (
+                        list(quarterly_accounts_receivable.values())[-1] +
+                        quarterly_receivables_balance
+                    ) / 2
+                )
+                quarterly_accounts_receivable[key] = missing_accounts_receivable
+
+                missing_total_assets = round(
+                    (
+                        list(quarterly_total_assets.values())[-1] +
+                        quarterly_asset_balance
+                    ) / 2
+                )
+                quarterly_total_assets[key] = missing_total_assets
+
                 missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
@@ -297,6 +374,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
         quarterly_operating_incomes[key] = quarterly_operating_income
         quarterly_cash_and_equivalents[key] = quarterly_cash_balance
+        quarterly_marketable_securities[key] = quarterly_marketable_securities_balance
+        quarterly_accounts_receivable[key] = quarterly_receivables_balance
+        quarterly_total_assets[key] = quarterly_asset_balance
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
@@ -308,6 +388,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_r_and_d_expenses.popitem()
         quarterly_operating_incomes.popitem()
         quarterly_cash_and_equivalents.popitem()
+        quarterly_marketable_securities.popitem()
+        quarterly_accounts_receivable.popitem()
+        quarterly_total_assets.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
@@ -326,6 +409,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
         "operating_income": _clean_result(quarterly_operating_incomes),
         "cash_and_equivalents": _clean_result(quarterly_cash_and_equivalents),
+        "marketable_securities": _clean_result(quarterly_marketable_securities),
+        "accounts_receivable": _clean_result(quarterly_accounts_receivable),
+        "total_assets": _clean_result(quarterly_total_assets),
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
@@ -355,31 +441,6 @@ def _get_financial_data_impl(ticker: str, years: int):
     )
 
     return financials, reports
-
-
-def _get_financial_statement(
-    xbrl: XBRL,
-    statement_type: FinancialStatementType
-) -> Statement | None:
-    
-    statements = xbrl.statements
-    get_statement = {
-        FinancialStatementType.income_statement: statements.income_statement,
-        FinancialStatementType.balance_sheet: statements.balance_sheet,
-        FinancialStatementType.cash_flow: statements.cash_flow_statement
-    }[statement_type]
-
-    financial_statement = get_statement()
-    if financial_statement:
-        return financial_statement
-
-    # If the accessor returns None (can happen),
-    # look up the financial statement in another way
-    for statement in xbrl.get_all_statements():
-        if statement.get("type") == statement_type.value:
-            return statements[statement["role"]]
-
-    return None
 
 
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
@@ -432,56 +493,68 @@ def _get_optional_financial_data(xbrl: XBRL, name: str) -> float:
 
 
 def _parse_value(xbrl: XBRL, name: str) -> float | None:
+    # Try to find the value in the income statement, balance sheet, and cash flow
+    value = _find_value(xbrl, name, FinancialStatementType.income_statement)
+
+    if value is None:
+        value = _find_value(xbrl, name, FinancialStatementType.balance_sheet)
+
+    if value is None:
+        value = _find_value(xbrl, name, FinancialStatementType.cash_flow)
+
+    return value
+
+
+def _find_value(
+    xbrl: XBRL,
+    name: str,
+    statement_type: FinancialStatementType
+) -> float | None:
+
     constants = EDGAR_CONSTANTS[name]
     concept_names = constants["concept_names"]
     labels = constants["labels"]
-
-    # Try to find the value in the income statement
-    income_statement = _get_financial_statement(
-        xbrl, FinancialStatementType.income_statement
-    )
-    if not income_statement:
+    
+    financial_statement = _get_financial_statement(xbrl, statement_type)
+    if not financial_statement:
         raise _FinancialStatementNotFoundError(
-            f"Couldn't find income statement when parsing {name}."
+            f"Couldn't find {statement_type.value} when parsing {name}."
         )
     
-    value = _parse_from_financial_statement(income_statement, concept_names, labels)
-    if value is not None:
-        return value
+    value = _parse_from_financial_statement(financial_statement, concept_names, labels)
+    return value
 
-    # Try to find the value in the balance sheet
-    balance_sheet = _get_financial_statement(
-        xbrl, FinancialStatementType.balance_sheet
-    )
-    if not balance_sheet:
-        raise _FinancialStatementNotFoundError(
-            f"Couldn't find balance sheet when parsing {name}."
-        )
 
-    value = _parse_from_financial_statement(balance_sheet, concept_names, labels)
-    if value is not None:
-        return value
+def _get_financial_statement(
+    xbrl: XBRL,
+    statement_type: FinancialStatementType
+) -> Statement | None:
 
-    # Try to find the value in the cash flow
-    cash_flow = _get_financial_statement(
-        xbrl, FinancialStatementType.cash_flow
-    )
-    if not cash_flow:
-        raise _FinancialStatementNotFoundError(
-            f"Couldn't find cash-flow when parsing {name}."
-        )
-    
-    value = _parse_from_financial_statement(cash_flow, concept_names, labels)
-    if value is not None:
-        return value
+    statements = xbrl.statements
+    get_statement = {
+        FinancialStatementType.income_statement: statements.income_statement,
+        FinancialStatementType.balance_sheet: statements.balance_sheet,
+        FinancialStatementType.cash_flow: statements.cash_flow_statement
+    }[statement_type]
+
+    financial_statement = get_statement()
+    if financial_statement:
+        return financial_statement
+
+    # If the accessor returns None (can happen),
+    # look up the financial statement in another way
+    for statement in xbrl.get_all_statements():
+        if statement.get("type") == statement_type.value:
+            return statements[statement["role"]]
 
     return None
 
+
 def _parse_from_financial_statement(
-        financial_statement: Statement,
-        concept_names: list[str],
-        labels: list[str]
-    ) -> float | None:
+    financial_statement: Statement,
+    concept_names: list[str],
+    labels: list[str]
+) -> float | None:
     
     for row in financial_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
