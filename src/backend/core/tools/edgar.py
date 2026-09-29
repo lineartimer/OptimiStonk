@@ -105,6 +105,55 @@ EDGAR_CONSTANTS = {
             "Total assets"
         ]
     },
+    "current_liabilities": {
+        "concept_names": [
+            "us-gaap_LiabilitiesCurrent"
+        ],
+        "labels": [
+            "Total current liabilities",
+            "Current liabilities"
+        ]
+    },
+    "long_term_debt": {
+        # Current maturities are already included in current liabilities.
+        "concept_names": [
+            "us-gaap_LongTermDebtNoncurrent"
+        ],
+        "labels": [
+            "Long-term debt",
+            "Long term debt",
+            "Long-term debt, net",
+            "Long-term debt, noncurrent",
+            "Long-term debt, less current portion",
+            "Long-term debt, net of current portion",
+            "Long-term debt, excluding current maturities",
+            "Long-term borrowings",
+            "Long term borrowings",
+            "Long-term debt and finance lease obligations, less current portion",
+            "Long-term debt and capital lease obligations, less current portion"
+        ]
+    },
+    "shareholders_equity": {
+        "concept_names": [
+            "us-gaap_StockholdersEquity"
+        ],
+        "labels": [
+            "Shareholders' equity",
+            "Stockholders' equity",
+            "Shareholders equity",
+            "Stockholders equity",
+            "Total shareholders' equity",
+            "Total stockholders' equity",
+            "Shareholders' deficit",
+            "Stockholders' deficit",
+            "Total shareholders' deficit",
+            "Total stockholders' deficit",
+            "Shareholders' equity (deficit)",
+            "Stockholders' equity (deficit)",
+            "Total shareholders' equity (deficit)",
+            "Total stockholders' equity (deficit)"
+        ]
+    },
     "share_count": {
         "concept_names": [
             "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
@@ -190,6 +239,9 @@ def _get_financial_data_impl(ticker: str, years: int):
     quarterly_marketable_securities = {}
     quarterly_accounts_receivable = {}
     quarterly_total_assets = {}
+    quarterly_current_liabilities = {}
+    quarterly_long_term_debt = {}
+    quarterly_shareholders_equity = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -241,6 +293,18 @@ def _get_financial_data_impl(ticker: str, years: int):
 
             quarterly_asset_balance = round(
                 _get_optional_financial_data(xbrl, "total_assets") / UNIT
+            )
+
+            quarterly_current_liability_balance = round(
+                _get_optional_financial_data(xbrl, "current_liabilities") / UNIT
+            )
+
+            quarterly_long_term_debt_balance = round(
+                _get_optional_financial_data(xbrl, "long_term_debt") / UNIT
+            )
+
+            quarterly_shareholders_equity_balance = round(
+                _get_optional_financial_data(xbrl, "shareholders_equity") / UNIT
             )
 
             # Of these financial data, only share count is not optional
@@ -350,6 +414,30 @@ def _get_financial_data_impl(ticker: str, years: int):
                 )
                 quarterly_total_assets[key] = missing_total_assets
 
+                missing_current_liabilities = round(
+                    (
+                        list(quarterly_current_liabilities.values())[-1] +
+                        quarterly_current_liability_balance
+                    ) / 2
+                )
+                quarterly_current_liabilities[key] = missing_current_liabilities
+
+                missing_long_term_debt = round(
+                    (
+                        list(quarterly_long_term_debt.values())[-1] +
+                        quarterly_long_term_debt_balance
+                    ) / 2
+                )
+                quarterly_long_term_debt[key] = missing_long_term_debt
+
+                missing_shareholders_equity = round(
+                    (
+                        list(quarterly_shareholders_equity.values())[-1] +
+                        quarterly_shareholders_equity_balance
+                    ) / 2
+                )
+                quarterly_shareholders_equity[key] = missing_shareholders_equity
+
                 missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
@@ -377,6 +465,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_marketable_securities[key] = quarterly_marketable_securities_balance
         quarterly_accounts_receivable[key] = quarterly_receivables_balance
         quarterly_total_assets[key] = quarterly_asset_balance
+        quarterly_current_liabilities[key] = quarterly_current_liability_balance
+        quarterly_long_term_debt[key] = quarterly_long_term_debt_balance
+        quarterly_shareholders_equity[key] = quarterly_shareholders_equity_balance
         quarterly_share_counts[key] = quarterly_share_count
         quarterly_investments[key] = quarterly_investment
 
@@ -391,6 +482,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_marketable_securities.popitem()
         quarterly_accounts_receivable.popitem()
         quarterly_total_assets.popitem()
+        quarterly_current_liabilities.popitem()
+        quarterly_long_term_debt.popitem()
+        quarterly_shareholders_equity.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
@@ -412,6 +506,9 @@ def _get_financial_data_impl(ticker: str, years: int):
         "marketable_securities": _clean_result(quarterly_marketable_securities),
         "accounts_receivable": _clean_result(quarterly_accounts_receivable),
         "total_assets": _clean_result(quarterly_total_assets),
+        "current_liabilities": _clean_result(quarterly_current_liabilities),
+        "long_term_debt": _clean_result(quarterly_long_term_debt),
+        "shareholders_equity": _clean_result(quarterly_shareholders_equity),
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }

@@ -81,6 +81,9 @@ class FinancialDataModel(BaseModel):
     marketable_securities: Mapped[int | None] = mapped_column(nullable=True)
     accounts_receivable: Mapped[int | None] = mapped_column(nullable=True)
     total_assets: Mapped[int | None] = mapped_column(nullable=True)
+    current_liabilities: Mapped[int | None] = mapped_column(nullable=True)
+    long_term_debt: Mapped[int | None] = mapped_column(nullable=True)
+    shareholders_equity: Mapped[int | None] = mapped_column(nullable=True)
     investment_cash_flow: Mapped[int]
     share_count: Mapped[int]
 

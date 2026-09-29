@@ -63,6 +63,15 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     financials["total_assets"] = {
         k: financials["total_assets"][k] for k in common_keys
     }
+    financials["current_liabilities"] = {
+        k: financials["current_liabilities"][k] for k in common_keys
+    }
+    financials["long_term_debt"] = {
+        k: financials["long_term_debt"][k] for k in common_keys
+    }
+    financials["shareholders_equity"] = {
+        k: financials["shareholders_equity"][k] for k in common_keys
+    }
     financials["share_count"] = {
         k: financials["share_count"][k] for k in common_keys
     }
@@ -93,6 +102,15 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
     financials["total_assets"] = dict(
         sorted(financials["total_assets"].items())
+    )
+    financials["current_liabilities"] = dict(
+        sorted(financials["current_liabilities"].items())
+    )
+    financials["long_term_debt"] = dict(
+        sorted(financials["long_term_debt"].items())
+    )
+    financials["shareholders_equity"] = dict(
+        sorted(financials["shareholders_equity"].items())
     )
     financials["share_count"] = dict(
         sorted(financials["share_count"].items())
@@ -156,6 +174,9 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         "marketable_securities": financials["marketable_securities"],
         "accounts_receivable": financials["accounts_receivable"],
         "total_assets": financials["total_assets"],
+        "current_liabilities": financials["current_liabilities"],
+        "long_term_debt": financials["long_term_debt"],
+        "shareholders_equity": financials["shareholders_equity"],
         "investment_cash_flow": financials["investment_cash_flow"],
         "share_count": financials["share_count"],
         "backlog": backlog,

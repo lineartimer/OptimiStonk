@@ -18,6 +18,9 @@ class Stock:
                  marketable_securities: dict,
                  accounts_receivable: dict,
                  total_assets: dict,
+                 current_liabilities: dict,
+                 long_term_debt: dict,
+                 shareholders_equity: dict,
                  investment_cash_flow: dict,
                  share_count: dict,
                  backlog: int,
@@ -31,6 +34,9 @@ class Stock:
             len(marketable_securities) < 2 or
             len(accounts_receivable) < 2 or
             len(total_assets) < 2 or
+            len(current_liabilities) < 2 or
+            len(long_term_debt) < 2 or
+            len(shareholders_equity) < 2 or
             len(investment_cash_flow) < 2 or
             len(share_count) < 2 or
             len(historical_prices) < 2
@@ -53,6 +59,9 @@ class Stock:
                 "marketable_securities": marketable_securities[quarter],
                 "accounts_receivable": accounts_receivable[quarter],
                 "total_assets": total_assets[quarter],
+                "current_liabilities": current_liabilities[quarter],
+                "long_term_debt": long_term_debt[quarter],
+                "shareholders_equity": shareholders_equity[quarter],
                 "investment_cash_flow": investment_cash_flow[quarter],
                 "share_count": share_count[quarter]
             }
@@ -83,6 +92,15 @@ class Stock:
 
     def get_total_assets(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("total_assets")
+
+    def get_current_liabilities(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("current_liabilities")
+
+    def get_long_term_debt(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("long_term_debt")
+
+    def get_shareholders_equity(self, quarter: str) -> int | None:
+        return self._historical_data.get(quarter, {}).get("shareholders_equity")
 
     def get_investment_cash_flow(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("investment_cash_flow")
@@ -188,6 +206,9 @@ class Stock:
                     "marketable_securities": data["marketable_securities"],
                     "accounts_receivable": data["accounts_receivable"],
                     "total_assets": data["total_assets"],
+                    "current_liabilities": data["current_liabilities"],
+                    "long_term_debt": data["long_term_debt"],
+                    "shareholders_equity": data["shareholders_equity"],
                     "investment_cash_flow": data["investment_cash_flow"],
                     "share_count": data["share_count"]
                 } for quarter, data in self._historical_data.items()
