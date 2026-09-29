@@ -75,9 +75,11 @@ class Stock:
         self.backlog = backlog
         self.summary = summary
 
+    # Price
     def get_price(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("price")
 
+    # Income statement
     def get_revenue(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("revenue")
 
@@ -93,6 +95,7 @@ class Stock:
     def get_eps(self, quarter: str) -> float | None:
         return self._historical_data.get(quarter, {}).get("eps")
 
+    # Balance sheet
     def get_cash_and_equivalents(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("cash_and_equivalents")
 
@@ -114,44 +117,96 @@ class Stock:
     def get_shareholders_equity(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("shareholders_equity")
 
+    # Cash flow
     def get_investment_cash_flow(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("investment_cash_flow")
 
+    # Share count
     def get_share_count(self, quarter: str) -> int | None:
         return self._historical_data.get(quarter, {}).get("share_count")
 
-    def get_average_revenue(self) -> float:
-        return self._get_average_value("revenue")
+    # Averages of financial data
+    def get_average_revenue(self, years: int = 5) -> float:
+        return self._get_average_value("revenue", years)
 
-    def get_average_r_and_d_expense(self) -> float:
-        return self._get_average_value("r_and_d_expense")
+    def get_average_r_and_d_expense(self, years: int = 5) -> float:
+        return self._get_average_value("r_and_d_expense", years)
 
-    def get_average_operating_income(self) -> float:
-        return self._get_average_value("operating_income")
+    def get_average_operating_income(self, years: int = 5) -> float:
+        return self._get_average_value("operating_income", years)
 
-    def rank_market(self) -> float:
-        revenue_growth_per_year = self.revenue_growth_per_year()
-        price_to_revenue_ratio = self.price_to_revenue_ratio()
+    def get_average_eps(self, years: int = 5) -> float:
+        return self._get_average_value("eps", years)
 
-        if not revenue_growth_per_year or not price_to_revenue_ratio:
-            return None
+    # Ratios
+    def quick_ratio(self) -> float:
+        last_quarter = self._get_last_quarter()
 
-        return round(revenue_growth_per_year / price_to_revenue_ratio, 4)
+        current_liabilities = self.get_current_liabilities(last_quarter)
+        if current_liabilities == 0:
+            return float("inf")
 
-    def rank_backlog(self) -> float:
-        revenue_growth_per_year = self.revenue_growth_per_year()
-        price_to_backlog_ratio = self.price_to_backlog_ratio()
+        return round((
+            self.get_cash_and_equivalents(last_quarter) +
+            self.get_marketable_securities(last_quarter) +
+            self.get_accounts_receivable(last_quarter)
+        ) / current_liabilities, 2)
 
-        # Can handle negative growth and infinite price-to-backlog ratio
-        return round((1 + revenue_growth_per_year) / price_to_backlog_ratio, 4)
+    def leverage(self) -> float:
+        last_quarter = self._get_last_quarter()
+
+        shareholders_equity = self.get_shareholders_equity(last_quarter)
+        if shareholders_equity == 0:
+            return float("inf")
+
+        return round(
+            self.get_total_assets(last_quarter) / shareholders_equity,
+            2
+        )
+
+    def asset_turnover(self) -> float:
+        last_quarter = self._get_last_quarter()
+
+        total_assets = self.get_total_assets(last_quarter)
+        if total_assets == 0:
+            return float("inf")
+
+        return round(
+            self.get_average_revenue() / total_assets,
+            2
+        )
+
+    def operating_margin(self) -> float:
+        average_revenue = self.get_average_revenue()
+        if average_revenue == 0:
+            return 0.0
+
+        return round(
+            self.get_average_operating_income() / average_revenue,
+            2
+        )
+
+    def r_and_d_to_revenue(self) -> float:
+        average_revenue = self.get_average_revenue()
+        if average_revenue == 0:
+            return 0.0
+
+        return round(
+            self.get_average_r_and_d_expense() / average_revenue,
+            2
+        )
+
+    def price_to_earnings_ratio(self) -> float:
+        average_eps = self.get_average_eps()
+        if average_eps == 0:
+            return float("inf")
+
+        return round(self.last_price / average_eps, 2)
 
     def price_to_revenue_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
+
         revenue = self.get_revenue(last_quarter)
-
-        if not last_quarter:
-            return None
-
         if revenue == 0:
             return float("inf")
         
@@ -162,9 +217,6 @@ class Stock:
 
     def price_to_backlog_ratio(self) -> float:
         last_quarter = self._get_last_quarter()
-        if not last_quarter:
-            return None
-        
         if self.backlog == 0:
             return float("inf")
         
@@ -197,17 +249,47 @@ class Stock:
 
         return round(float(annual_growth), 4)
 
+    def financial_strength(self):
+        return (
+            0.001 *
+            self.quick_ratio() / # Cash is good
+            self.leverage() * # Debt is bad
+            self.asset_turnover() * # Ability to turn assets to revenue is good
+            self.operating_margin() * # A high margin is good
+            self.get_average_revenue() # The bigger the company, the more resilient
+        )
+
+    # Ranks
+    def rank_market(self) -> float:
+        return (
+            1_000_000_000 *
+            self.revenue_growth_per_year() * # A growing top line is good
+            (0.01 + self.r_and_d_to_revenue()) * # R&D is good
+            self.financial_strength() ** 2  / # Financial strength is even better
+            self.price_to_earnings_ratio() ** 4 # A low valuation is the best
+        )
+
+    def rank_backlog(self) -> float:
+        revenue_growth_per_year = self.revenue_growth_per_year()
+        price_to_backlog_ratio = self.price_to_backlog_ratio()
+
+        # Can handle negative growth and infinite price-to-backlog ratio
+        return round((1 + revenue_growth_per_year) / price_to_backlog_ratio, 4)
+
     def to_json(self) -> dict:
-        price_to_revenue = self.price_to_revenue_ratio()
-        price_to_backlog = self.price_to_backlog_ratio()
+        price_to_earnings_ratio = self.price_to_earnings_ratio()
+        revenue_growth_per_year = self.revenue_growth_per_year()
+        quick_ratio = self.quick_ratio()
+        leverage = self.leverage()
+        asset_turnover = self.asset_turnover()
         
         return {
             "name": self.name,
             "ticker": self.ticker,
             "last_price": self.last_price,
             "summary": self.summary,
-            "rank_market": self.rank_market(),
-            "rank_backlog": self.rank_backlog(),
+            "rank_market": self._normalize_for_json(self.rank_market()),
+            "rank_backlog": self._normalize_for_json(self.rank_backlog()),
             "backlog": self.backlog,
             "financial_data": {
                 quarter: {
@@ -230,20 +312,28 @@ class Stock:
             "historical_prices": {
                 quarter: data["price"] for quarter, data in self._historical_data.items()
             },
-            "metrics": {
-                "price_to_revenue_ratio": self._normalize_for_json(price_to_revenue),
-                "price_to_backlog_ratio": self._normalize_for_json(price_to_backlog),
-                "revenue_growth_per_year": self.revenue_growth_per_year()
+            "ratios": {
+                "price_to_earnings_ratio": self._normalize_for_json(price_to_earnings_ratio),
+                "revenue_growth_per_year": self._normalize_for_json(revenue_growth_per_year),
+                "quick_ratio": self._normalize_for_json(quick_ratio),
+                "leverage": self._normalize_for_json(leverage),
+                "asset_turnover": self._normalize_for_json(asset_turnover),
+                "operating_margin": self._normalize_for_json(self.operating_margin()),
+                "r_and_d_to_revenue": self._normalize_for_json(self.r_and_d_to_revenue())
             }
         }
 
     def _get_last_quarter(self) -> str:
         return list(self._historical_data)[-1] if self._historical_data else None
     
-    def _get_average_value(self, key: str) -> float:
+    def _get_average_value(self, key: str, years: int) -> float:
+        quarters = sorted(self._historical_data)
+        if years is not None:
+            quarters = quarters[-4 * years:]
+
         return sum(
-            data[key] for data in self._historical_data.values()
-        ) / len(self._historical_data)
+            self._historical_data[quarter][key] for quarter in quarters
+        ) / len(quarters)
 
     def _normalize_for_json(self, input: float | None) -> float | str | None:
         if input is None:

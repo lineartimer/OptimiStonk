@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import StockHistoryChart from "./stock-history-chart.js";
 import TickerSelect from "./ticker-select.js";
@@ -18,6 +18,16 @@ const tabs = [
   { id: "stock-details", label: "Stock details" }
 ];
 
+const ratioFields = [
+  { key: "price_to_earnings_ratio", label: "Price-to-earnings ratio" },
+  { key: "revenue_growth_per_year", label: "Annual revenue growth", percentage: true },
+  { key: "quick_ratio", label: "Quick ratio" },
+  { key: "leverage", label: "Leverage" },
+  { key: "asset_turnover", label: "Asset turnover" },
+  { key: "operating_margin", label: "Operating margin", percentage: true },
+  { key: "r_and_d_to_revenue", label: "R&D / revenue", percentage: true }
+];
+
 const metricNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2
 });
@@ -27,10 +37,35 @@ const ratioNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2
 });
 
-function formatRatio(value) {
-  if (value === "inf") return "∞";
-  if (value === "-inf") return "−∞";
-  return Number.isFinite(value) ? `${ratioNumber.format(value)}` : "—";
+const percentageNumber = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 2
+});
+
+const rankNumber = new Intl.NumberFormat("en-US", {
+  maximumSignificantDigits: 5
+});
+
+function numericValue(value) {
+  if (value === "inf") return Infinity;
+  if (value === "-inf") return -Infinity;
+  return typeof value === "number" && !Number.isNaN(value) ? value : null;
+}
+
+function formatRatio(value, percentage = false) {
+  const number = numericValue(value);
+  if (number === null) return "—";
+  return (percentage ? percentageNumber : ratioNumber).format(number);
+}
+
+function formatRank(value) {
+  const number = numericValue(value);
+  if (number === null) return "—";
+  const magnitude = Math.abs(number);
+  if (Number.isFinite(number) && magnitude !== 0 && (magnitude < 0.0001 || magnitude >= 1_000_000)) {
+    return number.toExponential(4);
+  }
+  return rankNumber.format(number);
 }
 
 function compareTickers(a, b) {
@@ -192,8 +227,8 @@ export default function Home() {
     return [...companies].sort((a, b) => {
       if (sort.key === "ticker") return direction * compareTickers(a, b);
 
-      const aValue = a[sort.key];
-      const bValue = b[sort.key];
+      const aValue = numericValue(a[sort.key]);
+      const bValue = numericValue(b[sort.key]);
 
       if (aValue == null && bValue == null) return compareTickers(a, b);
       
@@ -378,8 +413,8 @@ export default function Home() {
                       {item.ticker}
                     </button>
                   </td>
-                  <td>{item.rank_backlog ?? "—"}</td>
-                  <td>{item.rank_market ?? "—"}</td>
+                  <td>{formatRank(item.rank_backlog)}</td>
+                  <td>{formatRank(item.rank_market)}</td>
                 </tr>
               ))}
             </tbody>
@@ -510,10 +545,12 @@ export default function Home() {
                           ? `$${metricNumber.format(company.backlog)} million`
                           : "—"}
                       </dd>
-                      <dt>Price-to-revenue ratio:</dt>
-                      <dd>{formatRatio(company.metrics?.price_to_revenue_ratio)}</dd>
-                      <dt>Price-to-backlog ratio:</dt>
-                      <dd>{formatRatio(company.metrics?.price_to_backlog_ratio)}</dd>
+                      {ratioFields.map(({ key, label, percentage }) => (
+                        <Fragment key={key}>
+                          <dt>{label}:</dt>
+                          <dd>{formatRatio(company.ratios?.[key], percentage)}</dd>
+                        </Fragment>
+                      ))}
                     </dl>
                   </section>
                 </div>
