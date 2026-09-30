@@ -258,8 +258,8 @@ class Stock:
             self.get_average_revenue() # The bigger the company, the more resilient
         )
 
-    # Ranks
-    def rank_market(self) -> float:
+    # Rank
+    def rank(self) -> float:
         return (
             1_000_000_000 *
             self.revenue_growth_per_year() * # A growing top line is good
@@ -267,13 +267,6 @@ class Stock:
             self.financial_strength() ** 2  / # Financial strength is even better
             self.price_to_earnings_ratio() ** 4 # A low valuation is the best
         )
-
-    def rank_backlog(self) -> float:
-        revenue_growth_per_year = self.revenue_growth_per_year()
-        price_to_backlog_ratio = self.price_to_backlog_ratio()
-
-        # Can handle negative growth and infinite price-to-backlog ratio
-        return round((1 + revenue_growth_per_year) / price_to_backlog_ratio, 4)
 
     def to_json(self) -> dict:
         price_to_earnings_ratio = self.price_to_earnings_ratio()
@@ -287,8 +280,7 @@ class Stock:
             "ticker": self.ticker,
             "last_price": self.last_price,
             "summary": self.summary,
-            "rank_market": self._normalize_for_json(self.rank_market()),
-            "rank_backlog": self._normalize_for_json(self.rank_backlog()),
+            "rank": self._normalize_for_json(self.rank()),
             "backlog": self.backlog,
             "financial_data": {
                 quarter: {

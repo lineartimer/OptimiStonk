@@ -9,8 +9,7 @@ import styles from "./page.module.css";
 
 const stockColumns = [
   { key: "ticker", label: "Ticker" },
-  { key: "rank_backlog", label: "Rank Backlog" },
-  { key: "rank_market", label: "Rank Market" }
+  { key: "rank", label: "Rank" }
 ];
 
 const tabs = [
@@ -413,8 +412,7 @@ export default function Home() {
                       {item.ticker}
                     </button>
                   </td>
-                  <td>{formatRank(item.rank_backlog)}</td>
-                  <td>{formatRank(item.rank_market)}</td>
+                  <td>{formatRank(item.rank)}</td>
                 </tr>
               ))}
             </tbody>
