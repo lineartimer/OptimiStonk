@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Response
 import structlog
 
 from backend.api.helpers.streamer import stream, stream_result
-from backend.core.financials import collect_stock_data
+from backend.core.financials import CompanyLossesError, NotEnoughDataError, collect_stock_data
 from backend.core.stock import StockError
 from backend.core.tools.edgar import (
     EdgarParseError,
@@ -59,7 +59,9 @@ async def get_stock_impl(ticker: str | None = None):
 
         elif (isinstance(e, YahooFinanceParseError) or
               isinstance(e, EdgarParseError) or
-              isinstance(e, StockError)):
+              isinstance(e, StockError) or
+              isinstance(e, NotEnoughDataError) or
+              isinstance(e, CompanyLossesError)):
             status_code = 422
             detail = str(e)
 

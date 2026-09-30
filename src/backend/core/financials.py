@@ -15,6 +15,14 @@ from backend.database.database import save_stock
 SEARCH_QUERY = "How big is {company_name}'s backlog?"
 
 
+class NotEnoughDataError(Exception):
+    pass
+
+
+class CompanyLossesError(Exception):
+    pass
+
+
 async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     ticker = ticker.strip().upper()
 
@@ -131,6 +139,40 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         sorted(financials["investment_cash_flow"].items())
     )
 
+    # Early stopping
+    min_quarters = 4 * years
+    if (len(financials["revenue"]) < min_quarters or
+        len(price_history) < min_quarters):
+        raise NotEnoughDataError(f"Less than {years} years of data found.")
+
+    financial_data = {
+        "name": name,
+        "ticker": ticker,
+        "last_price": last_price,
+        "revenue": financials["revenue"],
+        "r_and_d_expense": financials["r_and_d_expense"],
+        "operating_income": financials["operating_income"],
+        "net_income": financials["net_income"],
+        "eps": financials["eps"],
+        "cash_and_equivalents": financials["cash_and_equivalents"],
+        "marketable_securities": financials["marketable_securities"],
+        "accounts_receivable": financials["accounts_receivable"],
+        "total_assets": financials["total_assets"],
+        "current_liabilities": financials["current_liabilities"],
+        "long_term_debt": financials["long_term_debt"],
+        "shareholders_equity": financials["shareholders_equity"],
+        "investment_cash_flow": financials["investment_cash_flow"],
+        "share_count": financials["share_count"],
+        "backlog": None,
+        "summary": None,
+        "historical_prices": price_history
+    }
+
+    stock = Stock(**financial_data)
+
+    if stock.price_to_earnings_ratio() < 0:
+        raise CompanyLossesError("Company generates losses.")
+
     # Find out how big the backlog is
     prompt_backlog = {
         "company": name,
@@ -158,7 +200,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
 
     backlog_finder = BacklogFinder()
-    backlog = await backlog_finder.run(name, prompt_backlog)
+    financial_data["backlog"] = await backlog_finder.run(name, prompt_backlog)
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -173,32 +215,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
 
     summarizer = Summarizer()
-    summary = await summarizer.run(name, prompt_summarizer)
+    financial_data["summary"] = await summarizer.run(name, prompt_summarizer)
 
-    financial_data = {
-        "name": name,
-        "ticker": ticker,
-        "last_price": last_price,
-        "revenue": financials["revenue"],
-        "r_and_d_expense": financials["r_and_d_expense"],
-        "operating_income": financials["operating_income"],
-        "net_income": financials["net_income"],
-        "eps": financials["eps"],
-        "cash_and_equivalents": financials["cash_and_equivalents"],
-        "marketable_securities": financials["marketable_securities"],
-        "accounts_receivable": financials["accounts_receivable"],
-        "total_assets": financials["total_assets"],
-        "current_liabilities": financials["current_liabilities"],
-        "long_term_debt": financials["long_term_debt"],
-        "shareholders_equity": financials["shareholders_equity"],
-        "investment_cash_flow": financials["investment_cash_flow"],
-        "share_count": financials["share_count"],
-        "backlog": backlog,
-        "summary": summary,
-        "historical_prices": price_history
-    }
-
-    stock = Stock(**financial_data)
     save_stock(stock, reports)
     stream_message("Saved stock to database.", MessageType.info)
 

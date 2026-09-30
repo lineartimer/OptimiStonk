@@ -47,86 +47,50 @@ EDGAR_CONSTANTS = {
             "us-gaap_OperatingIncomeLoss"
         ],
         "labels": [
-            "Operating income",
-            "Operating loss",
-            "Operating income (loss)",
-            "Operating (loss) income",
-            "Income from operations",
-            "Loss from operations",
-            "Income (loss) from operations",
-            "Loss (income) from operations"
+            "Income (loss) from operations"
         ]
     },
     "net_income": {
         "concept_names": [
-            "us-gaap_NetIncomeLoss",
-            "us-gaap_ProfitLoss"
+            "us-gaap_NetIncomeLoss"
         ],
         "labels": [
-            "Net income",
-            "Net loss",
-            "Net income (loss)",
-            "Net (loss) income",
-            "Net earnings",
-            "Net earnings (loss)"
+            "Net income attributable to common stockholders",
+            "Net income (loss) attributable to common stockholders",
+            "Net (loss) income attributable to common stockholders",
+            "Net loss attributable to common stockholders"
         ]
     },
     "eps": {
         "concept_names": [
-            "us-gaap_EarningsPerShareDiluted",
-            "us-gaap_EarningsPerShareBasicAndDiluted"
+            "us-gaap_EarningsPerShareDiluted"
         ],
         "labels": [
-            "Diluted earnings per share",
-            "Diluted loss per share",
-            "Diluted earnings (loss) per share",
-            "Earnings per share, diluted",
-            "Earnings (loss) per share, diluted",
-            "Net income per diluted share",
-            "Net income (loss) per diluted share",
-            "Basic and diluted earnings per share",
-            "Basic and diluted loss per share",
-            "Basic and diluted earnings (loss) per share"
+            "Diluted (in dollars per share)"
         ]
     },
     "cash_and_equivalents": {
         "concept_names": [
-            "us-gaap_CashAndCashEquivalentsAtCarryingValue"
+            "us-gaap_Cash"
         ],
         "labels": [
-            "Cash and cash equivalents",
-            "Cash and equivalents",
-            "Cash & cash equivalents"
+            "Cash"
         ]
     },
     "marketable_securities": {
         "concept_names": [
-            "us-gaap_MarketableSecuritiesCurrent",
-            "us-gaap_ShortTermInvestments",
-            "us-gaap_AvailableForSaleSecuritiesCurrent",
-            "us-gaap_MarketableSecurities"
+            ""
         ],
         "labels": [
-            "Marketable securities",
-            "Marketable securities, current",
-            "Short-term marketable securities",
-            "Short term marketable securities",
-            "Short-term investments",
-            "Short term investments"
+            ""
         ]
     },
     "accounts_receivable": {
         "concept_names": [
-            "us-gaap_AccountsReceivableNetCurrent",
-            "us-gaap_AccountsReceivableNet"
+            "us-gaap_AccountsReceivableNetCurrent"
         ],
         "labels": [
-            "Accounts receivable",
-            "Accounts receivable, net",
-            "Accounts receivable net",
-            "Net accounts receivable",
-            "Trade receivables",
-            "Trade receivables, net"
+            "Accounts receivable"
         ]
     },
     "total_assets": {
@@ -142,26 +106,21 @@ EDGAR_CONSTANTS = {
             "us-gaap_LiabilitiesCurrent"
         ],
         "labels": [
-            "Total current liabilities",
-            "Current liabilities"
+            "Total current liabilities"
         ]
     },
     "long_term_debt": {
         "concept_names": [
-            "us-gaap_LongTermDebtNoncurrent"
+            "us-gaap_FinanceLeaseLiabilityNoncurrent",
+            "us-gaap_ConvertibleDebtNoncurrent",
+            "us-gaap_LongTermLineOfCredit",
+            "run_NonRecourseDebtNoncurrent"
         ],
         "labels": [
-            "Long-term debt",
-            "Long term debt",
-            "Long-term debt, net",
-            "Long-term debt, noncurrent",
-            "Long-term debt, less current portion",
-            "Long-term debt, net of current portion",
-            "Long-term debt, excluding current maturities",
-            "Long-term borrowings",
-            "Long term borrowings",
-            "Long-term debt and finance lease obligations, less current portion",
-            "Long-term debt and capital lease obligations, less current portion"
+            "Finance lease obligations, net of current portion",
+            "Convertible senior notes",
+            "Line of credit",
+            "Non-recourse debt, net of current portion"
         ]
     },
     "shareholders_equity": {
@@ -169,20 +128,7 @@ EDGAR_CONSTANTS = {
             "us-gaap_StockholdersEquity"
         ],
         "labels": [
-            "Shareholders' equity",
-            "Stockholders' equity",
-            "Shareholders equity",
-            "Stockholders equity",
-            "Total shareholders' equity",
-            "Total stockholders' equity",
-            "Shareholders' deficit",
-            "Stockholders' deficit",
-            "Total shareholders' deficit",
-            "Total stockholders' deficit",
-            "Shareholders' equity (deficit)",
-            "Stockholders' equity (deficit)",
-            "Total shareholders' equity (deficit)",
-            "Total stockholders' equity (deficit)"
+            "Total stockholders’ equity"
         ]
     },
     "share_count": {
@@ -191,6 +137,7 @@ EDGAR_CONSTANTS = {
             "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
         ],
         "labels": [
+            "Diluted",
             "Diluted (in shares)",
             "Basic and Diluted",
             "Weighted average common shares outstanding, basic and diluted (in shares)"
@@ -273,8 +220,8 @@ def _get_financial_data_impl(ticker: str, years: int):
     quarterly_accounts_receivable = {}
     quarterly_total_assets = {}
     quarterly_current_liabilities = {}
-    quarterly_long_term_debt = {}
-    quarterly_shareholders_equity = {}
+    quarterly_long_term_debts = {}
+    quarterly_shareholders_equities = {}
     quarterly_share_counts = {}
     quarterly_investments = {}
 
@@ -292,68 +239,67 @@ def _get_financial_data_impl(ticker: str, years: int):
             if year < datetime.now().year - years:
                 break
 
-            quarterly_revenue = round(
+            revenue = round(
                 _get_optional_financial_data(xbrl, "revenue") / UNIT
             )
 
             # In some rare, esoteric cases, revenue can be negative
-            if quarterly_revenue < 0:
+            if revenue < 0:
                 _logger.warning("Negative revenue found.",
                     ticker=ticker,
                     quarter=f"{year}/{quarter}"
                 )
                 break
 
-            quarterly_r_and_d_expense = round(
+            r_and_d_expense = round(
                 _get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT
             )
 
-            quarterly_operating_income = round(
+            operating_income = round(
                 _get_optional_financial_data(xbrl, "operating_income") / UNIT
             )
 
-            quarterly_net_income = round(
-                _get_optional_financial_data(xbrl, "net_income") / UNIT
+            net_income = round(
+                _get_financial_data(xbrl, "net_income") / UNIT
             )
 
             # EPS is dollars per share, adjusted inversely to the share count.
-            eps = _get_optional_financial_data(xbrl, "eps") / split
+            eps = _get_financial_data(xbrl, "eps") / split
 
-            quarterly_cash_balance = round(
-                _get_optional_financial_data(xbrl, "cash_and_equivalents") / UNIT
+            cash_and_equivalents = round(
+                _get_financial_data(xbrl, "cash_and_equivalents") / UNIT
             )
 
-            quarterly_marketable_securities_balance = round(
+            marketable_securities = round(
                 _get_optional_financial_data(xbrl, "marketable_securities") / UNIT
             )
 
-            quarterly_receivables_balance = round(
+            accounts_receivable = round(
                 _get_optional_financial_data(xbrl, "accounts_receivable") / UNIT
             )
 
-            quarterly_asset_balance = round(
-                _get_optional_financial_data(xbrl, "total_assets") / UNIT
+            total_assets = round(
+                _get_financial_data(xbrl, "total_assets") / UNIT
             )
 
-            quarterly_current_liability_balance = round(
-                _get_optional_financial_data(xbrl, "current_liabilities") / UNIT
+            current_liabilities = round(
+                _get_financial_data(xbrl, "current_liabilities") / UNIT
             )
 
-            quarterly_long_term_debt_balance = round(
+            long_term_debt = round(
                 _get_optional_financial_data(xbrl, "long_term_debt") / UNIT
             )
 
-            quarterly_shareholders_equity_balance = round(
-                _get_optional_financial_data(xbrl, "shareholders_equity") / UNIT
+            shareholders_equity = round(
+                _get_financial_data(xbrl, "shareholders_equity") / UNIT
             )
 
-            # Of these financial data, only share count is not optional
-            quarterly_share_count = round(
-                split * _get_financial_data(xbrl, "share_count") / UNIT
-            )
-
-            quarterly_investment = round(
+            investment_cash_flow = round(
                 _get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT
+            )
+
+            share_count = round(
+                split * _get_financial_data(xbrl, "share_count") / UNIT
             )
 
         except (LookupError, KeyError) as e:
@@ -401,7 +347,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_revenue = round(
                     (
                         list(quarterly_revenues.values())[-1] +
-                        quarterly_revenue
+                        revenue
                     ) / 2
                 )
                 quarterly_revenues[key] = missing_revenue
@@ -409,7 +355,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_r_and_d_expense = round(
                     (
                         list(quarterly_r_and_d_expenses.values())[-1] +
-                        quarterly_r_and_d_expense
+                        r_and_d_expense
                     ) / 2
                 )
                 quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
@@ -417,7 +363,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_operating_income = round(
                     (
                         list(quarterly_operating_incomes.values())[-1] +
-                        quarterly_operating_income
+                        operating_income
                     ) / 2
                 )
                 quarterly_operating_incomes[key] = missing_operating_income
@@ -425,7 +371,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_net_income = round(
                     (
                         list(quarterly_net_incomes.values())[-1] +
-                        quarterly_net_income
+                        net_income
                     ) / 2
                 )
                 quarterly_net_incomes[key] = missing_net_income
@@ -438,7 +384,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_cash_and_equivalents = round(
                     (
                         list(quarterly_cash_and_equivalents.values())[-1] +
-                        quarterly_cash_balance
+                        cash_and_equivalents
                     ) / 2
                 )
                 quarterly_cash_and_equivalents[key] = missing_cash_and_equivalents
@@ -446,7 +392,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_marketable_securities = round(
                     (
                         list(quarterly_marketable_securities.values())[-1] +
-                        quarterly_marketable_securities_balance
+                        marketable_securities
                     ) / 2
                 )
                 quarterly_marketable_securities[key] = missing_marketable_securities
@@ -454,7 +400,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_accounts_receivable = round(
                     (
                         list(quarterly_accounts_receivable.values())[-1] +
-                        quarterly_receivables_balance
+                        accounts_receivable
                     ) / 2
                 )
                 quarterly_accounts_receivable[key] = missing_accounts_receivable
@@ -462,7 +408,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_total_assets = round(
                     (
                         list(quarterly_total_assets.values())[-1] +
-                        quarterly_asset_balance
+                        total_assets
                     ) / 2
                 )
                 quarterly_total_assets[key] = missing_total_assets
@@ -470,31 +416,31 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_current_liabilities = round(
                     (
                         list(quarterly_current_liabilities.values())[-1] +
-                        quarterly_current_liability_balance
+                        current_liabilities
                     ) / 2
                 )
                 quarterly_current_liabilities[key] = missing_current_liabilities
 
                 missing_long_term_debt = round(
                     (
-                        list(quarterly_long_term_debt.values())[-1] +
-                        quarterly_long_term_debt_balance
+                        list(quarterly_long_term_debts.values())[-1] +
+                        long_term_debt
                     ) / 2
                 )
-                quarterly_long_term_debt[key] = missing_long_term_debt
+                quarterly_long_term_debts[key] = missing_long_term_debt
 
                 missing_shareholders_equity = round(
                     (
-                        list(quarterly_shareholders_equity.values())[-1] +
-                        quarterly_shareholders_equity_balance
+                        list(quarterly_shareholders_equities.values())[-1] +
+                        shareholders_equity
                     ) / 2
                 )
-                quarterly_shareholders_equity[key] = missing_shareholders_equity
+                quarterly_shareholders_equities[key] = missing_shareholders_equity
 
                 missing_share_count = round(
                     (
                         list(quarterly_share_counts.values())[-1] +
-                        quarterly_share_count
+                        share_count
                     ) / 2
                 )
                 quarterly_share_counts[key] = missing_share_count
@@ -502,7 +448,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 missing_investment = round(
                     (
                         list(quarterly_investments.values())[-1] +
-                        quarterly_investment
+                        investment_cash_flow
                     ) / 2
                 )
                 quarterly_investments[key] = missing_investment
@@ -511,20 +457,20 @@ def _get_financial_data_impl(ticker: str, years: int):
 
         key = f"{year}/{quarter}"
 
-        quarterly_revenues[key] = quarterly_revenue
-        quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
-        quarterly_operating_incomes[key] = quarterly_operating_income
-        quarterly_net_incomes[key] = quarterly_net_income
+        quarterly_revenues[key] = revenue
+        quarterly_r_and_d_expenses[key] = r_and_d_expense
+        quarterly_operating_incomes[key] = operating_income
+        quarterly_net_incomes[key] = net_income
         quarterly_eps[key] = eps
-        quarterly_cash_and_equivalents[key] = quarterly_cash_balance
-        quarterly_marketable_securities[key] = quarterly_marketable_securities_balance
-        quarterly_accounts_receivable[key] = quarterly_receivables_balance
-        quarterly_total_assets[key] = quarterly_asset_balance
-        quarterly_current_liabilities[key] = quarterly_current_liability_balance
-        quarterly_long_term_debt[key] = quarterly_long_term_debt_balance
-        quarterly_shareholders_equity[key] = quarterly_shareholders_equity_balance
-        quarterly_share_counts[key] = quarterly_share_count
-        quarterly_investments[key] = quarterly_investment
+        quarterly_cash_and_equivalents[key] = cash_and_equivalents
+        quarterly_marketable_securities[key] = marketable_securities
+        quarterly_accounts_receivable[key] = accounts_receivable
+        quarterly_total_assets[key] = total_assets
+        quarterly_current_liabilities[key] = current_liabilities
+        quarterly_long_term_debts[key] = long_term_debt
+        quarterly_shareholders_equities[key] = shareholders_equity
+        quarterly_share_counts[key] = share_count
+        quarterly_investments[key] = investment_cash_flow
 
         stream_message(".", new_line=False)
         previous_quarter = quarter
@@ -540,8 +486,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         quarterly_accounts_receivable.popitem()
         quarterly_total_assets.popitem()
         quarterly_current_liabilities.popitem()
-        quarterly_long_term_debt.popitem()
-        quarterly_shareholders_equity.popitem()
+        quarterly_long_term_debts.popitem()
+        quarterly_shareholders_equities.popitem()
         quarterly_share_counts.popitem()
         quarterly_investments.popitem()
 
@@ -566,8 +512,8 @@ def _get_financial_data_impl(ticker: str, years: int):
         "accounts_receivable": _clean_result(quarterly_accounts_receivable),
         "total_assets": _clean_result(quarterly_total_assets),
         "current_liabilities": _clean_result(quarterly_current_liabilities),
-        "long_term_debt": _clean_result(quarterly_long_term_debt),
-        "shareholders_equity": _clean_result(quarterly_shareholders_equity),
+        "long_term_debt": _clean_result(quarterly_long_term_debts),
+        "shareholders_equity": _clean_result(quarterly_shareholders_equities),
         "share_count": _clean_result(quarterly_share_counts),
         "investment_cash_flow": _clean_result(quarterly_investments)
     }
@@ -597,6 +543,31 @@ def _get_financial_data_impl(ticker: str, years: int):
     )
 
     return financials, reports
+
+
+def _get_financial_statement(
+    xbrl: XBRL,
+    statement_type: FinancialStatementType
+) -> Statement | None:
+
+    statements = xbrl.statements
+    get_statement = {
+        FinancialStatementType.income_statement: statements.income_statement,
+        FinancialStatementType.balance_sheet: statements.balance_sheet,
+        FinancialStatementType.cash_flow: statements.cash_flow_statement
+    }[statement_type]
+
+    financial_statement = get_statement()
+    if financial_statement:
+        return financial_statement
+
+    # If the accessor returns None (can happen),
+    # look up the financial statement in another way
+    for statement in xbrl.get_all_statements():
+        if statement.get("type") == statement_type.value:
+            return statements[statement["role"]]
+
+    return None
 
 
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
@@ -650,18 +621,18 @@ def _get_optional_financial_data(xbrl: XBRL, name: str) -> float:
 
 def _parse_value(xbrl: XBRL, name: str) -> float | None:
     # Try to find the value in the income statement, balance sheet, and cash flow
-    value = _find_value(xbrl, name, FinancialStatementType.income_statement)
+    value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.income_statement)
 
     if value is None:
-        value = _find_value(xbrl, name, FinancialStatementType.balance_sheet)
+        value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.balance_sheet)
 
     if value is None:
-        value = _find_value(xbrl, name, FinancialStatementType.cash_flow)
+        value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.cash_flow)
 
     return value
 
 
-def _find_value(
+def _parse_from_financial_statement(
     xbrl: XBRL,
     name: str,
     statement_type: FinancialStatementType
@@ -670,66 +641,45 @@ def _find_value(
     constants = EDGAR_CONSTANTS[name]
     concept_names = constants["concept_names"]
     labels = constants["labels"]
-    
+
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:
-        raise _FinancialStatementNotFoundError(
-            f"Couldn't find {statement_type.value} when parsing {name}."
-        )
-    
-    value = _parse_from_financial_statement(financial_statement, concept_names, labels)
-    return value
+        return None
 
-
-def _get_financial_statement(
-    xbrl: XBRL,
-    statement_type: FinancialStatementType
-) -> Statement | None:
-
-    statements = xbrl.statements
-    get_statement = {
-        FinancialStatementType.income_statement: statements.income_statement,
-        FinancialStatementType.balance_sheet: statements.balance_sheet,
-        FinancialStatementType.cash_flow: statements.cash_flow_statement
-    }[statement_type]
-
-    financial_statement = get_statement()
-    if financial_statement:
-        return financial_statement
-
-    # If the accessor returns None (can happen),
-    # look up the financial statement in another way
-    for statement in xbrl.get_all_statements():
-        if statement.get("type") == statement_type.value:
-            return statements[statement["role"]]
-
-    return None
-
-
-def _parse_from_financial_statement(
-    financial_statement: Statement,
-    concept_names: list[str],
-    labels: list[str]
-) -> float | None:
-    
+    value = None
     for row in financial_statement.render().rows:
         concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-        
+
         if (
-            concept.lower() in [concept.lower() for concept in concept_names] or
-            row.label.lower() in [label.lower() for label in labels]
+            concept.lower() in [concept.lower() for concept in concept_names] and
+            _row_starts_with_label(row.label, labels)
         ):
             if row.cells and row.cells[0]:
                 try:
-                    return float(row.cells[0].value)
+                    parsed_value = float(row.cells[0].value)
+
+                    # Accumulate all matching rows
+                    # (Needed for parsing long term debt)
+                    if value is None:
+                        value = parsed_value
+                    else:
+                        value += parsed_value
                 
                 except:
                     # We have found the row in the financial statement
                     # but the value can't be converted to a number (e.g. "").
                     # This means that the value is 0
-                    return 0.0
+                    if value is None:
+                        value = 0.0
 
-    return None
+    return value
+
+
+def _row_starts_with_label(row_label: str, labels: list[str]) -> bool:
+    row_label_lower_case = row_label.lower()
+    return any(
+        row_label_lower_case.startswith(label.lower()) for label in labels
+    )
 
 
 def _clean_result(data: dict) -> dict:
