@@ -13,13 +13,16 @@ from backend.core.utils.logger import log_and_stream
 from backend.core.utils.message_type import MessageType
 
 
-_logger = structlog.get_logger(__name__)
-
-
 UNIT = 1_000_000
 
 with Path(__file__).with_suffix(".json").open(encoding="utf-8") as f:
-    _edgar_definitions = json.load(f)
+    edgar_config = json.load(f)
+
+    _document_internals = edgar_config["document_internals"]
+    _fields = edgar_config["fields"]
+
+
+_logger = structlog.get_logger(__name__)
 
 
 class FinancialStatementType(str, Enum):
@@ -72,20 +75,12 @@ def _get_financial_data_impl(ticker: str, years: int):
     form_10qs = company.get_filings(form="10-Q", amendments=False)
     splits = detect_splits(company.get_facts().get_all_facts())
 
-    quarterly_revenues = {}
-    quarterly_r_and_d_expenses = {}
-    quarterly_operating_incomes = {}
-    quarterly_net_incomes = {}
-    quarterly_eps = {}
-    quarterly_cash_and_equivalents = {}
-    quarterly_marketable_securities = {}
-    quarterly_accounts_receivable = {}
-    quarterly_total_assets = {}
-    quarterly_current_liabilities = {}
-    quarterly_long_term_debts = {}
-    quarterly_shareholders_equities = {}
-    quarterly_share_counts = {}
-    quarterly_investments = {}
+    quarterly_data = {}
+    for field_name in _fields:
+        quarterly_data[field_name] = {
+            "current_quarter": None,
+            "all_quarters": {}
+        }
 
     previous_quarter = None
     missing_quarter = None
@@ -101,67 +96,40 @@ def _get_financial_data_impl(ticker: str, years: int):
             if year < datetime.now().year - years:
                 break
 
-            revenue = round(
-                _get_optional_financial_data(xbrl, "revenue") / UNIT
-            )
+            invalid_quarter = False
+            for field_name in _fields:
+                if _fields[field_name]["optional"]:
+                    func = _get_optional_financial_data
+                else:
+                    func = _get_financial_data
 
-            # In some rare, esoteric cases, revenue can be negative
-            if revenue < 0:
-                _logger.warning("Negative revenue found.",
-                    ticker=ticker,
-                    quarter=f"{year}/{quarter}"
-                )
+                raw_value = func(xbrl, field_name)
+                value = round(raw_value / UNIT)
+
+                if field_name == "revenue":
+                    # In some rare, esoteric cases, revenue can be negative
+                    if value < 0:
+                        _logger.warning("Negative revenue found.",
+                            ticker=ticker,
+                            quarter=f"{year}/{quarter}"
+                        )
+
+                        # We need to break out of the outer loop
+                        invalid_quarter = True
+                        break
+
+                if field_name == "eps":
+                    value = raw_value / split
+
+                if field_name == "share_count":
+                    value = round(
+                        split * raw_value / UNIT
+                    )
+                
+                quarterly_data[field_name]["current_quarter"] = value
+            
+            if invalid_quarter:
                 break
-
-            r_and_d_expense = round(
-                _get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT
-            )
-
-            operating_income = round(
-                _get_optional_financial_data(xbrl, "operating_income") / UNIT
-            )
-
-            net_income = round(
-                _get_financial_data(xbrl, "net_income") / UNIT
-            )
-
-            eps = _get_financial_data(xbrl, "eps") / split
-
-            cash_and_equivalents = round(
-                _get_financial_data(xbrl, "cash_and_equivalents") / UNIT
-            )
-
-            marketable_securities = round(
-                _get_optional_financial_data(xbrl, "marketable_securities") / UNIT
-            )
-
-            accounts_receivable = round(
-                _get_optional_financial_data(xbrl, "accounts_receivable") / UNIT
-            )
-
-            total_assets = round(
-                _get_financial_data(xbrl, "total_assets") / UNIT
-            )
-
-            current_liabilities = round(
-                _get_financial_data(xbrl, "current_liabilities") / UNIT
-            )
-
-            long_term_debt = round(
-                _get_optional_financial_data(xbrl, "long_term_debt") / UNIT
-            )
-
-            shareholders_equity = round(
-                _get_financial_data(xbrl, "shareholders_equity") / UNIT
-            )
-
-            investment_cash_flow = round(
-                _get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT
-            )
-
-            share_count = round(
-                split * _get_financial_data(xbrl, "share_count") / UNIT
-            )
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
@@ -205,155 +173,39 @@ def _get_financial_data_impl(ticker: str, years: int):
                 # Estimate missing quarter by the quarters surrounding it
                 key = f"{year_of_missing_quarter}/{missing_quarter}"
 
-                missing_revenue = round(
-                    (
-                        list(quarterly_revenues.values())[-1] +
-                        revenue
+                for field_name in quarterly_data:
+                    missing_data = (
+                        list(
+                            quarterly_data[field_name]["all_quarters"].values()
+                        )[-1] + quarterly_data[field_name]["current_quarter"]
                     ) / 2
-                )
-                quarterly_revenues[key] = missing_revenue
 
-                missing_r_and_d_expense = round(
-                    (
-                        list(quarterly_r_and_d_expenses.values())[-1] +
-                        r_and_d_expense
-                    ) / 2
-                )
-                quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
-
-                missing_operating_income = round(
-                    (
-                        list(quarterly_operating_incomes.values())[-1] +
-                        operating_income
-                    ) / 2
-                )
-                quarterly_operating_incomes[key] = missing_operating_income
-
-                missing_net_income = round(
-                    (
-                        list(quarterly_net_incomes.values())[-1] +
-                        net_income
-                    ) / 2
-                )
-                quarterly_net_incomes[key] = missing_net_income
-
-                missing_eps = (
-                    list(quarterly_eps.values())[-1] + eps
-                ) / 2
-                quarterly_eps[key] = missing_eps
-
-                missing_cash_and_equivalents = round(
-                    (
-                        list(quarterly_cash_and_equivalents.values())[-1] +
-                        cash_and_equivalents
-                    ) / 2
-                )
-                quarterly_cash_and_equivalents[key] = missing_cash_and_equivalents
-
-                missing_marketable_securities = round(
-                    (
-                        list(quarterly_marketable_securities.values())[-1] +
-                        marketable_securities
-                    ) / 2
-                )
-                quarterly_marketable_securities[key] = missing_marketable_securities
-
-                missing_accounts_receivable = round(
-                    (
-                        list(quarterly_accounts_receivable.values())[-1] +
-                        accounts_receivable
-                    ) / 2
-                )
-                quarterly_accounts_receivable[key] = missing_accounts_receivable
-
-                missing_total_assets = round(
-                    (
-                        list(quarterly_total_assets.values())[-1] +
-                        total_assets
-                    ) / 2
-                )
-                quarterly_total_assets[key] = missing_total_assets
-
-                missing_current_liabilities = round(
-                    (
-                        list(quarterly_current_liabilities.values())[-1] +
-                        current_liabilities
-                    ) / 2
-                )
-                quarterly_current_liabilities[key] = missing_current_liabilities
-
-                missing_long_term_debt = round(
-                    (
-                        list(quarterly_long_term_debts.values())[-1] +
-                        long_term_debt
-                    ) / 2
-                )
-                quarterly_long_term_debts[key] = missing_long_term_debt
-
-                missing_shareholders_equity = round(
-                    (
-                        list(quarterly_shareholders_equities.values())[-1] +
-                        shareholders_equity
-                    ) / 2
-                )
-                quarterly_shareholders_equities[key] = missing_shareholders_equity
-
-                missing_share_count = round(
-                    (
-                        list(quarterly_share_counts.values())[-1] +
-                        share_count
-                    ) / 2
-                )
-                quarterly_share_counts[key] = missing_share_count
-
-                missing_investment = round(
-                    (
-                        list(quarterly_investments.values())[-1] +
-                        investment_cash_flow
-                    ) / 2
-                )
-                quarterly_investments[key] = missing_investment
+                    if field_name != "eps":
+                        missing_data = round(missing_data)
+                    
+                    quarterly_data[field_name]["all_quarters"][key] = (
+                        missing_data
+                    )
                 
                 missing_quarter = None
 
         key = f"{year}/{quarter}"
-
-        quarterly_revenues[key] = revenue
-        quarterly_r_and_d_expenses[key] = r_and_d_expense
-        quarterly_operating_incomes[key] = operating_income
-        quarterly_net_incomes[key] = net_income
-        quarterly_eps[key] = eps
-        quarterly_cash_and_equivalents[key] = cash_and_equivalents
-        quarterly_marketable_securities[key] = marketable_securities
-        quarterly_accounts_receivable[key] = accounts_receivable
-        quarterly_total_assets[key] = total_assets
-        quarterly_current_liabilities[key] = current_liabilities
-        quarterly_long_term_debts[key] = long_term_debt
-        quarterly_shareholders_equities[key] = shareholders_equity
-        quarterly_share_counts[key] = share_count
-        quarterly_investments[key] = investment_cash_flow
+        for field_name in quarterly_data:
+            quarterly_data[field_name]["all_quarters"][key] = (
+                quarterly_data[field_name]["current_quarter"]
+            )
 
         stream_message(".", new_line=False)
         previous_quarter = quarter
 
-    while len(quarterly_revenues) > 4 * years:
-        quarterly_revenues.popitem()
-        quarterly_r_and_d_expenses.popitem()
-        quarterly_operating_incomes.popitem()
-        quarterly_net_incomes.popitem()
-        quarterly_eps.popitem()
-        quarterly_cash_and_equivalents.popitem()
-        quarterly_marketable_securities.popitem()
-        quarterly_accounts_receivable.popitem()
-        quarterly_total_assets.popitem()
-        quarterly_current_liabilities.popitem()
-        quarterly_long_term_debts.popitem()
-        quarterly_shareholders_equities.popitem()
-        quarterly_share_counts.popitem()
-        quarterly_investments.popitem()
+    while len(quarterly_data["revenue"]["all_quarters"]) > 4 * years:
+        for field_name in quarterly_data:
+            quarterly_data[field_name]["all_quarters"].popitem()
 
     form_10ks = company.get_filings(form="10-K")
-    if form_10ks.empty or len(quarterly_revenues) < 2:
+    if (form_10ks.empty or
+        len(quarterly_data["revenue"]["all_quarters"]) < 2
+    ):
         raise EdgarParseError(
             f"Either a 10-K or at least 2 quarters of financial data "
             f"could not be found for {company.name}"
@@ -361,25 +213,12 @@ def _get_financial_data_impl(ticker: str, years: int):
     
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
-
-    financials = {
-        "revenue": _clean_result(quarterly_revenues),
-        "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
-        "operating_income": _clean_result(quarterly_operating_incomes),
-        "net_income": _clean_result(quarterly_net_incomes),
-        "eps": _clean_result(quarterly_eps),
-        "cash_and_equivalents": _clean_result(quarterly_cash_and_equivalents),
-        "marketable_securities": _clean_result(quarterly_marketable_securities),
-        "accounts_receivable": _clean_result(quarterly_accounts_receivable),
-        "total_assets": _clean_result(quarterly_total_assets),
-        "current_liabilities": _clean_result(quarterly_current_liabilities),
-        "long_term_debt": _clean_result(quarterly_long_term_debts),
-        "shareholders_equity": _clean_result(quarterly_shareholders_equities),
-        "share_count": _clean_result(quarterly_share_counts),
-        "investment_cash_flow": _clean_result(quarterly_investments)
-    }
-
-    stream_message(".", new_line=False)
+    
+    financials = {}
+    for field_name in quarterly_data:
+        financials[field_name] = _clean_result(
+            quarterly_data[field_name]["all_quarters"]
+        )
 
     try:
         reports = {
@@ -499,9 +338,8 @@ def _parse_from_financial_statement(
     statement_type: FinancialStatementType
 ) -> float | None:
 
-    definitions = _edgar_definitions[name]
-    concept_names = definitions["concept_names"]
-    labels = definitions["labels"]
+    tags = _document_internals[name]["tags"]
+    labels = _document_internals[name]["labels"]
 
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:
@@ -509,10 +347,10 @@ def _parse_from_financial_statement(
 
     value = None
     for row in financial_statement.render().rows:
-        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
+        tag = (row.metadata or {}).get("concept", "").replace(":", "_")
 
         if (
-            concept.lower() in [concept.lower() for concept in concept_names] and
+            tag.lower() in [t.lower() for t in tags] and
             _row_starts_with_label(row.label, labels)
         ):
             if row.cells and row.cells[0]:

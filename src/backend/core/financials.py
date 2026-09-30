@@ -140,7 +140,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
 
     # Early stopping
-    min_quarters = 4 * years
+    min_quarters = 4 * years - 2 # Subtracting 2 to handle Yahoo Finance vs. Edgar misalignment
     if (len(financials["revenue"]) < min_quarters or
         len(price_history) < min_quarters):
         raise NotEnoughDataError(f"Less than {years} years of data found.")

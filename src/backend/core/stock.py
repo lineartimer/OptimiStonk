@@ -260,13 +260,18 @@ class Stock:
 
     # Rank
     def rank(self) -> float:
-        return (
+        rank_raw = (
             1_000_000_000 *
             self.revenue_growth_per_year() * # A growing top line is good
             (0.01 + self.r_and_d_to_revenue()) * # R&D is good
             self.financial_strength() ** 2  / # Financial strength is even better
             self.price_to_earnings_ratio() ** 4 # A low valuation is the best
         )
+
+        if rank_raw <= 0:
+            return float("-inf")
+
+        return math.log(rank_raw)
 
     def to_json(self) -> dict:
         price_to_earnings_ratio = self.price_to_earnings_ratio()

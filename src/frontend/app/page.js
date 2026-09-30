@@ -18,7 +18,7 @@ const tabs = [
 ];
 
 const ratioFields = [
-  { key: "price_to_earnings_ratio", label: "Price-to-earnings ratio" },
+  { key: "price_to_earnings_ratio", label: "P/E" },
   { key: "revenue_growth_per_year", label: "Annual revenue growth", percentage: true },
   { key: "quick_ratio", label: "Quick ratio" },
   { key: "leverage", label: "Leverage" },
