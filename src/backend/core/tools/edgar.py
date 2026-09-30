@@ -1,6 +1,8 @@
 import asyncio
+import json
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
@@ -16,159 +18,8 @@ _logger = structlog.get_logger(__name__)
 
 UNIT = 1_000_000
 
-EDGAR_CONSTANTS = {
-    "revenue": {
-        "concept_names": [
-            "us-gaap_Revenues",
-            "us-gaap_SalesRevenueNet",
-            "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax",
-            "us-gaap_RevenueFromContractWithCustomerIncludingAssessedTax"
-        ],
-        "labels": [
-            "Revenue",
-            "Revenues",
-            "Total revenue",
-            "Net revenues",
-            "Sales"
-        ]
-    },
-    "r_and_d_expense": {
-        "concept_names": [
-            "us-gaap_ResearchAndDevelopmentCosts",
-            "us-gaap_ResearchAndDevelopmentExpense",
-            "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
-        ],
-        "labels": [
-            "Research and development"
-        ]
-    },
-    "operating_income": {
-        "concept_names": [
-            "us-gaap_OperatingIncomeLoss"
-        ],
-        "labels": [
-            "Income from operations",
-            "Income (loss) from operations"
-        ]
-    },
-    "net_income": {
-        "concept_names": [
-            "us-gaap_NetIncomeLoss"
-        ],
-        "labels": [
-            "Net income",
-            "Net income attributable to common stockholders",
-            "Net income (loss) attributable to common stockholders",
-            "Net (loss) income attributable to common stockholders",
-            "Net loss attributable to common stockholders"
-        ]
-    },
-    "eps": {
-        "concept_names": [
-            "us-gaap_EarningsPerShareDiluted"
-        ],
-        "labels": [
-            "Net Income per share - diluted (usd per share)",
-            "Diluted (in dollars per share)"
-        ]
-    },
-    "cash_and_equivalents": {
-        "concept_names": [
-            "us-gaap_Cash",
-            "us-gaap_CashAndCashEquivalentsAtCarryingValue"
-        ],
-        "labels": [
-            "Cash",
-            "Cash and cash equivalents"
-        ]
-    },
-    "marketable_securities": {
-        "concept_names": [
-            ""
-        ],
-        "labels": [
-            ""
-        ]
-    },
-    "accounts_receivable": {
-        "concept_names": [
-            "us-gaap_AccountsReceivableNetCurrent",
-            "us-gaap_ReceivablesNetCurrent"
-        ],
-        "labels": [
-            "Accounts receivable",
-            "Receivables, net"
-        ]
-    },
-    "total_assets": {
-        "concept_names": [
-            "us-gaap_Assets"
-        ],
-        "labels": [
-            "Total assets"
-        ]
-    },
-    "current_liabilities": {
-        "concept_names": [
-            "us-gaap_LiabilitiesCurrent"
-        ],
-        "labels": [
-            "Total current liabilities"
-        ]
-    },
-    "long_term_debt": {
-        "concept_names": [
-            "us-gaap_UnsecuredLongTermDebt",
-            "us-gaap_FinanceLeaseLiabilityNoncurrent",
-            "us-gaap_ConvertibleDebtNoncurrent",
-            "us-gaap_LongTermLineOfCredit",
-            "run_NonRecourseDebtNoncurrent"
-        ],
-        "labels": [
-            "Long-term debt",
-            "Finance lease obligations, net of current portion",
-            "Convertible senior notes",
-            "Line of credit",
-            "Non-recourse debt, net of current portion"
-        ]
-    },
-    "shareholders_equity": {
-        "concept_names": [
-            "us-gaap_StockholdersEquity"
-        ],
-        "labels": [
-            "Total stockholders’ equity"
-        ]
-    },
-    "share_count": {
-        "concept_names": [
-            "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
-            "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
-        ],
-        "labels": [
-            "Diluted",
-            "Diluted (in shares)",
-            "Basic and Diluted",
-            "Weighted average common shares outstanding - diluted (in shares)",
-            "Weighted average common shares outstanding, basic and diluted (in shares)"
-        ]
-    },
-    "investment_cash_flow": {
-        "concept_names": [
-            "us-gaap_NetCashProvidedByUsedInInvestingActivities"
-        ],
-        "labels": [
-            "Net cash provided by investing activities",
-            "Net cash provided by (used in) investing activities",
-            "Net cash used in investing",
-            "Net cash used in investing activities",
-            "Net cash (used in) provided by investing activities",
-            "Net cash from (used in) investing",
-            "Net cash from (used in) investing activities",
-            "Net cash used for investing activities"
-        ]
-    }
-}
+with Path(__file__).with_suffix(".json").open(encoding="utf-8") as f:
+    _edgar_definitions = json.load(f)
 
 
 class FinancialStatementType(str, Enum):
@@ -648,9 +499,9 @@ def _parse_from_financial_statement(
     statement_type: FinancialStatementType
 ) -> float | None:
 
-    constants = EDGAR_CONSTANTS[name]
-    concept_names = constants["concept_names"]
-    labels = constants["labels"]
+    definitions = _edgar_definitions[name]
+    concept_names = definitions["concept_names"]
+    labels = definitions["labels"]
 
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:

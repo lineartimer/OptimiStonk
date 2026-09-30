@@ -537,18 +537,18 @@ export default function Home() {
                   <section className={styles.financialData} aria-labelledby="financial-data-heading">
                     <h2 id="financial-data-heading">Financial data and ratios</h2>
                     <dl className={styles.companyMetrics}>
-                      <dt>Backlog:</dt>
-                      <dd>
-                        {Number.isFinite(company.backlog)
-                          ? `$${metricNumber.format(company.backlog)} million`
-                          : "—"}
-                      </dd>
                       {ratioFields.map(({ key, label, percentage }) => (
                         <Fragment key={key}>
                           <dt>{label}:</dt>
                           <dd>{formatRatio(company.ratios?.[key], percentage)}</dd>
                         </Fragment>
                       ))}
+                      <dt>Backlog:</dt>
+                      <dd>
+                        {Number.isFinite(company.backlog)
+                          ? `$${metricNumber.format(company.backlog)} million`
+                          : "—"}
+                      </dd>
                     </dl>
                   </section>
                 </div>
