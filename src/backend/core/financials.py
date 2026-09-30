@@ -200,7 +200,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
 
     backlog_finder = BacklogFinder()
-    financial_data["backlog"] = await backlog_finder.run(name, prompt_backlog)
+    stock.backlog = await backlog_finder.run(name, prompt_backlog)
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -215,7 +215,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
 
     summarizer = Summarizer()
-    financial_data["summary"] = await summarizer.run(name, prompt_summarizer)
+    stock.summary = await summarizer.run(name, prompt_summarizer)
 
     save_stock(stock, reports)
     stream_message("Saved stock to database.", MessageType.info)

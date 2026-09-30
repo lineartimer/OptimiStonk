@@ -47,6 +47,7 @@ EDGAR_CONSTANTS = {
             "us-gaap_OperatingIncomeLoss"
         ],
         "labels": [
+            "Income from operations",
             "Income (loss) from operations"
         ]
     },
@@ -55,6 +56,7 @@ EDGAR_CONSTANTS = {
             "us-gaap_NetIncomeLoss"
         ],
         "labels": [
+            "Net income",
             "Net income attributable to common stockholders",
             "Net income (loss) attributable to common stockholders",
             "Net (loss) income attributable to common stockholders",
@@ -66,15 +68,18 @@ EDGAR_CONSTANTS = {
             "us-gaap_EarningsPerShareDiluted"
         ],
         "labels": [
+            "Net Income per share - diluted (usd per share)",
             "Diluted (in dollars per share)"
         ]
     },
     "cash_and_equivalents": {
         "concept_names": [
-            "us-gaap_Cash"
+            "us-gaap_Cash",
+            "us-gaap_CashAndCashEquivalentsAtCarryingValue"
         ],
         "labels": [
-            "Cash"
+            "Cash",
+            "Cash and cash equivalents"
         ]
     },
     "marketable_securities": {
@@ -87,10 +92,12 @@ EDGAR_CONSTANTS = {
     },
     "accounts_receivable": {
         "concept_names": [
-            "us-gaap_AccountsReceivableNetCurrent"
+            "us-gaap_AccountsReceivableNetCurrent",
+            "us-gaap_ReceivablesNetCurrent"
         ],
         "labels": [
-            "Accounts receivable"
+            "Accounts receivable",
+            "Receivables, net"
         ]
     },
     "total_assets": {
@@ -111,12 +118,14 @@ EDGAR_CONSTANTS = {
     },
     "long_term_debt": {
         "concept_names": [
+            "us-gaap_UnsecuredLongTermDebt",
             "us-gaap_FinanceLeaseLiabilityNoncurrent",
             "us-gaap_ConvertibleDebtNoncurrent",
             "us-gaap_LongTermLineOfCredit",
             "run_NonRecourseDebtNoncurrent"
         ],
         "labels": [
+            "Long-term debt",
             "Finance lease obligations, net of current portion",
             "Convertible senior notes",
             "Line of credit",
@@ -140,6 +149,7 @@ EDGAR_CONSTANTS = {
             "Diluted",
             "Diluted (in shares)",
             "Basic and Diluted",
+            "Weighted average common shares outstanding - diluted (in shares)",
             "Weighted average common shares outstanding, basic and diluted (in shares)"
         ]
     },
@@ -154,7 +164,8 @@ EDGAR_CONSTANTS = {
             "Net cash used in investing activities",
             "Net cash (used in) provided by investing activities",
             "Net cash from (used in) investing",
-            "Net cash from (used in) investing activities"
+            "Net cash from (used in) investing activities",
+            "Net cash used for investing activities"
         ]
     }
 }
@@ -263,7 +274,6 @@ def _get_financial_data_impl(ticker: str, years: int):
                 _get_financial_data(xbrl, "net_income") / UNIT
             )
 
-            # EPS is dollars per share, adjusted inversely to the share count.
             eps = _get_financial_data(xbrl, "eps") / split
 
             cash_and_equivalents = round(

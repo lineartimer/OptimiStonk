@@ -25,7 +25,7 @@ const ratioFields = [
   { key: "leverage", label: "Leverage" },
   { key: "asset_turnover", label: "Asset turnover" },
   { key: "operating_margin", label: "Operating margin", percentage: true },
-  { key: "r_and_d_to_revenue", label: "R&D / revenue", percentage: true }
+  { key: "r_and_d_to_revenue", label: "R&D-to-revenue", percentage: true }
 ];
 
 const metricNumber = new Intl.NumberFormat("en-US", {

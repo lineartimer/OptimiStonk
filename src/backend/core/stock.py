@@ -197,7 +197,7 @@ class Stock:
         )
 
     def price_to_earnings_ratio(self) -> float:
-        average_eps = self.get_average_eps()
+        average_eps = 4 * self.get_average_eps()
         if average_eps == 0:
             return float("inf")
 
@@ -251,7 +251,6 @@ class Stock:
 
     def financial_strength(self):
         return (
-            0.001 *
             self.quick_ratio() / # Cash is good
             self.leverage() * # Debt is bad
             self.asset_turnover() * # Ability to turn assets to revenue is good
