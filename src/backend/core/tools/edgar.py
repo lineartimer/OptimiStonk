@@ -15,7 +15,7 @@ from backend.core.utils.message_type import MessageType
 
 UNIT = 1_000_000
 
-with Path(__file__).with_suffix(".json").open(encoding="utf-8") as f:
+with Path(__file__).with_name("edgar.json").open(encoding="utf-8") as f:
     edgar_config = json.load(f)
 
     _document_internals = edgar_config["document_internals"]

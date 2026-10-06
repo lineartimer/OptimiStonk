@@ -78,7 +78,8 @@
                 "Operating (loss) income",
                 "\u00a0Operating income",
                 "Income from operations",
-                "Income (loss) from operations"
+                "Income (loss) from operations",
+                "Loss from operations"
             ]
         },
         "net_income": {
