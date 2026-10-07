@@ -47,97 +47,19 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     # Only keep the intersection of the quarters returned from Yahoo Finance and EDGAR
     common_keys = price_history.keys() & financials["revenue"].keys()
-
     price_history = {k: price_history[k] for k in common_keys}
-
-    financials["revenue"] = {
-        k: financials["revenue"][k] for k in common_keys
-    }
-    financials["r_and_d_expense"] = {
-        k: financials["r_and_d_expense"][k] for k in common_keys
-    }
-    financials["operating_income"] = {
-        k: financials["operating_income"][k] for k in common_keys
-    }
-    financials["net_income"] = {
-        k: financials["net_income"][k] for k in common_keys
-    }
-    financials["eps"] = {
-        k: financials["eps"][k] for k in common_keys
-    }
-    financials["cash_and_equivalents"] = {
-        k: financials["cash_and_equivalents"][k] for k in common_keys
-    }
-    financials["marketable_securities"] = {
-        k: financials["marketable_securities"][k] for k in common_keys
-    }
-    financials["accounts_receivable"] = {
-        k: financials["accounts_receivable"][k] for k in common_keys
-    }
-    financials["total_assets"] = {
-        k: financials["total_assets"][k] for k in common_keys
-    }
-    financials["current_liabilities"] = {
-        k: financials["current_liabilities"][k] for k in common_keys
-    }
-    financials["long_term_debt"] = {
-        k: financials["long_term_debt"][k] for k in common_keys
-    }
-    financials["shareholders_equity"] = {
-        k: financials["shareholders_equity"][k] for k in common_keys
-    }
-    financials["share_count"] = {
-        k: financials["share_count"][k] for k in common_keys
-    }
-    financials["investment_cash_flow"] = {
-        k: financials["investment_cash_flow"][k] for k in common_keys
-    }
 
     # Taking the intersection discards the order, so order dictionaries again
     price_history = dict(sorted(price_history.items()))
 
-    financials["revenue"] = dict(
-        sorted(financials["revenue"].items())
-    )
-    financials["r_and_d_expense"] = dict(
-        sorted(financials["r_and_d_expense"].items())
-    )
-    financials["operating_income"] = dict(
-        sorted(financials["operating_income"].items())
-    )
-    financials["net_income"] = dict(
-        sorted(financials["net_income"].items())
-    )
-    financials["eps"] = dict(
-        sorted(financials["eps"].items())
-    )
-    financials["cash_and_equivalents"] = dict(
-        sorted(financials["cash_and_equivalents"].items())
-    )
-    financials["marketable_securities"] = dict(
-        sorted(financials["marketable_securities"].items())
-    )
-    financials["accounts_receivable"] = dict(
-        sorted(financials["accounts_receivable"].items())
-    )
-    financials["total_assets"] = dict(
-        sorted(financials["total_assets"].items())
-    )
-    financials["current_liabilities"] = dict(
-        sorted(financials["current_liabilities"].items())
-    )
-    financials["long_term_debt"] = dict(
-        sorted(financials["long_term_debt"].items())
-    )
-    financials["shareholders_equity"] = dict(
-        sorted(financials["shareholders_equity"].items())
-    )
-    financials["share_count"] = dict(
-        sorted(financials["share_count"].items())
-    )
-    financials["investment_cash_flow"] = dict(
-        sorted(financials["investment_cash_flow"].items())
-    )
+    for name in financials.keys():
+        financials[name] = {
+            k: financials[name][k] for k in common_keys
+        }
+
+        financials[name] = dict(
+            sorted(financials[name].items())
+        )
 
     # Early stopping
     min_quarters = 4 * years - 2 # Subtracting 2 to handle Yahoo Finance vs. Edgar misalignment

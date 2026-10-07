@@ -75,10 +75,11 @@
             ],
             "labels": [
                 "Operating income",
-                "Operating (loss) income",
                 "\u00a0Operating income",
+                "Operating (loss) income",
                 "Income from operations",
                 "Income (loss) from operations",
+                "Operating loss",
                 "Loss from operations"
             ]
         },
@@ -88,9 +89,14 @@
             ],
             "labels": [
                 "Net income",
+                "NET INCOME",
                 "Net income attributable to common stockholders",
+                "Net income (loss)",
                 "Net income (loss) attributable to common stockholders",
+                "Net (loss) income",
                 "Net (loss) income attributable to common stockholders",
+                "Net loss",
+                "NET LOSS",
                 "Net loss attributable to common stockholders"
             ]
         },
@@ -101,7 +107,8 @@
             "labels": [
                 "Diluted",
                 "Diluted (in dollars per share)",
-                "Net Income per share - diluted (usd per share)"
+                "Net Income per share - diluted (usd per share)",
+                "Earnings Per Share (Diluted)"
             ]
         },
         "cash_and_equivalents": {
@@ -181,6 +188,7 @@
                 "Diluted",
                 "Diluted (in shares)",
                 "Basic and Diluted",
+                "Weighted Average Shares Outstanding, Diluted",
                 "Weighted average common shares outstanding, diluted (in shares)",
                 "Weighted average common shares outstanding - diluted (in shares)",
                 "Weighted average common shares outstanding, basic and diluted (in shares)",
