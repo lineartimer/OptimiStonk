@@ -42,9 +42,9 @@
 .logo {
   margin: 6px auto 0 auto;
   display: block;
-  width: 216px;
-  max-width: 90%;
-  height: auto;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  background: url("/img/logo.png") center / contain no-repeat;
 }
 
 .companiesScroll {

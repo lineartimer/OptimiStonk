@@ -366,7 +366,7 @@ def _parse_from_financial_statement(
                 
                 except:
                     # We have found the row in the financial statement
-                    # but the value can't be converted to a number (e.g. "").
+                    # but the value cannot be converted to a number (e.g. "").
                     # This means that the value is 0
                     if value is None:
                         value = 0.0

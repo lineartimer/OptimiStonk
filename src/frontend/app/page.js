@@ -1,7 +1,6 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import StockHistoryChart from "./stock-history-chart.js";
 import TickerSelect from "./ticker-select.js";
 import { log } from "./logger.js";
@@ -365,14 +364,7 @@ export default function Home() {
     <main className={styles.page}>
       <aside className={styles.sidebar} aria-label="Stocks">
         <a href="/" aria-label="OptimiStonk home">
-          <Image
-            className={styles.logo}
-            src="/images/logo.png"
-            alt="OptimiStonk"
-            width={216}
-            height={72}
-            loading="eager"
-          />
+          <span className={styles.logo} aria-hidden="true" />
         </a>
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
