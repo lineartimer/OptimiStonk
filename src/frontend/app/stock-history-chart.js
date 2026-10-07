@@ -15,8 +15,8 @@ import {
 import { buildStockHistory, getSeriesDomain } from "./stock-history.js";
 import styles from "./page.module.css";
 
-const revenueColor = "#2563eb";
-const priceColor = "#dc2626";
+const revenueColor = "var(--color-primary)";
+const priceColor = "var(--color-error)";
 const axisNumber = new Intl.NumberFormat("en-US", {
   notation: "compact",
   maximumFractionDigits: 2
@@ -67,10 +67,11 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                   title={`${ticker} quarterly revenue vs. stock price`}
                   desc="Blue bars show revenue in millions of US dollars on the left axis. The red line shows quarter-end stock prices in US dollars on the right axis. Each axis is scaled independently."
                 >
-                  <CartesianGrid yAxisId="revenue" stroke="#d0dce5" strokeDasharray="3 3" vertical={false} />
+                  <CartesianGrid yAxisId="revenue" stroke="var(--color-divider)" strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 12, fill: "#122a4a" }}
+                    tick={{ fontSize: 12, fill: "var(--color-text)" }}
+                    stroke="var(--color-border)"
                     tickLine={false}
                     minTickGap={24}
                     interval="preserveStartEnd"
@@ -100,9 +101,9 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                   />
                   <Tooltip
                     formatter={formatTooltip}
-                    cursor={{ fill: "#122a4a", fillOpacity: 0.04 }}
-                    contentStyle={{ borderColor: "#d0dce5", borderRadius: 4, fontSize: 12 }}
-                    labelStyle={{ color: "#122a4a", fontWeight: "bold" }}
+                    cursor={{ fill: "var(--color-primary)", fillOpacity: 0.04 }}
+                    contentStyle={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-divider)", borderRadius: 4, fontSize: 12 }}
+                    labelStyle={{ color: "var(--color-text)", fontWeight: "bold" }}
                   />
                   <Legend wrapperStyle={{ paddingTop: 8 }} />
                   <Bar

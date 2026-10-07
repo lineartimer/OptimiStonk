@@ -1,11 +1,20 @@
 .page {
-  --color-text: #122a4a;
-  --color-focus: #09346c;
-  --color-border: #728698;
-  --color-divider: #d0dce5;
-  --color-highlight: #d9f4ee;
-  --color-hover: #edfaf7;
+  /* Navy, blue, cyan, and green drawn from the robot-and-growth logo. */
+  --color-text: #09275e;
+  --color-primary: #0065df;
+  --color-primary-hover: #0052b8;
+  --color-accent: #007b66;
+  --color-focus: var(--color-primary);
+  --color-border: #6c89b0;
+  --color-divider: #d4e7f5;
+  --color-highlight: #daf5ff;
+  --color-hover: #eefaff;
   --color-surface: #fff;
+  --color-muted: #576d8b;
+  --color-shadow: #09275e26;
+  --color-warning: #8a6100;
+  --color-error: #dc2626;
+  --color-error-hover: #fff5f5;
 
   display: grid;
   grid-template-columns: min-content minmax(0, 1fr);
@@ -174,6 +183,7 @@
 
 .tabs button[aria-selected="true"] {
   border-bottom: 0;
+  color: var(--color-primary);
   font-weight: bold;
 }
 
@@ -205,9 +215,17 @@
   background: var(--color-surface);
 }
 
+.discoveryControls > button,
+.addStockControls > button {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
 .discoveryControls > button:hover:not(:disabled),
 .addStockControls > button:hover:not(:disabled) {
-  background: #f0f4f9;
+  border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
 }
 
 .discoveryControls > button:disabled,
@@ -242,20 +260,20 @@
 }
 
 .discoveryMessages time {
-  color: #9ca3af;
+  color: var(--color-muted);
   font-weight: normal;
 }
 
 .info {
-  color: #16803c;
+  color: var(--color-accent);
 }
 
 .warning {
-  color: #a87900;
+  color: var(--color-warning);
 }
 
 .error {
-  color: #c62828;
+  color: var(--color-error);
 }
 
 .companyHeading {
@@ -270,11 +288,11 @@
 }
 
 .deleteButton {
-  color: #c62828;
+  color: var(--color-error);
 }
 
 .deleteButton:hover:not(:disabled) {
-  background: #fff0f0;
+  background: var(--color-error-hover);
 }
 
 .summary {
@@ -293,7 +311,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
