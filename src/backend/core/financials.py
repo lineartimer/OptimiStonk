@@ -52,13 +52,13 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     # Taking the intersection discards the order, so order dictionaries again
     price_history = dict(sorted(price_history.items()))
 
-    for name in financials.keys():
-        financials[name] = {
-            k: financials[name][k] for k in common_keys
+    for field_name in financials.keys():
+        financials[field_name] = {
+            k: financials[field_name][k] for k in common_keys
         }
 
-        financials[name] = dict(
-            sorted(financials[name].items())
+        financials[field_name] = dict(
+            sorted(financials[field_name].items())
         )
 
     # Early stopping

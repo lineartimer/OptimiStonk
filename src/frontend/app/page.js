@@ -41,7 +41,8 @@ const percentageNumber = new Intl.NumberFormat("en-US", {
 });
 
 const rankNumber = new Intl.NumberFormat("en-US", {
-  maximumSignificantDigits: 5
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
 });
 
 function numericValue(value) {
@@ -59,10 +60,6 @@ function formatRatio(value, percentage = false) {
 function formatRank(value) {
   const number = numericValue(value);
   if (number === null) return "—";
-  const magnitude = Math.abs(number);
-  if (Number.isFinite(number) && magnitude !== 0 && (magnitude < 0.0001 || magnitude >= 1_000_000)) {
-    return number.toExponential(4);
-  }
   return rankNumber.format(number);
 }
 
@@ -193,7 +190,7 @@ export default function Home() {
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState("");
   const [tickerToAdd, setTickerToAdd] = useState("");
-  const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
+  const [sort, setSort] = useState({ key: "rank", direction: "descending" });
   const [tab, setTab] = useState("stock-details");
   const [loading, setLoading] = useState(null);
   const [stopping, setStopping] = useState(false);
@@ -216,9 +213,6 @@ export default function Home() {
     ));
   }
 
-  const company = companies.find(({ ticker }) => ticker === selectedTicker)
-    || companies[0];
-
   const sortedCompanies = useMemo(() => {
     const direction = sort.direction === "ascending" ? 1 : -1;
 
@@ -237,6 +231,9 @@ export default function Home() {
       return direction * (aValue - bValue) || compareTickers(a, b);
     });
   }, [companies, sort]);
+
+  const company = companies.find(({ ticker }) => ticker === selectedTicker)
+    || sortedCompanies[0];
 
   function sortBy(key) {
     setSort((current) => ({

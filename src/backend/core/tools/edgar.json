@@ -196,13 +196,23 @@
         },
         "marketable_securities": {
             "tags": [
-                ""
+                "us-gaap_ShortTermInvestments",
+                "us-gaap_MarketableSecuritiesCurrent",
+                "us-gaap_DebtSecuritiesCurrent",
+                "us-gaap_EquitySecuritiesFvNi"
             ],
             "labels": {
                 "pattern": [
-                    ""
+                    "Short-term investments",
+                    "Marketable <SECURITY_TYPE>securities"
                 ],
-                "variations": {}
+                "variations": {
+                    "SECURITY_TYPE": [
+                        "",
+                        "debt ",
+                        "equity "
+                    ]
+                }
             }
         },
         "accounts_receivable": {
