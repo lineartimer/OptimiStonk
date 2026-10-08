@@ -1,11 +1,13 @@
 import asyncio
-import json
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
+from itertools import product
+import json
+from pathlib import Path
+import re
 import structlog
 
 from backend.api.helpers.streamer import stream_message
@@ -339,7 +341,9 @@ def _parse_from_financial_statement(
 ) -> float | None:
 
     tags = _document_internals[name]["tags"]
-    labels = _document_internals[name]["labels"]
+    labels = _generate_all_labels(
+        _document_internals[name]["labels"]
+    )
 
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:
@@ -372,6 +376,24 @@ def _parse_from_financial_statement(
                         value = 0.0
 
     return value
+
+
+def _generate_all_labels(labels: dict) -> list[str]:
+    variations = labels["variations"]
+    result = []
+
+    for pattern in labels["pattern"]:
+        names = list(dict.fromkeys(re.findall(r"<([^>]+)>", pattern)))
+        choices = [variations[name] for name in names]
+
+        for values in product(*choices):
+            label = pattern
+            for name, value in zip(names, values):
+                label = label.replace(f"<{name}>", value)
+            
+            result.append(label)
+
+    return list(dict.fromkeys(result))
 
 
 def _row_starts_with_label(row_label: str, labels: list[str]) -> bool:
