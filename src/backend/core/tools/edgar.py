@@ -120,6 +120,15 @@ def _get_financial_data_impl(ticker: str, years: int):
                         invalid_quarter = True
                         break
 
+                # Many companies don't report operating income.
+                # Use net income as substitute in those cases
+                if field_name == "net_income":
+                    quarterly_data["operating_income"]["current_quarter"] = (
+                        value
+                        if quarterly_data["operating_income"]["current_quarter"] == 0
+                        else quarterly_data["operating_income"]["current_quarter"]
+                    )
+
                 if field_name == "eps":
                     value = raw_value / split
 

@@ -7,7 +7,7 @@
             "optional": true
         },
         "operating_income": {
-            "optional": false
+            "optional": true
         },
         "net_income": {
             "optional": false
@@ -53,13 +53,17 @@
             ],
             "labels": {
                 "pattern": [
-                    "<QUALIFIER> <REVENUE>",
-                    "<REVENUE>"
+                    "<REVENUE>",
+                    "<TOTAL><NET><REVENUE>"
                 ],
                 "variations": {
-                    "QUALIFIER": [
-                        "net",
-                        "total"
+                    "TOTAL": [
+                        "",
+                        "total "
+                    ],
+                    "NET": [
+                        "",
+                        "net "
                     ],
                     "REVENUE": [
                         "revenue",
@@ -105,6 +109,7 @@
                         "operating income (loss)",
                         "operating (loss) income",
                         "income from operations",
+                        "earnings from operations",
                         "loss from operations",
                         "income (loss) from operations",
                         "(loss) income from operations"
@@ -125,8 +130,14 @@
                     "INCOME_LOSS": [
                         "income",
                         "loss",
+                        "earnings",
+                        "profit",
                         "income (loss)",
-                        "(loss) income"
+                        "(loss) income",
+                        "earnings (loss)",
+                        "(loss) earnings",
+                        "profit (loss)",
+                        "(loss) profit"
                     ],
                     "ATTRIBUTABLE": [
                         "",
@@ -146,14 +157,25 @@
                     "diluted",
                     "earnings per share (diluted)",
                     "diluted <UNIT>",
-                    "net <INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE><SEPARATOR> diluted <UNIT>"
+                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE><SEPARATOR> diluted <UNIT>"
                 ],
                 "variations": {
+                    "TOTAL": [
+                        "",
+                        "total "
+                    ],
+                    "NET": [
+                        "",
+                        "net "
+                    ],
                     "INCOME_LOSS": [
                         "income",
                         "loss",
+                        "earnings",
                         "income (loss)",
-                        "(loss) income"
+                        "(loss) income",
+                        "earnings (loss)",
+                        "(loss) earnings"
                     ],
                     "CLASS_A_STOCK": [
                         "",
@@ -197,20 +219,29 @@
         "marketable_securities": {
             "tags": [
                 "us-gaap_ShortTermInvestments",
+                "us-gaap_OtherShortTermInvestments",
                 "us-gaap_MarketableSecuritiesCurrent",
                 "us-gaap_DebtSecuritiesCurrent",
-                "us-gaap_EquitySecuritiesFvNi"
+                "us-gaap_AvailableForSaleSecuritiesDebtSecurities",
+                "us-gaap_EquitySecuritiesFvNi",
+                "us-gaap_EquitySecuritiesFvNiCurrentAndNoncurrent"
             ],
             "labels": {
                 "pattern": [
-                    "Short-term investments",
-                    "Marketable <SECURITY_TYPE>securities"
+                    "Short-term <INVESTMENTS>",
+                    "Marketable <SECURITY_TYPE><INVESTMENTS>",
+                    "Fixed maturities, available for sale, at fair value",
+                    "Equity securities, at fair value"
                 ],
                 "variations": {
                     "SECURITY_TYPE": [
                         "",
                         "debt ",
                         "equity "
+                    ],
+                    "INVESTMENTS": [
+                        "investments",
+                        "securities"
                     ]
                 }
             }
@@ -284,10 +315,12 @@
         },
         "shareholders_equity": {
             "tags": [
-                "us-gaap_StockholdersEquity"
+                "us-gaap_StockholdersEquity",
+                "us-gaap_StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
             ],
             "labels": {
                 "pattern": [
+                    "Total equity",
                     "<HODLER><S> equity",
                     "<TOTAL> <HODLER><S> equity"
                 ],
@@ -318,7 +351,7 @@
                     "<BASIC_AND_DILUTED><UNIT>",
                     "<WEIGHTED_AVERAGE> <SHARES> outstanding<SEPARATOR> <BASIC_AND_DILUTED><UNIT>",
                     "<WEIGHTED_AVERAGE> <COMMON_SHARES> outstanding<SEPARATOR> <BASIC_AND_DILUTED><UNIT>",
-                    "<SHARES> used to compute <BASIC_AND_DILUTED> net income per share<UNIT>"
+                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> net income per share<UNIT>"
                 ],
                 "variations": {
                     "BASIC_AND_DILUTED": [
@@ -336,6 +369,10 @@
                     "COMMON_SHARES": [
                         "common shares",
                         "common stock"
+                    ],
+                    "COMPUTE": [
+                        "to compute",
+                        "in computing"
                     ],
                     "SEPARATOR": [
                         ",",
