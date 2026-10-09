@@ -123,9 +123,13 @@
             ],
             "labels": {
                 "pattern": [
-                    "<NET><INCOME_LOSS><ATTRIBUTABLE>"
+                    "<CONSOLIDATED><NET><INCOME_LOSS><ATTRIBUTABLE>"
                 ],
                 "variations": {
+                    "CONSOLIDATED": [
+                        "",
+                        "consolidated "
+                    ],
                     "NET": [
                         "",
                         "net "
