@@ -295,7 +295,12 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
 
     period = None
     if rendered_income_statement.header.periods:
-        period = rendered_income_statement.header.periods[0].end_date
+        for p in rendered_income_statement.header.periods:
+            if "ytd" in p.label.lower():
+                continue
+            
+            if not period or p.end_date > period:
+                period = p.end_date
     else:
         period_of_report = getattr(form_10q, "period_of_report", None)
         if period_of_report:

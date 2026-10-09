@@ -53,7 +53,6 @@
             ],
             "labels": {
                 "pattern": [
-                    "<REVENUE>",
                     "<TOTAL><NET><REVENUE>"
                 ],
                 "variations": {
@@ -124,9 +123,13 @@
             ],
             "labels": {
                 "pattern": [
-                    "net <INCOME_LOSS><ATTRIBUTABLE>"
+                    "<NET><INCOME_LOSS><ATTRIBUTABLE>"
                 ],
                 "variations": {
+                    "NET": [
+                        "",
+                        "net "
+                    ],
                     "INCOME_LOSS": [
                         "income",
                         "loss",
@@ -155,9 +158,11 @@
             {
                 "pattern": [
                     "diluted",
-                    "earnings per share (diluted)",
                     "diluted <UNIT>",
-                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE><SEPARATOR> diluted <UNIT>"
+                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE> (diluted)",
+                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE> (diluted)",
+                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE><SEPARATOR> diluted <UNIT>",
+                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE><SEPARATOR> diluted <UNIT>"
                 ],
                 "variations": {
                     "TOTAL": [
@@ -172,10 +177,13 @@
                         "income",
                         "loss",
                         "earnings",
+                        "profit",
                         "income (loss)",
                         "(loss) income",
                         "earnings (loss)",
-                        "(loss) earnings"
+                        "(loss) earnings",
+                        "profit (loss)",
+                        "(loss) profit"
                     ],
                     "CLASS_A_STOCK": [
                         "",
@@ -229,8 +237,8 @@
             "labels": {
                 "pattern": [
                     "Short-term <INVESTMENTS>",
-                    "Marketable <SECURITY_TYPE><INVESTMENTS>",
-                    "Fixed maturities, available for sale, at fair value",
+                    "Marketable <SECURITY_TYPE>securities",
+                    "Fixed maturities, available for sale",
                     "Equity securities, at fair value"
                 ],
                 "variations": {
@@ -314,19 +322,20 @@
             }
         },
         "shareholders_equity": {
+            "_comment": "Ignoring shareholder's deficit is deliberate",
             "tags": [
                 "us-gaap_StockholdersEquity",
                 "us-gaap_StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
             ],
             "labels": {
+                "_comment": "Adding 'total equity' would cause double-counting",
                 "pattern": [
-                    "Total equity",
-                    "<HODLER><S> equity",
-                    "<TOTAL> <HODLER><S> equity"
+                    "<TOTAL><HODLER><S> equity"
                 ],
                 "variations": {
                     "TOTAL": [
-                        "total"
+                        "",
+                        "total "
                     ],
                     "HODLER": [
                         "stockholder",
@@ -350,8 +359,7 @@
                 "pattern": [
                     "<BASIC_AND_DILUTED><UNIT>",
                     "<WEIGHTED_AVERAGE> <SHARES> outstanding<SEPARATOR> <BASIC_AND_DILUTED><UNIT>",
-                    "<WEIGHTED_AVERAGE> <COMMON_SHARES> outstanding<SEPARATOR> <BASIC_AND_DILUTED><UNIT>",
-                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> net income per share<UNIT>"
+                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> <TOTAL><NET><INCOME_LOSS> per share<UNIT>"
                 ],
                 "variations": {
                     "BASIC_AND_DILUTED": [
@@ -364,11 +372,29 @@
                     ],
                     "SHARES": [
                         "shares",
-                        "stocks"
-                    ],
-                    "COMMON_SHARES": [
+                        "stocks",
                         "common shares",
                         "common stock"
+                    ],
+                    "TOTAL": [
+                        "",
+                        "total "
+                    ],
+                    "NET": [
+                        "",
+                        "net "
+                    ],
+                    "INCOME_LOSS": [
+                        "income",
+                        "loss",
+                        "earnings",
+                        "profit",
+                        "income (loss)",
+                        "(loss) income",
+                        "earnings (loss)",
+                        "(loss) earnings",
+                        "profit (loss)",
+                        "(loss) profit"
                     ],
                     "COMPUTE": [
                         "to compute",

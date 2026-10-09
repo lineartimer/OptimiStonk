@@ -74,7 +74,7 @@ export default function StockHistoryChart({ ticker, financialData, historicalPri
                     stroke="var(--color-border)"
                     tickLine={false}
                     minTickGap={24}
-                    interval="preserveStartEnd"
+                    interval="equidistantPreserveEnd"
                     height={40}
                   />
                   <YAxis
