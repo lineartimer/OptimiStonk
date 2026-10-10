@@ -26,14 +26,14 @@ class CompanyLossesError(Exception):
 async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     ticker = ticker.strip().upper()
 
+    financials, reports = await get_financial_data(ticker, years)
+
     (
         name,
         last_price,
         price_history,
         extra_price_point
     ) = await get_price_history(ticker, years)
-
-    financials, reports = await get_financial_data(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet,
     # shift price history back one quarter

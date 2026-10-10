@@ -355,9 +355,7 @@ def _parse_from_financial_statement(
 ) -> float | None:
 
     tags = _document_internals[name]["tags"]
-    labels = _generate_all_labels(
-        _document_internals[name]["labels"]
-    )
+    labels = _document_internals[name]["labels"]
 
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:
@@ -369,14 +367,14 @@ def _parse_from_financial_statement(
 
         if (
             tag.lower() in [t.lower() for t in tags] and
-            _row_starts_with_label(row.label, labels)
+            _row_like_labels(row.label, labels)
         ):
             if row.cells and row.cells[0]:
                 try:
                     parsed_value = float(row.cells[0].value)
 
                     # Accumulate all matching rows
-                    # (Needed for parsing long term debt)
+                    # (needed for parsing long term debt)
                     if value is None:
                         value = parsed_value
                     else:
@@ -392,28 +390,22 @@ def _parse_from_financial_statement(
     return value
 
 
-def _generate_all_labels(labels: dict) -> list[str]:
-    variations = labels["variations"]
-    result = []
-
-    for pattern in labels["pattern"]:
-        names = list(dict.fromkeys(re.findall(r"<([^>]+)>", pattern)))
-        choices = [variations[name] for name in names]
-
-        for values in product(*choices):
-            label = pattern
-            for name, value in zip(names, values):
-                label = label.replace(f"<{name}>", value)
-            
-            result.append(label)
-
-    return list(dict.fromkeys(result))
-
-
-def _row_starts_with_label(row_label: str, labels: list[str]) -> bool:
+def _row_like_labels(row_label: str, labels: list[str]) -> bool:
     row_label_lower_case = row_label.lower()
+
+    # Match label definitions:
+    # - "," means and
+    # - "/" means or
     return any(
-        row_label_lower_case.startswith(label.lower()) for label in labels
+        all(
+            any(
+                term.strip() in row_label_lower_case
+                for term in group.split("/")
+                if term.strip()
+            )
+            for group in label.lower().split(",")
+        )
+        for label in labels
     )
 
 

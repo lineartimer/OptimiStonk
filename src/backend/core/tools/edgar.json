@@ -51,26 +51,9 @@
                 "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax",
                 "us-gaap_RevenuesNetOfInterestExpense"
             ],
-            "labels": {
-                "pattern": [
-                    "<TOTAL><NET><REVENUE>"
-                ],
-                "variations": {
-                    "TOTAL": [
-                        "",
-                        "total "
-                    ],
-                    "NET": [
-                        "",
-                        "net "
-                    ],
-                    "REVENUE": [
-                        "revenue",
-                        "revenues",
-                        "sales"
-                    ]
-                }
-            }
+            "labels": [
+                "revenue/sales"
+            ]
         },
         "r_and_d_expense": {
             "tags": [
@@ -78,151 +61,35 @@
                 "us-gaap_ResearchAndDevelopmentExpense",
                 "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
             ],
-            "labels": {
-                "pattern": [
-                    "<R_AND_D>"
-                ],
-                "variations": {
-                    "R_AND_D": [
-                        "research and development"
-                    ]
-                }
-            }
+            "labels": [
+                "research,development"
+            ]
         },
         "operating_income": {
             "tags": [
                 "us-gaap_OperatingIncomeLoss"
             ],
-            "labels": {
-                "pattern": [
-                    "<PREFIX><OPERATING_INCOME_LOSS>"
-                ],
-                "variations": {
-                    "PREFIX": [
-                        "",
-                        "\u00a0"
-                    ],
-                    "OPERATING_INCOME_LOSS": [
-                        "operating income",
-                        "operating loss",
-                        "operating income (loss)",
-                        "operating (loss) income",
-                        "income from operations",
-                        "earnings from operations",
-                        "loss from operations",
-                        "income (loss) from operations",
-                        "(loss) income from operations"
-                    ]
-                }
-            }
+            "labels": [
+                "operating/operations,income/loss/earnings/profit"
+            ]
         },
         "net_income": {
             "tags": [
                 "us-gaap_NetIncomeLoss",
-                "us-gaap_ProfitLoss"
+                "us-gaap_ProfitLoss",
+                "us-gaap_NetIncomeLossAvailableToCommonStockholdersBasic"
             ],
-            "labels": {
-                "pattern": [
-                    "<CONSOLIDATED><NET><INCOME_LOSS><ATTRIBUTABLE>"
-                ],
-                "variations": {
-                    "CONSOLIDATED": [
-                        "",
-                        "consolidated "
-                    ],
-                    "NET": [
-                        "",
-                        "net "
-                    ],
-                    "INCOME_LOSS": [
-                        "income",
-                        "loss",
-                        "earnings",
-                        "profit",
-                        "income (loss)",
-                        "(loss) income",
-                        "earnings (loss)",
-                        "(loss) earnings",
-                        "profit (loss)",
-                        "(loss) profit"
-                    ],
-                    "ATTRIBUTABLE": [
-                        "",
-                        " attributable to common stockholders",
-                        " attributable to common shareholders"
-                    ]
-                }
-            }
+            "labels": [
+                "income/loss/earnings/profit"
+            ]
         },
         "eps": {
             "tags": [
                 "us-gaap_EarningsPerShareDiluted"
             ],
-            "labels":
-            {
-                "pattern": [
-                    "diluted",
-                    "diluted <UNIT>",
-                    "diluted net <INCOME_LOSS> per share <UNIT>",
-                    "<TOTAL><NET><INCOME_LOSS> per share<OF_STOCK><ATTRIBUTABLE> (<DILUTION>)",
-                    "<TOTAL><NET><INCOME_LOSS> per share<OF_STOCK><ATTRIBUTABLE><SEPARATOR><DILUTION> <UNIT>",
-                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE> (<DILUTION>)",
-                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE><SEPARATOR><DILUTION> <UNIT>"
-                ],
-                "variations": {
-                    "TOTAL": [
-                        "",
-                        "total "
-                    ],
-                    "NET": [
-                        "",
-                        "net "
-                    ],
-                    "INCOME_LOSS": [
-                        "income",
-                        "loss",
-                        "earnings",
-                        "profit",
-                        "income (loss)",
-                        "(loss) income",
-                        "earnings (loss)",
-                        "(loss) earnings",
-                        "profit (loss)",
-                        "(loss) profit"
-                    ],
-                    "OF_STOCK": [
-                        "",
-                        " of common stock",
-                        " of common share",
-                        " of class a common stock",
-                        " of class a common share"
-                    ],
-                    "ATTRIBUTABLE": [
-                        "",
-                        " attributable to common stockholders",
-                        " attributable to common shareholders"
-                    ],
-                    "SEPARATOR": [
-                        ", ",
-                        "-",
-                        "–",
-                        "—",
-                        " - ",
-                        " – ",
-                        " — "
-                    ],
-                    "DILUTION": [
-                        "diluted",
-                        "assuming dilution"
-                    ],
-                    "UNIT": [
-                        "(dollars per share)",
-                        "(in dollars per share)",
-                        "(usd per share)",
-                        "(in usd per share)"
-                    ]
-                }
-            }
+            "labels": [
+                "diluted/dilution"
+            ]
         },
         "cash_and_equivalents": {
             "tags": [
@@ -230,19 +97,9 @@
                 "us-gaap_CashAndCashEquivalentsAtCarryingValue",
                 "us-gaap_CashAndDueFromBanks"
             ],
-            "labels": {
-                "pattern": [
-                    "<CASH_AND_EQUIVALENTS>"
-                ],
-                "variations": {
-                    "CASH_AND_EQUIVALENTS": [
-                        "cash",
-                        "cash and equivalents",
-                        "cash and cash equivalents",
-                        "cash and due from banks"
-                    ]
-                }
-            }
+            "labels": [
+                "cash"
+            ]
         },
         "marketable_securities": {
             "tags": [
@@ -254,72 +111,35 @@
                 "us-gaap_EquitySecuritiesFvNi",
                 "us-gaap_EquitySecuritiesFvNiCurrentAndNoncurrent"
             ],
-            "labels": {
-                "pattern": [
-                    "Short-term <INVESTMENTS>",
-                    "Marketable <SECURITY_TYPE>securities",
-                    "Fixed maturities, available for sale",
-                    "Equity securities, at fair value"
-                ],
-                "variations": {
-                    "SECURITY_TYPE": [
-                        "",
-                        "debt ",
-                        "equity "
-                    ],
-                    "INVESTMENTS": [
-                        "investments",
-                        "securities"
-                    ]
-                }
-            }
+            "labels": [
+                "short-term/marketable,investments/securities",
+                "fixed maturities/equity securities"
+            ]
         },
         "accounts_receivable": {
             "tags": [
                 "us-gaap_AccountsReceivableNetCurrent",
                 "us-gaap_ReceivablesNetCurrent"
             ],
-            "labels": {
-                "pattern": [
-                    "<ACCOUNTS_RECEIVABLE>"
-                ],
-                "variations": {
-                    "ACCOUNTS_RECEIVABLE": [
-                        "accounts receivable",
-                        "receivables, net"
-                    ]
-                }
-            }
+            "labels": [
+                "accounts/net,receivable"
+            ]
         },
         "total_assets": {
             "tags": [
                 "us-gaap_Assets"
             ],
-            "labels": {
-                "pattern": [
-                    "<TOTAL_ASSETS>"
-                ],
-                "variations": {
-                    "TOTAL_ASSETS": [
-                        "total assets"
-                    ]
-                }
-            }
+            "labels": [
+                "total assets"
+            ]
         },
         "current_liabilities": {
             "tags": [
                 "us-gaap_LiabilitiesCurrent"
             ],
-            "labels": {
-                "pattern": [
-                    "<CURRENT_LIABILITIES>"
-                ],
-                "variations": {
-                    "CURRENT_LIABILITIES": [
-                        "total current liabilities"
-                    ]
-                }
-            }
+            "labels": [
+                "total current liabilities"
+            ]
         },
         "long_term_debt": {
             "tags": [
@@ -328,18 +148,9 @@
                 "us-gaap_ConvertibleDebtNoncurrent",
                 "us-gaap_LongTermLineOfCredit"
             ],
-            "labels": {
-                "pattern": [
-                    "<LONG_TERM_DEBT>"
-                ],
-                "variations": {
-                    "LONG_TERM_DEBT": [
-                        "long-term debt",
-                        "convertible senior notes",
-                        "line of credit"
-                    ]
-                }
-            }
+            "labels": [
+                "long-term debt/convertible senior notes/line of credit"
+            ]
         },
         "shareholders_equity": {
             "_comment": "Ignoring shareholder's deficit is deliberate",
@@ -347,128 +158,26 @@
                 "us-gaap_StockholdersEquity",
                 "us-gaap_StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
             ],
-            "labels": {
-                "_comment": "Adding 'total equity' would cause double-counting",
-                "pattern": [
-                    "<TOTAL><HODLER><S> <EQUITY>"
-                ],
-                "variations": {
-                    "TOTAL": [
-                        "",
-                        "total "
-                    ],
-                    "HODLER": [
-                        "stockholder",
-                        "shareholder",
-                        "stockowner",
-                        "shareowner"
-                    ],
-                    "S": [
-                        "’s",
-                        "'s",
-                        "s’",
-                        "s'"
-                    ],
-                    "EQUITY": [
-                        "equity",
-                        "investment"
-                    ]
-                }
-            }
+            "labels": [
+                "stockholder/shareholder/stockowner/shareowner,’s/'s/s’/s',equity/investment"
+            ]
         },
         "investment_cash_flow": {
             "tags": [
                 "us-gaap_NetCashProvidedByUsedInInvestingActivities"
             ],
-            "labels": {
-                "pattern": [
-                    "Net cash <PROVIDED_BY_USED_IN> <INVESTING_ACTIVITIES>"
-                ],
-                "variations": {
-                    "PROVIDED_BY_USED_IN": [
-                        "provided by",
-                        "used in",
-                        "used for",
-                        "from",
-                        "provided by (used in)",
-                        "(used in) provided by",
-                        "from (used in)"
-                    ],
-                    "INVESTING_ACTIVITIES": [
-                        "investing",
-                        "investing activities"
-                    ]
-                }
-            }
+            "labels": [
+                "net cash,provided by/used in/used for/from,investing"
+            ]
         },
         "share_count": {
             "tags": [
                 "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
                 "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
             ],
-            "labels": {
-                "pattern": [
-                    "<BASIC_AND_DILUTED><UNIT>",
-                    "<WEIGHTED_AVERAGE> <SHARES> outstanding<SEPARATOR><BASIC_AND_DILUTED><UNIT>",
-                    "<WEIGHTED_AVERAGE> <SHARES> used in computing diluted <TOTAL><NET><INCOME_LOSS> per share <UNIT>",
-                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> <TOTAL><NET><INCOME_LOSS> per share<UNIT>",
-                    "<SHARES> used <COMPUTE> <INCOME_LOSS> per common share<SEPARATOR><BASIC_AND_DILUTED><UNIT>",
-                    "<SHARES> used in diluted per share calculations<UNIT>"
-                ],
-                "variations": {
-                    "BASIC_AND_DILUTED": [
-                        "diluted",
-                        "basic and diluted"
-                    ],
-                    "WEIGHTED_AVERAGE": [
-                        "weighted average",
-                        "weighted-average"
-                    ],
-                    "SHARES": [
-                        "shares",
-                        "stocks",
-                        "common shares",
-                        "common stock"
-                    ],
-                    "TOTAL": [
-                        "",
-                        "total "
-                    ],
-                    "NET": [
-                        "",
-                        "net "
-                    ],
-                    "INCOME_LOSS": [
-                        "income",
-                        "loss",
-                        "earnings",
-                        "profit",
-                        "income (loss)",
-                        "(loss) income",
-                        "earnings (loss)",
-                        "(loss) earnings",
-                        "profit (loss)",
-                        "(loss) profit"
-                    ],
-                    "COMPUTE": [
-                        "to compute",
-                        "in computing"
-                    ],
-                    "SEPARATOR": [
-                        ", ",
-                        "-",
-                        "–",
-                        "—",
-                        " - ",
-                        " – ",
-                        " — "
-                    ],
-                    "UNIT": [
-                        "",
-                        " (in shares)"
-                    ]
-                }
-            }
+            "labels": [
+                "diluted"
+            ]
         }
     }
 }

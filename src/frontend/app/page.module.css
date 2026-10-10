@@ -207,6 +207,7 @@
 
 .discoveryControls > button,
 .addStockControls > button,
+.cancelButton,
 .deleteButton {
   flex-shrink: 0;
   padding: 8px 16px;
@@ -293,6 +294,57 @@
 
 .deleteButton:hover:not(:disabled) {
   background: var(--color-error-hover);
+}
+
+.confirmationOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--color-shadow);
+}
+
+.confirmationDialog {
+  box-sizing: border-box;
+  width: min(100%, 400px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px var(--color-shadow);
+}
+
+.confirmationDialog h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.confirmationDialog p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmationActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.cancelButton {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.cancelButton:hover {
+  background: var(--color-hover);
 }
 
 .summary {

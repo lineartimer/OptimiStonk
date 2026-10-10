@@ -184,8 +184,11 @@ export default function Home() {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
+  const [tickerToDelete, setTickerToDelete] = useState(null);
   const [deletingTicker, setDeletingTicker] = useState(null);
   const [deleteError, setDeleteError] = useState(null);
+  const deleteButtonRef = useRef(null);
+  const cancelDeleteRef = useRef(null);
   const [marketTickers, setMarketTickers] = useState([]);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState("");
@@ -198,6 +201,24 @@ export default function Home() {
   const [discoveryMessages, setDiscoveryMessages] = useState([]);
   const discoveryMessagesRef = useRef(null);
   const followMessagesRef = useRef(true);
+
+  useEffect(() => {
+    if (tickerToDelete === null) return;
+
+    const previousFocus = deleteButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    cancelDeleteRef.current?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected && !previousFocus.matches(":disabled")) {
+        previousFocus.focus();
+      } else {
+        document.getElementById("tab-stock-details")?.focus();
+      }
+    };
+  }, [tickerToDelete]);
 
   useLayoutEffect(() => {
     const textbox = discoveryMessagesRef.current;
@@ -339,9 +360,11 @@ export default function Home() {
     setStopping(true);
   }
 
-  async function deleteCompany(ticker) {
-    if (deletingTicker || loading || companiesLoading) return;
+  async function deleteCompany() {
+    if (tickerToDelete === null || deletingTicker || loading || companiesLoading) return;
 
+    const ticker = tickerToDelete;
+    setTickerToDelete(null);
     setDeletingTicker(ticker);
     setDeleteError(null);
 
@@ -359,7 +382,7 @@ export default function Home() {
 
   return (
     <main className={styles.page}>
-      <aside className={styles.sidebar} aria-label="Stocks">
+      <aside className={styles.sidebar} aria-label="Stocks" inert={tickerToDelete !== null}>
         <a href="/" aria-label="OptimiStonk home">
           <span className={styles.logo} aria-hidden="true" />
         </a>
@@ -409,7 +432,7 @@ export default function Home() {
         </div>
       </aside>
 
-      <section className={styles.content}>
+      <section className={styles.content} inert={tickerToDelete !== null}>
         <div className={styles.tabs} role="tablist" aria-label="Stock controls">
           {tabs.map(({ id, label }) => (
             <button
@@ -498,11 +521,12 @@ export default function Home() {
               <div className={styles.companyHeading}>
                 <h1>{company.name}</h1>
                 <button
+                  ref={deleteButtonRef}
                   type="button"
                   className={styles.deleteButton}
                   disabled={Boolean(deletingTicker || loading || companiesLoading)}
                   aria-busy={deletingTicker === company.ticker}
-                  onClick={() => deleteCompany(company.ticker)}
+                  onClick={() => setTickerToDelete(company.ticker)}
                 >
                   {deletingTicker === company.ticker ? "Deleting…" : "Delete"}
                 </button>
@@ -548,6 +572,49 @@ export default function Home() {
           )}
         </div>
       </section>
+      {tickerToDelete !== null && (
+        <div className={styles.confirmationOverlay}>
+          <div
+            className={styles.confirmationDialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirmation-title"
+            aria-describedby="delete-confirmation-description"
+            onKeyDown={(event) => {
+              if (event.key === "Tab") {
+                const buttons = event.currentTarget.querySelectorAll("button");
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+          >
+            <h2 id="delete-confirmation-title">Are you sure?</h2>
+            <p id="delete-confirmation-description">
+              This will delete <strong>{tickerToDelete}</strong>.
+            </p>
+            <div className={styles.confirmationActions}>
+              <button
+                ref={cancelDeleteRef}
+                type="button"
+                className={styles.cancelButton}
+                onClick={() => setTickerToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button type="button" className={styles.deleteButton} onClick={deleteCompany}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
