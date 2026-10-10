@@ -42,27 +42,17 @@ async def initialize_database() -> None:
     BaseModel.metadata.create_all(bind=engine)
 
     # Download stock list
-    with SessionFactory() as session:
-        market_is_populated = session.scalar(
-            select(MarketModel.ticker).limit(1)
-        ) is not None
+    from backend.core.tools.market import Exchange, download_stock_list
 
-    if market_is_populated:
-        return
+    for exchange in (Exchange.nasdaq, Exchange.nyse):
+        companies = await download_stock_list(exchange)
 
-    from backend.core.tools.market import download_stock_list
-    companies = await download_stock_list()
-
-    with SessionFactory() as session:
-        session.add_all(
-            MarketModel(
-                ticker=ticker,
-                company_name=company["company_name"],
-                stock_type=company["stock_type"]
+        with SessionFactory() as session:
+            session.add_all(
+                MarketModel(ticker=ticker, **company)
+                for ticker, company in companies.items()
             )
-            for ticker, company in companies.items()
-        )
-        session.commit()
+            session.commit()
 
 
 def load_web_page(url: str) -> WebPageModel | None:
@@ -123,6 +113,7 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
             companies.append(Stock(
                 name=company.name,
                 ticker=company.ticker,
+                exchange=company.exchange,
                 last_price=company.last_price,
                 backlog=company.backlog,
                 summary=company.summary,
@@ -173,9 +164,15 @@ def delete_stock(ticker: str) -> bool:
 
 def save_stock(company, reports: dict) -> None:
     with SessionFactory() as session:
+        ticker = company.ticker.strip().upper()
+        company.exchange = session.scalar(
+            select(MarketModel.exchange).where(MarketModel.ticker == ticker)
+        ) or company.exchange
+
         stock = StockModel(
             name=company.name,
-            ticker=company.ticker.upper(),
+            ticker=ticker,
+            exchange=company.exchange,
             last_price=company.last_price,
             rank=company.rank(),
             backlog=company.backlog,
