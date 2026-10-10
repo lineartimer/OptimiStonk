@@ -350,7 +350,7 @@
             "labels": {
                 "_comment": "Adding 'total equity' would cause double-counting",
                 "pattern": [
-                    "<TOTAL><HODLER><S> equity"
+                    "<TOTAL><HODLER><S> <EQUITY>"
                 ],
                 "variations": {
                     "TOTAL": [
@@ -368,6 +368,10 @@
                         "'s",
                         "s’",
                         "s'"
+                    ],
+                    "EQUITY": [
+                        "equity",
+                        "investment"
                     ]
                 }
             }
