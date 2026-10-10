@@ -49,7 +49,7 @@
                 "us-gaap_Revenues",
                 "us-gaap_SalesRevenueNet",
                 "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax",
-                "us-gaap_RevenueFromContractWithCustomerIncludingAssessedTax"
+                "us-gaap_RevenuesNetOfInterestExpense"
             ],
             "labels": {
                 "pattern": [
@@ -163,10 +163,11 @@
                 "pattern": [
                     "diluted",
                     "diluted <UNIT>",
-                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE> (diluted)",
-                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE> (diluted)",
-                    "<TOTAL><NET><INCOME_LOSS> per share<CLASS_A_STOCK><ATTRIBUTABLE><SEPARATOR> diluted <UNIT>",
-                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE><SEPARATOR> diluted <UNIT>"
+                    "diluted net <INCOME_LOSS> per share <UNIT>",
+                    "<TOTAL><NET><INCOME_LOSS> per share<OF_STOCK><ATTRIBUTABLE> (<DILUTION>)",
+                    "<TOTAL><NET><INCOME_LOSS> per share<OF_STOCK><ATTRIBUTABLE><SEPARATOR><DILUTION> <UNIT>",
+                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE> (<DILUTION>)",
+                    "<TOTAL><NET><INCOME_LOSS> per common share<ATTRIBUTABLE><SEPARATOR><DILUTION> <UNIT>"
                 ],
                 "variations": {
                     "TOTAL": [
@@ -189,8 +190,10 @@
                         "profit (loss)",
                         "(loss) profit"
                     ],
-                    "CLASS_A_STOCK": [
+                    "OF_STOCK": [
                         "",
+                        " of common stock",
+                        " of common share",
                         " of class a common stock",
                         " of class a common share"
                     ],
@@ -200,12 +203,23 @@
                         " attributable to common shareholders"
                     ],
                     "SEPARATOR": [
-                        ",",
-                        " -"
+                        ", ",
+                        "-",
+                        "–",
+                        "—",
+                        " - ",
+                        " – ",
+                        " — "
+                    ],
+                    "DILUTION": [
+                        "diluted",
+                        "assuming dilution"
                     ],
                     "UNIT": [
+                        "(dollars per share)",
                         "(in dollars per share)",
-                        "(usd per share)"
+                        "(usd per share)",
+                        "(in usd per share)"
                     ]
                 }
             }
@@ -213,7 +227,8 @@
         "cash_and_equivalents": {
             "tags": [
                 "us-gaap_Cash",
-                "us-gaap_CashAndCashEquivalentsAtCarryingValue"
+                "us-gaap_CashAndCashEquivalentsAtCarryingValue",
+                "us-gaap_CashAndDueFromBanks"
             ],
             "labels": {
                 "pattern": [
@@ -223,7 +238,8 @@
                     "CASH_AND_EQUIVALENTS": [
                         "cash",
                         "cash and equivalents",
-                        "cash and cash equivalents"
+                        "cash and cash equivalents",
+                        "cash and due from banks"
                     ]
                 }
             }
@@ -343,13 +359,40 @@
                     ],
                     "HODLER": [
                         "stockholder",
-                        "shareholder"
+                        "shareholder",
+                        "stockowner",
+                        "shareowner"
                     ],
                     "S": [
                         "’s",
                         "'s",
                         "s’",
                         "s'"
+                    ]
+                }
+            }
+        },
+        "investment_cash_flow": {
+            "tags": [
+                "us-gaap_NetCashProvidedByUsedInInvestingActivities"
+            ],
+            "labels": {
+                "pattern": [
+                    "Net cash <PROVIDED_BY_USED_IN> <INVESTING_ACTIVITIES>"
+                ],
+                "variations": {
+                    "PROVIDED_BY_USED_IN": [
+                        "provided by",
+                        "used in",
+                        "used for",
+                        "from",
+                        "provided by (used in)",
+                        "(used in) provided by",
+                        "from (used in)"
+                    ],
+                    "INVESTING_ACTIVITIES": [
+                        "investing",
+                        "investing activities"
                     ]
                 }
             }
@@ -362,8 +405,11 @@
             "labels": {
                 "pattern": [
                     "<BASIC_AND_DILUTED><UNIT>",
-                    "<WEIGHTED_AVERAGE> <SHARES> outstanding<SEPARATOR> <BASIC_AND_DILUTED><UNIT>",
-                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> <TOTAL><NET><INCOME_LOSS> per share<UNIT>"
+                    "<WEIGHTED_AVERAGE> <SHARES> outstanding<SEPARATOR><BASIC_AND_DILUTED><UNIT>",
+                    "<WEIGHTED_AVERAGE> <SHARES> used in computing diluted <TOTAL><NET><INCOME_LOSS> per share <UNIT>",
+                    "<SHARES> used <COMPUTE> <BASIC_AND_DILUTED> <TOTAL><NET><INCOME_LOSS> per share<UNIT>",
+                    "<SHARES> used <COMPUTE> <INCOME_LOSS> per common share<SEPARATOR><BASIC_AND_DILUTED><UNIT>",
+                    "<SHARES> used in diluted per share calculations<UNIT>"
                 ],
                 "variations": {
                     "BASIC_AND_DILUTED": [
@@ -405,37 +451,17 @@
                         "in computing"
                     ],
                     "SEPARATOR": [
-                        ",",
-                        " -"
+                        ", ",
+                        "-",
+                        "–",
+                        "—",
+                        " - ",
+                        " – ",
+                        " — "
                     ],
                     "UNIT": [
                         "",
                         " (in shares)"
-                    ]
-                }
-            }
-        },
-        "investment_cash_flow": {
-            "tags": [
-                "us-gaap_NetCashProvidedByUsedInInvestingActivities"
-            ],
-            "labels": {
-                "pattern": [
-                    "Net cash <PROVIDED_BY_USED_IN> <INVESTING_ACTIVITIES>"
-                ],
-                "variations": {
-                    "PROVIDED_BY_USED_IN": [
-                        "provided by",
-                        "used in",
-                        "used for",
-                        "from",
-                        "provided by (used in)",
-                        "(used in) provided by",
-                        "from (used in)"
-                    ],
-                    "INVESTING_ACTIVITIES": [
-                        "investing",
-                        "investing activities"
                     ]
                 }
             }
