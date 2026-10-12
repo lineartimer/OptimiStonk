@@ -4,8 +4,8 @@ import structlog
 from backend.api.helpers.streamer import stream_message
 from backend.config import BRAVE_API_KEY
 from backend.database.database import load_web_search, save_web_search
-from backend.utils.logger import log_and_stream
-from backend.utils.message_type import MessageType
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"

@@ -49,20 +49,18 @@ async def initialize_database() -> None:
 
     if market_is_populated:
         return
+    
+    from backend.core.tools.market import Exchange, download_stock_list
 
-    from backend.core.tools.market import download_stock_list
-    companies = await download_stock_list()
+    for exchange in (Exchange.nasdaq, Exchange.nyse):
+        companies = await download_stock_list(exchange)
 
-    with SessionFactory() as session:
-        session.add_all(
-            MarketModel(
-                ticker=ticker,
-                company_name=company["company_name"],
-                stock_type=company["stock_type"]
+        with SessionFactory() as session:
+            session.add_all(
+                MarketModel(ticker=ticker, **company)
+                for ticker, company in companies.items()
             )
-            for ticker, company in companies.items()
-        )
-        session.commit()
+            session.commit()
 
 
 def load_web_page(url: str) -> WebPageModel | None:
@@ -123,6 +121,7 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
             companies.append(Stock(
                 name=company.name,
                 ticker=company.ticker,
+                stock_exchange=company.stock_exchange,
                 last_price=company.last_price,
                 backlog=company.backlog,
                 summary=company.summary,
@@ -132,7 +131,20 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
                 **{
                     field: {row.quarter: getattr(row, field) for row in financial_rows}
                     for field in (
-                        "revenue", "r_and_d_expense", "investment_cash_flow", "share_count"
+                        "revenue",
+                        "r_and_d_expense",
+                        "operating_income",
+                        "net_income",
+                        "eps",
+                        "cash_and_equivalents",
+                        "marketable_securities",
+                        "accounts_receivable",
+                        "total_assets",
+                        "current_liabilities",
+                        "long_term_debt",
+                        "shareholders_equity",
+                        "investment_cash_flow",
+                        "share_count"
                     )
                 }
             ))
@@ -143,23 +155,43 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
         return companies[0] if len(companies) == 1 else companies
 
 
+def delete_stock(ticker: str) -> bool:
+    with SessionFactory() as session:
+        stock = session.scalar(
+            select(StockModel).where(StockModel.ticker == ticker.strip().upper())
+        )
+
+        if stock is None:
+            return False
+
+        session.delete(stock)
+        session.commit()
+
+        return True
+
+
 def save_stock(company, reports: dict) -> None:
     with SessionFactory() as session:
+        ticker = company.ticker.strip().upper()
+        company.stock_exchange = session.scalar(
+            select(MarketModel.stock_exchange).where(MarketModel.ticker == ticker)
+        ) or company.stock_exchange
+
         stock = StockModel(
             name=company.name,
-            ticker=company.ticker.upper(),
+            ticker=ticker,
+            stock_exchange=company.stock_exchange,
             last_price=company.last_price,
-            rank_backlog=company.rank_backlog(),
-            rank_market=company.rank_market(),
+            rank=company.rank(),
             backlog=company.backlog,
             price_to_revenue=company.price_to_revenue_ratio(),
             price_to_backlog=company.price_to_backlog_ratio(),
             revenue_growth=company.revenue_growth_per_year(),
-            relative_hype=company.relative_hype(),
             summary=company.summary,
             annual_report=reports["latest_10k"],
             quarterly_report=reports["latest_10q"]
         )
+        
         session.add(stock)
         session.flush()
 
@@ -169,6 +201,16 @@ def save_stock(company, reports: dict) -> None:
                 quarter=quarter,
                 revenue=data["revenue"],
                 r_and_d_expense=data["r_and_d_expense"],
+                operating_income=data["operating_income"],
+                net_income=data["net_income"],
+                eps=data["eps"],
+                cash_and_equivalents=data["cash_and_equivalents"],
+                marketable_securities=data["marketable_securities"],
+                accounts_receivable=data["accounts_receivable"],
+                total_assets=data["total_assets"],
+                current_liabilities=data["current_liabilities"],
+                long_term_debt=data["long_term_debt"],
+                shareholders_equity=data["shareholders_equity"],
                 investment_cash_flow=data["investment_cash_flow"],
                 share_count=data["share_count"]
             ))

@@ -2,8 +2,9 @@ import asyncio
 import structlog
 import yfinance as yf
 
-from backend.api.helpers.streamer import MessageType, stream_message
-from backend.utils.logger import log_and_stream
+from backend.api.helpers.streamer import stream_message
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 
 
 _logger = structlog.get_logger(__name__)
@@ -94,7 +95,7 @@ def _get_price_history(ticker: str, years: int):
         year_and_quarter, price = prices_by_quarter.popitem()
         extra_price_point[year_and_quarter] = price
 
-    if len(prices_by_quarter) <= 2:
+    if len(prices_by_quarter) < 2:
         _logger.warning(
             "Stopped processing Yahoo Finance data.",
             ticker=ticker,

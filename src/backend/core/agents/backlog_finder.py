@@ -4,7 +4,8 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
-from backend.utils.logger import MessageType, log_and_stream
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
 
 
 SYSTEM_PROMPT = """
@@ -52,7 +53,7 @@ class BacklogFinder:
         backlog = result["structured_response"].backlog_millions
 
         log_and_stream(
-            f"{company_name}'s backlog is {backlog}.",
+            f"{company_name}'s backlog is ${backlog} million.",
             MessageType.info
         )
         return backlog

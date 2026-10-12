@@ -1,28 +1,77 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
-import { log } from "./logger.mjs";
+import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import StockHistoryChart from "./stock-history-chart.js";
+import TickerSelect from "./ticker-select.js";
+import { log } from "./logger.js";
 import styles from "./page.module.css";
 
 const stockColumns = [
   { key: "ticker", label: "Ticker" },
-  { key: "rank_backlog", label: "Rank Backlog" },
-  { key: "rank_market", label: "Rank Market" }
+  { key: "rank", label: "Rank" }
 ];
 
 const tabs = [
-  { id: "discover", label: "Discover" },
+  { id: "discover", label: "Add stock(s)" },
   { id: "stock-details", label: "Stock details" }
 ];
+
+const ratioFields = [
+  { key: "price_to_earnings_ratio", label: "P/E" },
+  { key: "revenue_growth_per_year", label: "Annual revenue growth", percentage: true },
+  { key: "quick_ratio", label: "Quick ratio" },
+  { key: "leverage", label: "Leverage" },
+  { key: "asset_turnover", label: "Asset turnover" },
+  { key: "operating_margin", label: "Operating margin", percentage: true },
+  { key: "r_and_d_to_revenue", label: "R&D-to-revenue", percentage: true }
+];
+
+const metricNumber = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2
+});
+
+const ratioNumber = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+const percentageNumber = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 2
+});
+
+const rankNumber = new Intl.NumberFormat("en-US", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+function numericValue(value) {
+  if (value === "inf") return Infinity;
+  if (value === "-inf") return -Infinity;
+  return typeof value === "number" && !Number.isNaN(value) ? value : null;
+}
+
+function formatRatio(value, percentage = false) {
+  const number = numericValue(value);
+  if (number === null) return "—";
+  return (percentage ? percentageNumber : ratioNumber).format(number);
+}
+
+function formatRank(value) {
+  const number = numericValue(value);
+  if (number === null) return "—";
+  return rankNumber.format(number);
+}
 
 function compareTickers(a, b) {
   return a.ticker.localeCompare(b.ticker, "en", { sensitivity: "base" });
 }
 
-async function request(path, signal, onStatus) {
-  const response = await fetch(path, { cache: "no-store", signal });
-  if (response.ok && onStatus) {
+async function request(path, signal, onStatus, method = "GET") {
+  const response = await fetch(path, { cache: "no-store", signal, method });
+  if (response.status === 204) return;
+  
+  if (response.ok && response.headers.get("content-type")?.includes("application/x-ndjson")) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -40,8 +89,12 @@ async function request(path, signal, onStatus) {
 
           const event = JSON.parse(line);
 
-          if (event.type === "status") onStatus(event.message, event.message_type, event.new_line);
+          if (event.type === "status") {
+            onStatus?.(event.message, event.message_type, event.new_line);
+          }
+
           if (event.type === "result") return event.data;
+          
           if (event.type === "error") {
             const error = new Error(event.detail);
 
@@ -49,13 +102,16 @@ async function request(path, signal, onStatus) {
             // A bare 404 means the market is exhausted, not a missing ticker.
             error.stockFailure = event.status_code === 422
               || (event.status_code === 404 && event.detail !== "Not Found")
-              || (event.status_code === 500 && event.detail === "Failed to load stock data.");
+              || (event.status_code === 500 && (
+                event.detail === "Failed to load stock data."
+                || event.detail.startsWith("Failed to load stock data: ")
+              ));
             
-              throw error;
+            throw error;
           }
         }
 
-        if (done) throw new Error("Discovery stream ended before a result was received.");
+        if (done) throw new Error("Stock collection stream ended before a result was received.");
       }
     } finally {
       await reader.cancel();
@@ -128,14 +184,41 @@ export default function Home() {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [companiesError, setCompaniesError] = useState("");
   const [selectedTicker, setSelectedTicker] = useState(null);
-  const [sort, setSort] = useState({ key: "ticker", direction: "ascending" });
+  const [tickerToDelete, setTickerToDelete] = useState(null);
+  const [deletingTicker, setDeletingTicker] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
+  const deleteButtonRef = useRef(null);
+  const cancelDeleteRef = useRef(null);
+  const [marketTickers, setMarketTickers] = useState([]);
+  const [marketLoading, setMarketLoading] = useState(true);
+  const [marketError, setMarketError] = useState("");
+  const [tickerToAdd, setTickerToAdd] = useState("");
+  const [sort, setSort] = useState({ key: "rank", direction: "descending" });
   const [tab, setTab] = useState("stock-details");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(null);
   const [stopping, setStopping] = useState(false);
-  const discoveryRunRef = useRef(null);
+  const collectionRunRef = useRef(null);
   const [discoveryMessages, setDiscoveryMessages] = useState([]);
   const discoveryMessagesRef = useRef(null);
   const followMessagesRef = useRef(true);
+
+  useEffect(() => {
+    if (tickerToDelete === null) return;
+
+    const previousFocus = deleteButtonRef.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    cancelDeleteRef.current?.focus();
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      if (previousFocus?.isConnected && !previousFocus.matches(":disabled")) {
+        previousFocus.focus();
+      } else {
+        document.getElementById("tab-stock-details")?.focus();
+      }
+    };
+  }, [tickerToDelete]);
 
   useLayoutEffect(() => {
     const textbox = discoveryMessagesRef.current;
@@ -151,17 +234,14 @@ export default function Home() {
     ));
   }
 
-  const company = companies.find(({ ticker }) => ticker === selectedTicker)
-    || companies[0];
-
   const sortedCompanies = useMemo(() => {
     const direction = sort.direction === "ascending" ? 1 : -1;
 
     return [...companies].sort((a, b) => {
       if (sort.key === "ticker") return direction * compareTickers(a, b);
 
-      const aValue = a[sort.key];
-      const bValue = b[sort.key];
+      const aValue = numericValue(a[sort.key]);
+      const bValue = numericValue(b[sort.key]);
 
       if (aValue == null && bValue == null) return compareTickers(a, b);
       
@@ -172,6 +252,9 @@ export default function Home() {
       return direction * (aValue - bValue) || compareTickers(a, b);
     });
   }, [companies, sort]);
+
+  const company = companies.find(({ ticker }) => ticker === selectedTicker)
+    || sortedCompanies[0];
 
   function sortBy(key) {
     setSort((current) => ({
@@ -203,64 +286,108 @@ export default function Home() {
   }, [loadCompanies]);
 
   useEffect(() => () => {
-    if (discoveryRunRef.current) discoveryRunRef.current.stopRequested = true;
+    if (collectionRunRef.current) collectionRunRef.current.stopRequested = true;
   }, []);
 
-  async function search() {
-    if (discoveryRunRef.current) return;
+  const loadMarket = useCallback(async (signal) => {
+    setMarketLoading(true);
+    setMarketError("");
+
+    try {
+      const tickers = await request("/api/market", signal);
+      if (signal?.aborted) return;
+
+      setMarketTickers(tickers);
+      setTickerToAdd((current) => tickers.includes(current) ? current : "");
+    } catch (error) {
+      if (!signal?.aborted) {
+        setMarketError(error.message);
+        setMarketTickers([]);
+        setTickerToAdd("");
+      }
+    } finally {
+      if (!signal?.aborted) setMarketLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadMarket(controller.signal);
+    return () => controller.abort();
+  }, [loadMarket]);
+
+  async function collectStocks(ticker) {
+    if (collectionRunRef.current || deletingTicker) return;
+    if (ticker && (marketLoading || !marketTickers.includes(ticker))) return;
 
     const run = { stopRequested: false };
-    discoveryRunRef.current = run;
-    setLoading(true);
+    collectionRunRef.current = run;
+    setLoading(ticker ? "add" : "discover");
     setStopping(false);
     followMessagesRef.current = true;
 
     try {
       while (!run.stopRequested) {
         try {
-          await request("/api/discover", undefined, addDiscoveryMessage);
+          const path = ticker
+            ? `/api/stock?ticker=${encodeURIComponent(ticker)}`
+            : "/api/discover";
+          await request(path, undefined, addDiscoveryMessage);
           await loadCompanies();
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
-          if (!error.stockFailure) break;
+          if (ticker || !error.stockFailure) break;
+        } finally {
+          await loadMarket();
         }
         
         setDiscoveryMessages((messages) => [...messages, { separator: true }]);
+        if (ticker) break;
       }
     } finally {
-      discoveryRunRef.current = null;
+      collectionRunRef.current = null;
 
-      setLoading(false);
+      setLoading(null);
       setStopping(false);
     }
   }
 
   function stopDiscovery() {
-    const run = discoveryRunRef.current;
+    const run = collectionRunRef.current;
     if (!run || run.stopRequested) return;
 
     run.stopRequested = true;
     setStopping(true);
   }
 
+  async function deleteCompany() {
+    if (tickerToDelete === null || deletingTicker || loading || companiesLoading) return;
+
+    const ticker = tickerToDelete;
+    setTickerToDelete(null);
+    setDeletingTicker(ticker);
+    setDeleteError(null);
+
+    try {
+      await request(`/api/stock?ticker=${encodeURIComponent(ticker)}`, undefined, undefined, "DELETE");
+      setCompanies((current) => current.filter((item) => item.ticker !== ticker));
+      setSelectedTicker((current) => current === ticker ? null : current);
+      await loadMarket();
+    } catch (error) {
+      setDeleteError({ ticker, message: `Failed to delete ${ticker}: ${error.message}` });
+    } finally {
+      setDeletingTicker(null);
+    }
+  }
+
   return (
     <main className={styles.page}>
-      <aside className={styles.sidebar} aria-label="Stocks">
+      <aside className={styles.sidebar} aria-label="Stocks" inert={tickerToDelete !== null}>
         <a href="/" aria-label="OptimiStonk home">
-          <Image
-            className={styles.logo}
-            src="/images/logo.png"
-            alt="OptimiStonk"
-            width={216}
-            height={72}
-            loading="eager"
-          />
+          <span className={styles.logo} aria-hidden="true" />
         </a>
         {companiesLoading && <p role="status">Loading companies…</p>}
         {companiesError && <p role="alert">{companiesError}</p>}
-        {!companiesLoading && !companiesError && companies.length === 0 && (
-          <p>Use Discover to add companies.</p>
-        )}
         <div className={styles.companiesScroll}>
           <table className={styles.companies} aria-label="Stocks">
             <thead>
@@ -283,7 +410,10 @@ export default function Home() {
                 <tr
                   key={item.ticker}
                   className={company?.ticker === item.ticker ? styles.selectedCompany : undefined}
-                  onClick={() => setSelectedTicker(item.ticker)}
+                  onClick={() => {
+                    setSelectedTicker(item.ticker);
+                    setTab("stock-details");
+                  }}
                 >
                   <td>
                     <button
@@ -294,8 +424,7 @@ export default function Home() {
                       {item.ticker}
                     </button>
                   </td>
-                  <td>{item.rank_backlog ?? "—"}</td>
-                  <td>{item.rank_market ?? "—"}</td>
+                  <td>{formatRank(item.rank)}</td>
                 </tr>
               ))}
             </tbody>
@@ -303,7 +432,7 @@ export default function Home() {
         </div>
       </aside>
 
-      <section className={styles.content}>
+      <section className={styles.content} inert={tickerToDelete !== null}>
         <div className={styles.tabs} role="tablist" aria-label="Stock controls">
           {tabs.map(({ id, label }) => (
             <button
@@ -322,20 +451,50 @@ export default function Home() {
 
         <div role="tabpanel" id="panel-discover" aria-labelledby="tab-discover" hidden={tab !== "discover"}>
           <div className={styles.discoveryControls}>
-            <button type="button" onClick={search} disabled={loading}>
-              {loading ? "Loading…" : "Discover"}
+            <button
+              type="button"
+              onClick={() => collectStocks()}
+              disabled={Boolean(loading || deletingTicker)}
+              aria-busy={loading === "discover"}
+            >
+              {loading === "discover" ? "Loading…" : "Discover"}
             </button>
-            {loading && (
-              <button type="button" onClick={stopDiscovery} disabled={stopping}>
+            {loading === "discover" && (
+              <button type="button" onClick={stopDiscovery} disabled={stopping} aria-busy={stopping}>
                 {stopping ? "Stopping…" : "Stop"}
               </button>
             )}
           </div>
+          <form
+            className={styles.addStockControls}
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (tickerToAdd) collectStocks(tickerToAdd);
+            }}
+          >
+            <TickerSelect
+              tickers={marketTickers}
+              value={tickerToAdd}
+              onChange={setTickerToAdd}
+              disabled={Boolean(loading || deletingTicker) || marketLoading || marketTickers.length === 0}
+            />
+            <button
+              type="submit"
+              disabled={Boolean(loading || deletingTicker) || marketLoading || !marketTickers.includes(tickerToAdd)}
+              aria-busy={loading === "add"}
+            >
+              {loading === "add" ? "Adding…" : "Add"}
+            </button>
+          </form>
+          {marketError && <p role="alert">Failed to load market tickers: {marketError}</p>}
+          {!marketLoading && !marketError && marketTickers.length === 0 && (
+            <p>No new tickers available to add.</p>
+          )}
           <div
             ref={discoveryMessagesRef}
             className={styles.discoveryMessages}
             role="log"
-            aria-label="Discovery status messages"
+            aria-label="Stock collection status messages"
             aria-live="polite"
             aria-relevant="additions text"
             tabIndex={0}
@@ -359,18 +518,105 @@ export default function Home() {
         <div role="tabpanel" id="panel-stock-details" aria-labelledby="tab-stock-details" hidden={tab !== "stock-details"}>
           {company ? (
             <>
-              <h1>{company.name}</h1>
-              <p>Ticker: {company.ticker}</p>
+              <div className={styles.companyHeading}>
+                <h1>{company.name}</h1>
+                <button
+                  ref={deleteButtonRef}
+                  type="button"
+                  className={styles.deleteButton}
+                  disabled={Boolean(deletingTicker || loading || companiesLoading)}
+                  aria-busy={deletingTicker === company.ticker}
+                  onClick={() => setTickerToDelete(company.ticker)}
+                >
+                  {deletingTicker === company.ticker ? "Deleting…" : "Delete"}
+                </button>
+              </div>
+              {deleteError?.ticker === company.ticker && (
+                <p className={styles.error} role="alert">{deleteError.message}</p>
+              )}
+              <p>
+                Ticker: {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
+              </p>
               <CompanySummary
                 key={company.ticker}
                 text={company.summary || "No summary available."}
               />
+              {tab === "stock-details" && (
+                <div className={styles.stockOverview}>
+                  <StockHistoryChart
+                    key={`history-${company.ticker}`}
+                    ticker={company.ticker}
+                    financialData={company.financial_data}
+                    historicalPrices={company.historical_prices}
+                  />
+                  <section className={styles.financialData} aria-labelledby="financial-data-heading">
+                    <h2 id="financial-data-heading">Financial data and ratios</h2>
+                    <dl className={styles.companyMetrics}>
+                      {ratioFields.map(({ key, label, percentage }) => (
+                        <Fragment key={key}>
+                          <dt>{label}:</dt>
+                          <dd>{formatRatio(company.ratios?.[key], percentage)}</dd>
+                        </Fragment>
+                      ))}
+                      <dt>Backlog:</dt>
+                      <dd>
+                        {Number.isFinite(company.backlog)
+                          ? `$${metricNumber.format(company.backlog)} million`
+                          : "—"}
+                      </dd>
+                    </dl>
+                  </section>
+                </div>
+              )}
             </>
           ) : (
-            <p>{companiesLoading ? "Loading company details…" : "No company selected."}</p>
+            <p>{companiesLoading ? "Loading company details…" : ""}</p>
           )}
         </div>
       </section>
+      {tickerToDelete !== null && (
+        <div className={styles.confirmationOverlay}>
+          <div
+            className={styles.confirmationDialog}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-confirmation-title"
+            aria-describedby="delete-confirmation-description"
+            onKeyDown={(event) => {
+              if (event.key === "Tab") {
+                const buttons = event.currentTarget.querySelectorAll("button");
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+          >
+            <h2 id="delete-confirmation-title">Are you sure?</h2>
+            <p id="delete-confirmation-description">
+              This will delete <strong>{tickerToDelete}</strong>.
+            </p>
+            <div className={styles.confirmationActions}>
+              <button
+                ref={cancelDeleteRef}
+                type="button"
+                className={styles.cancelButton}
+                onClick={() => setTickerToDelete(null)}
+              >
+                Cancel
+              </button>
+              <button type="button" className={styles.deleteButton} onClick={deleteCompany}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

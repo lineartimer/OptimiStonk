@@ -1,70 +1,34 @@
 import asyncio
 from datetime import datetime
+from enum import Enum
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
+import json
+from pathlib import Path
 import structlog
 
-from backend.api.helpers.streamer import MessageType, stream_message
-from backend.utils.logger import log_and_stream
+from backend.api.helpers.streamer import stream_message
+from backend.core.utils.logger import log_and_stream
+from backend.core.utils.message_type import MessageType
+
+
+UNIT = 1_000_000
+
+with Path(__file__).with_name("edgar.json").open(encoding="utf-8") as f:
+    edgar_config = json.load(f)
+
+    _document_internals = edgar_config["document_internals"]
+    _fields = edgar_config["fields"]
 
 
 _logger = structlog.get_logger(__name__)
 
 
-UNIT = 1_000_000
-
-EDGAR_CONSTANTS = {
-    "revenue": {
-        "concept_names": [
-            "us-gaap_Revenues",
-            "us-gaap_SalesRevenueNet",
-            "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax"
-        ],
-        "labels": [
-            "Revenue",
-            "Revenues",
-            "Total revenue",
-            "Net revenues",
-            "Sales"
-        ]
-    },
-    "r_and_d_expense": {
-        "concept_names": [
-            "us-gaap_ResearchAndDevelopmentCosts",
-            "us-gaap_ResearchAndDevelopmentExpense",
-            "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
-        ],
-        "labels": [
-            "Research and development"
-        ]
-    },
-    "share_count": {
-        "concept_names": [
-            "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
-            "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
-        ],
-        "labels": [
-            "Diluted (in shares)",
-            "Basic and Diluted",
-            "Weighted average common shares outstanding, basic and diluted (in shares)"
-        ]
-    },
-    "investment_cash_flow": {
-        "concept_names": [
-            "us-gaap_NetCashProvidedByUsedInInvestingActivities"
-        ],
-        "labels": [
-            "Net cash provided by investing activities",
-            "Net cash provided by (used in) investing activities",
-            "Net cash used in investing",
-            "Net cash used in investing activities",
-            "Net cash (used in) provided by investing activities",
-            "Net cash from (used in) investing",
-            "Net cash from (used in) investing activities"
-        ]
-    }
-}
+class FinancialStatementType(str, Enum):
+    income_statement = "IncomeStatement"
+    balance_sheet = "BalanceSheet"
+    cash_flow = "CashFlowStatement"
 
 
 class EdgarTickerNotFoundError(Exception):
@@ -111,15 +75,19 @@ def _get_financial_data_impl(ticker: str, years: int):
     form_10qs = company.get_filings(form="10-Q", amendments=False)
     splits = detect_splits(company.get_facts().get_all_facts())
 
-    quarterly_revenues = {}
-    quarterly_r_and_d_expenses = {}
-    quarterly_share_counts = {}
-    quarterly_investments = {}
+    quarterly_data = {}
+    for field_name in _fields:
+        quarterly_data[field_name] = {
+            "current_quarter": None,
+            "all_quarters": {}
+        }
 
     previous_quarter = None
     missing_quarter = None
     split = 1
     for form_10q in form_10qs:
+        year = quarter = None
+        
         try:
             # As full-year quarters are not reported,
             # every year will have only 3 quarters
@@ -128,30 +96,49 @@ def _get_financial_data_impl(ticker: str, years: int):
             if year < datetime.now().year - years:
                 break
 
-            quarterly_revenue = round(
-                _get_optional_financial_data(xbrl, "revenue") / UNIT
-            )
+            invalid_quarter = False
+            for field_name in _fields:
+                if _fields[field_name]["optional"]:
+                    func = _get_optional_financial_data
+                else:
+                    func = _get_financial_data
 
-            # In some rare, esoteric cases, revenue can be negative
-            if quarterly_revenue < 0:
-                _logger.warning("Negative revenue found.",
-                    ticker=ticker,
-                    quarter=f"{year}/{quarter}"
-                )
+                raw_value = func(xbrl, field_name)
+                value = round(raw_value / UNIT)
+
+                if field_name == "revenue":
+                    # In some rare, esoteric cases, revenue can be negative
+                    if value < 0:
+                        _logger.warning("Negative revenue found.",
+                            ticker=ticker,
+                            quarter=f"{year}/{quarter}"
+                        )
+
+                        # We need to break out of the outer loop
+                        invalid_quarter = True
+                        break
+
+                # Many companies don't report operating income.
+                # Use net income as substitute in those cases
+                if field_name == "net_income":
+                    quarterly_data["operating_income"]["current_quarter"] = (
+                        value
+                        if quarterly_data["operating_income"]["current_quarter"] == 0
+                        else quarterly_data["operating_income"]["current_quarter"]
+                    )
+
+                if field_name == "eps":
+                    value = raw_value / split
+
+                if field_name == "share_count":
+                    value = round(
+                        split * raw_value / UNIT
+                    )
+                
+                quarterly_data[field_name]["current_quarter"] = value
+            
+            if invalid_quarter:
                 break
-
-            quarterly_r_and_d_expense = round(
-                _get_optional_financial_data(xbrl, "r_and_d_expense") / UNIT
-            )
-
-            # Of these financial data, only share count is not optional
-            quarterly_share_count = round(
-                split * _get_financial_data(xbrl, "share_count") / UNIT
-            )
-
-            quarterly_investment = round(
-                _get_optional_financial_data(xbrl, "investment_cash_flow") / UNIT
-            )
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
@@ -195,74 +182,52 @@ def _get_financial_data_impl(ticker: str, years: int):
                 # Estimate missing quarter by the quarters surrounding it
                 key = f"{year_of_missing_quarter}/{missing_quarter}"
 
-                missing_revenue = round(
-                    (
-                        list(quarterly_revenues.values())[-1] +
-                        quarterly_revenue
+                for field_name in quarterly_data:
+                    missing_data = (
+                        list(
+                            quarterly_data[field_name]["all_quarters"].values()
+                        )[-1] + quarterly_data[field_name]["current_quarter"]
                     ) / 2
-                )
-                quarterly_revenues[key] = missing_revenue
 
-                missing_r_and_d_expense = round(
-                    (
-                        list(quarterly_r_and_d_expenses.values())[-1] +
-                        quarterly_r_and_d_expense
-                    ) / 2
-                )
-                quarterly_r_and_d_expenses[key] = missing_r_and_d_expense
-
-                missing_share_count = round(
-                    (
-                        list(quarterly_share_counts.values())[-1] +
-                        quarterly_share_count
-                    ) / 2
-                )
-                quarterly_share_counts[key] = missing_share_count
-
-                missing_investment = round(
-                    (
-                        list(quarterly_investments.values())[-1] +
-                        quarterly_investment
-                    ) / 2
-                )
-                quarterly_investments[key] = missing_investment
+                    if field_name != "eps":
+                        missing_data = round(missing_data)
+                    
+                    quarterly_data[field_name]["all_quarters"][key] = (
+                        missing_data
+                    )
                 
                 missing_quarter = None
 
         key = f"{year}/{quarter}"
-
-        quarterly_revenues[key] = quarterly_revenue
-        quarterly_r_and_d_expenses[key] = quarterly_r_and_d_expense
-        quarterly_share_counts[key] = quarterly_share_count
-        quarterly_investments[key] = quarterly_investment
+        for field_name in quarterly_data:
+            quarterly_data[field_name]["all_quarters"][key] = (
+                quarterly_data[field_name]["current_quarter"]
+            )
 
         stream_message(".", new_line=False)
         previous_quarter = quarter
 
-    while len(quarterly_revenues) > 4 * years:
-        quarterly_revenues.popitem()
-        quarterly_r_and_d_expenses.popitem()
-        quarterly_share_counts.popitem()
-        quarterly_investments.popitem()
+    while len(quarterly_data["revenue"]["all_quarters"]) > 4 * years:
+        for field_name in quarterly_data:
+            quarterly_data[field_name]["all_quarters"].popitem()
 
     form_10ks = company.get_filings(form="10-K")
-    if form_10ks.empty or len(quarterly_revenues) < 2:
+    if (form_10ks.empty or
+        len(quarterly_data["revenue"]["all_quarters"]) < 2
+    ):
         raise EdgarParseError(
-            f"Either a 10-K or at least 2 quarters of financial data"
+            f"Either a 10-K or at least 2 quarters of financial data "
             f"could not be found for {company.name}"
         )
     
     latest_10k = "" if form_10ks.empty else form_10ks.latest(1)
     latest_10q = "" if form_10qs.empty else form_10qs.latest(1)
-
-    financials = {
-        "revenue": _clean_result(quarterly_revenues),
-        "r_and_d_expense": _clean_result(quarterly_r_and_d_expenses),
-        "share_count": _clean_result(quarterly_share_counts),
-        "investment_cash_flow": _clean_result(quarterly_investments)
-    }
-
-    stream_message(".", new_line=False)
+    
+    financials = {}
+    for field_name in quarterly_data:
+        financials[field_name] = _clean_result(
+            quarterly_data[field_name]["all_quarters"]
+        )
 
     try:
         reports = {
@@ -289,9 +254,36 @@ def _get_financial_data_impl(ticker: str, years: int):
     return financials, reports
 
 
+def _get_financial_statement(
+    xbrl: XBRL,
+    statement_type: FinancialStatementType
+) -> Statement | None:
+
+    statements = xbrl.statements
+    statement_getter = {
+        FinancialStatementType.income_statement: statements.income_statement,
+        FinancialStatementType.balance_sheet: statements.balance_sheet,
+        FinancialStatementType.cash_flow: statements.cash_flow_statement
+    }[statement_type]
+
+    financial_statement = statement_getter()
+    if financial_statement:
+        return financial_statement
+
+    # If the accessor returns None (can happen),
+    # look up the financial statement in another way
+    for statement in xbrl.get_all_statements():
+        if statement.get("type") == statement_type.value:
+            return statements[statement["role"]]
+
+    return None
+
+
 def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     xbrl = form_10q.xbrl()
-    income_statement = xbrl.statements.income_statement()
+    income_statement = _get_financial_statement(
+        xbrl, FinancialStatementType.income_statement
+    )
     if not income_statement:
         raise _FinancialStatementNotFoundError(
             "Couldn't find income statement when parsing period."
@@ -301,7 +293,12 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
 
     period = None
     if rendered_income_statement.header.periods:
-        period = rendered_income_statement.header.periods[0].end_date
+        for p in rendered_income_statement.header.periods:
+            if "ytd" in p.label.lower():
+                continue
+            
+            if not period or p.end_date > period:
+                period = p.end_date
     else:
         period_of_report = getattr(form_10q, "period_of_report", None)
         if period_of_report:
@@ -337,58 +334,77 @@ def _get_optional_financial_data(xbrl: XBRL, name: str) -> float:
 
 
 def _parse_value(xbrl: XBRL, name: str) -> float | None:
-    constants = EDGAR_CONSTANTS[name]
-    concept_names = constants["concept_names"]
-    labels = constants["labels"]
+    # Try to find the value in the income statement, balance sheet, and cash flow
+    value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.income_statement)
 
-    # Try to find the value in the income statement
-    income_statement = xbrl.statements.income_statement()
-    if not income_statement:
-        raise _FinancialStatementNotFoundError(
-            f"Couldn't find income statement when parsing {name}."
-        )
-    
-    value = _parse_from_financial_statement(income_statement, concept_names, labels)
-    if value is not None:
-        return value
+    if value is None:
+        value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.balance_sheet)
 
-    # Try to find the value in the cash flow
-    cash_flow = xbrl.statements.cash_flow_statement()
-    if not cash_flow:
-        raise _FinancialStatementNotFoundError(
-            f"Couldn't find cash-flow when parsing {name}."
-        )
-    
-    value = _parse_from_financial_statement(cash_flow, concept_names, labels)
-    if value is not None:
-        return value
+    if value is None:
+        value = _parse_from_financial_statement(xbrl, name, FinancialStatementType.cash_flow)
 
-    return None
+    return value
+
 
 def _parse_from_financial_statement(
-        financial_statement: Statement,
-        concept_names: list[str],
-        labels: list[str]
-    ) -> float | None:
-    
+    xbrl: XBRL,
+    name: str,
+    statement_type: FinancialStatementType
+) -> float | None:
+
+    tags = _document_internals[name]["tags"]
+    patterns = _document_internals[name]["label_keyword_patterns"]
+
+    financial_statement = _get_financial_statement(xbrl, statement_type)
+    if not financial_statement:
+        return None
+
+    value = None
     for row in financial_statement.render().rows:
-        concept = (row.metadata or {}).get("concept", "").replace(":", "_")
-        
+        tag = (row.metadata or {}).get("concept", "").replace(":", "_")
+
         if (
-            concept.lower() in [concept.lower() for concept in concept_names] or
-            row.label.lower() in [label.lower() for label in labels]
+            tag.lower() in [t.lower() for t in tags] and
+            _label_like_patterns(row.label, patterns)
         ):
             if row.cells and row.cells[0]:
                 try:
-                    return float(row.cells[0].value)
+                    parsed_value = float(row.cells[0].value)
+
+                    # Accumulate all matching rows
+                    # (needed for parsing long term debt)
+                    if value is None:
+                        value = parsed_value
+                    else:
+                        value += parsed_value
                 
                 except:
                     # We have found the row in the financial statement
-                    # but the value can't be converted to a number (e.g. "").
+                    # but the value cannot be converted to a number (e.g. "").
                     # This means that the value is 0
-                    return 0.0
+                    if value is None:
+                        value = 0.0
 
-    return None
+    return value
+
+
+def _label_like_patterns(row_label: str, labels: list[str]) -> bool:
+    row_label_lower_case = row_label.lower()
+
+    # Match label definitions:
+    # - "," means and
+    # - "/" means or
+    return any(
+        all(
+            any(
+                term.strip() in row_label_lower_case
+                for term in group.split("/")
+                if term.strip()
+            )
+            for group in label.lower().split(",")
+        )
+        for label in labels
+    )
 
 
 def _clean_result(data: dict) -> dict:

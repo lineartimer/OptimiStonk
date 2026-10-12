@@ -1,11 +1,20 @@
 .page {
-  --color-text: #122a4a;
-  --color-focus: #09346c;
-  --color-border: #728698;
-  --color-divider: #d0dce5;
-  --color-highlight: #d9f4ee;
-  --color-hover: #edfaf7;
+  /* Navy, blue, cyan, and green drawn from the robot-and-growth logo. */
+  --color-text: #09275e;
+  --color-primary: #0065df;
+  --color-primary-hover: #0052b8;
+  --color-accent: #007b66;
+  --color-focus: var(--color-primary);
+  --color-border: #6c89b0;
+  --color-divider: #d4e7f5;
+  --color-highlight: #daf5ff;
+  --color-hover: #eefaff;
   --color-surface: #fff;
+  --color-muted: #576d8b;
+  --color-shadow: #09275e26;
+  --color-warning: #8a6100;
+  --color-error: #dc2626;
+  --color-error-hover: #fff5f5;
 
   display: grid;
   grid-template-columns: min-content minmax(0, 1fr);
@@ -42,9 +51,9 @@
 .logo {
   margin: 6px auto 0 auto;
   display: block;
-  width: 216px;
-  max-width: 90%;
-  height: auto;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  background: url("/img/logo.png") center / contain no-repeat;
 }
 
 .companiesScroll {
@@ -158,6 +167,10 @@
 }
 
 .page button:disabled {
+  cursor: default;
+}
+
+.page button[aria-busy="true"] {
   cursor: wait;
 }
 
@@ -170,6 +183,7 @@
 
 .tabs button[aria-selected="true"] {
   border-bottom: 0;
+  color: var(--color-primary);
   font-weight: bold;
 }
 
@@ -178,14 +192,53 @@
   font-weight: normal;
 }
 
-.discoveryControls {
+.discoveryControls,
+.addStockControls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
 
-.discoveryControls button {
+.discoveryControls button,
+.addStockControls button {
   color: var(--color-text);
+}
+
+.discoveryControls > button,
+.addStockControls > button,
+.cancelButton,
+.deleteButton {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  background: var(--color-surface);
+}
+
+.discoveryControls > button,
+.addStockControls > button {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-surface);
+}
+
+.discoveryControls > button:hover:not(:disabled),
+.addStockControls > button:hover:not(:disabled) {
+  border-color: var(--color-primary-hover);
+  background: var(--color-primary-hover);
+}
+
+.discoveryControls > button:disabled,
+.addStockControls > button:disabled,
+.deleteButton:disabled {
+  opacity: 0.5;
+}
+
+.addStockControls {
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 12px;
 }
 
 .discoveryMessages {
@@ -208,20 +261,90 @@
 }
 
 .discoveryMessages time {
-  color: #9ca3af;
+  color: var(--color-muted);
   font-weight: normal;
 }
 
 .info {
-  color: #16803c;
+  color: var(--color-accent);
 }
 
 .warning {
-  color: #a87900;
+  color: var(--color-warning);
 }
 
 .error {
-  color: #c62828;
+  color: var(--color-error);
+}
+
+.companyHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.companyHeading h1 {
+  min-width: 0;
+}
+
+.deleteButton {
+  color: var(--color-error);
+}
+
+.deleteButton:hover:not(:disabled) {
+  background: var(--color-error-hover);
+}
+
+.confirmationOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--color-shadow);
+}
+
+.confirmationDialog {
+  box-sizing: border-box;
+  width: min(100%, 400px);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 8px 24px var(--color-shadow);
+}
+
+.confirmationDialog h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
+}
+
+.confirmationDialog p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmationActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.cancelButton {
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.cancelButton:hover {
+  background: var(--color-hover);
 }
 
 .summary {
@@ -240,6 +363,54 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-primary);
   text-decoration: underline;
+}
+
+.stockOverview {
+  display: grid;
+  grid-template-columns: 50% minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
+.historyChart,
+.financialData {
+  min-width: 0;
+}
+
+.stockOverview h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.chartScroll {
+  overflow-x: auto;
+}
+
+.chartCanvas {
+  min-width: 0;
+  height: 270px;
+}
+
+.companyMetrics {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 16px;
+  margin: 0;
+  font-size: 16px;
+}
+
+.companyMetrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .stockOverview {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

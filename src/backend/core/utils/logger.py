@@ -1,7 +1,7 @@
 import structlog
 
 from backend.api.helpers.streamer import stream_message
-from backend.utils.message_type import MessageType
+from backend.core.utils.message_type import MessageType
 
 
 _logger = structlog.get_logger(__name__)

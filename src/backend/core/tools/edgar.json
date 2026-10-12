@@ -1,0 +1,184 @@
+{
+    "fields": {
+        "revenue": {
+            "optional": true
+        },
+        "r_and_d_expense": {
+            "optional": true
+        },
+        "operating_income": {
+            "optional": true
+        },
+        "net_income": {
+            "optional": false
+        },
+        "eps": {
+            "optional": false
+        },
+        "cash_and_equivalents": {
+            "optional": false
+        },
+        "marketable_securities": {
+            "optional": true
+        },
+        "accounts_receivable": {
+            "optional": true
+        },
+        "total_assets": {
+            "optional": false
+        },
+        "current_liabilities": {
+            "optional": false
+        },
+        "long_term_debt": {
+            "optional": true
+        },
+        "shareholders_equity": {
+            "optional": false
+        },
+        "investment_cash_flow": {
+            "optional": true
+        },
+        "share_count": {
+            "optional": false
+        }
+    },
+    "document_internals": {
+        "revenue": {
+            "tags": [
+                "us-gaap_Revenues",
+                "us-gaap_SalesRevenueNet",
+                "us-gaap_RevenueFromContractWithCustomerExcludingAssessedTax",
+                "us-gaap_RevenuesNetOfInterestExpense"
+            ],
+            "label_keyword_patterns": [
+                "revenue/sales"
+            ]
+        },
+        "r_and_d_expense": {
+            "tags": [
+                "us-gaap_ResearchAndDevelopmentCosts",
+                "us-gaap_ResearchAndDevelopmentExpense",
+                "us-gaap_ResearchAndDevelopmentExpenseExcludingAcquiredInProcessCost"
+            ],
+            "label_keyword_patterns": [
+                "research,development"
+            ]
+        },
+        "operating_income": {
+            "tags": [
+                "us-gaap_OperatingIncomeLoss"
+            ],
+            "label_keyword_patterns": [
+                "operating/operations,income/loss/earnings/profit"
+            ]
+        },
+        "net_income": {
+            "tags": [
+                "us-gaap_NetIncomeLoss",
+                "us-gaap_ProfitLoss",
+                "us-gaap_NetIncomeLossAvailableToCommonStockholdersBasic"
+            ],
+            "label_keyword_patterns": [
+                "income/loss/earnings/profit"
+            ]
+        },
+        "eps": {
+            "tags": [
+                "us-gaap_EarningsPerShareDiluted",
+                "us-gaap_EarningsPerShareBasicAndDiluted"
+            ],
+            "label_keyword_patterns": [
+                "diluted/dilution"
+            ]
+        },
+        "cash_and_equivalents": {
+            "tags": [
+                "us-gaap_Cash",
+                "us-gaap_CashAndCashEquivalentsAtCarryingValue",
+                "us-gaap_CashAndDueFromBanks"
+            ],
+            "label_keyword_patterns": [
+                "cash"
+            ]
+        },
+        "marketable_securities": {
+            "tags": [
+                "us-gaap_ShortTermInvestments",
+                "us-gaap_OtherShortTermInvestments",
+                "us-gaap_MarketableSecuritiesCurrent",
+                "us-gaap_DebtSecuritiesCurrent",
+                "us-gaap_AvailableForSaleSecuritiesDebtSecurities",
+                "us-gaap_EquitySecuritiesFvNi",
+                "us-gaap_EquitySecuritiesFvNiCurrentAndNoncurrent"
+            ],
+            "label_keyword_patterns": [
+                "short-term/marketable,investments/securities",
+                "fixed maturities/equity securities"
+            ]
+        },
+        "accounts_receivable": {
+            "tags": [
+                "us-gaap_AccountsReceivableNetCurrent",
+                "us-gaap_ReceivablesNetCurrent"
+            ],
+            "label_keyword_patterns": [
+                "accounts/net,receivable"
+            ]
+        },
+        "total_assets": {
+            "tags": [
+                "us-gaap_Assets"
+            ],
+            "label_keyword_patterns": [
+                "total,assets"
+            ]
+        },
+        "current_liabilities": {
+            "tags": [
+                "us-gaap_LiabilitiesCurrent"
+            ],
+            "label_keyword_patterns": [
+                "total,current,liabilities"
+            ]
+        },
+        "long_term_debt": {
+            "tags": [
+                "us-gaap_LongTermDebtNoncurrent",
+                "us-gaap_UnsecuredLongTermDebt",
+                "us-gaap_ConvertibleDebtNoncurrent",
+                "us-gaap_LongTermLineOfCredit"
+            ],
+            "label_keyword_patterns": [
+                "long-term debt/convertible senior notes/line of credit"
+            ]
+        },
+        "shareholders_equity": {
+            "_comment": "Ignoring shareholder's deficit is deliberate",
+            "tags": [
+                "us-gaap_StockholdersEquity",
+                "us-gaap_StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+            ],
+            "label_keyword_patterns": [
+                "stockholder/shareholder/stockowner/shareowner,’s/'s/s’/s',equity/investment"
+            ]
+        },
+        "investment_cash_flow": {
+            "tags": [
+                "us-gaap_NetCashProvidedByUsedInInvestingActivities"
+            ],
+            "label_keyword_patterns": [
+                "net cash,provided by/used in/used for/from,investing"
+            ]
+        },
+        "share_count": {
+            "tags": [
+                "us-gaap_WeightedAverageNumberOfDilutedSharesOutstanding",
+                "us-gaap_WeightedAverageNumberOfShareOutstandingBasicAndDiluted"
+            ],
+            "label_keyword_patterns": [
+                "diluted"
+            ]
+        }
+    }
+}

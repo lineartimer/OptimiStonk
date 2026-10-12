@@ -1,6 +1,6 @@
 from datetime import date
 
-from backend.api.helpers.streamer import MessageType, stream_message
+from backend.api.helpers.streamer import stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
 from backend.core.stock import Stock
@@ -8,14 +8,25 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
+from backend.core.utils.message_type import MessageType
 from backend.database.database import save_stock
 
 
 SEARCH_QUERY = "How big is {company_name}'s backlog?"
 
 
+class NotEnoughDataError(Exception):
+    pass
+
+
+class CompanyLossesError(Exception):
+    pass
+
+
 async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     ticker = ticker.strip().upper()
+
+    financials, reports = await get_financial_data(ticker, years)
 
     (
         name,
@@ -23,8 +34,6 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
         price_history,
         extra_price_point
     ) = await get_price_history(ticker, years)
-
-    financials, reports = await get_financial_data(ticker, years)
 
     # If current quarter's 10-Q is not in EDGAR yet,
     # shift price history back one quarter
@@ -38,37 +47,53 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
     # Only keep the intersection of the quarters returned from Yahoo Finance and EDGAR
     common_keys = price_history.keys() & financials["revenue"].keys()
-
     price_history = {k: price_history[k] for k in common_keys}
-
-    financials["revenue"] = {
-        k: financials["revenue"][k] for k in common_keys
-    }
-    financials["r_and_d_expense"] = {
-        k: financials["r_and_d_expense"][k] for k in common_keys
-    }
-    financials["share_count"] = {
-        k: financials["share_count"][k] for k in common_keys
-    }
-    financials["investment_cash_flow"] = {
-        k: financials["investment_cash_flow"][k] for k in common_keys
-    }
 
     # Taking the intersection discards the order, so order dictionaries again
     price_history = dict(sorted(price_history.items()))
 
-    financials["revenue"] = dict(
-        sorted(financials["revenue"].items())
-    )
-    financials["r_and_d_expense"] = dict(
-        sorted(financials["r_and_d_expense"].items())
-    )
-    financials["share_count"] = dict(
-        sorted(financials["share_count"].items())
-    )
-    financials["investment_cash_flow"] = dict(
-        sorted(financials["investment_cash_flow"].items())
-    )
+    for field_name in financials.keys():
+        financials[field_name] = {
+            k: financials[field_name][k] for k in common_keys
+        }
+
+        financials[field_name] = dict(
+            sorted(financials[field_name].items())
+        )
+
+    # Early stopping
+    min_quarters = 4 * years - 2 # Subtracting 2 to handle Yahoo Finance vs. Edgar misalignment
+    if (len(financials["revenue"]) < min_quarters or
+        len(price_history) < min_quarters):
+        raise NotEnoughDataError(f"Less than {years} years of data found.")
+
+    financial_data = {
+        "name": name,
+        "ticker": ticker,
+        "last_price": last_price,
+        "revenue": financials["revenue"],
+        "r_and_d_expense": financials["r_and_d_expense"],
+        "operating_income": financials["operating_income"],
+        "net_income": financials["net_income"],
+        "eps": financials["eps"],
+        "cash_and_equivalents": financials["cash_and_equivalents"],
+        "marketable_securities": financials["marketable_securities"],
+        "accounts_receivable": financials["accounts_receivable"],
+        "total_assets": financials["total_assets"],
+        "current_liabilities": financials["current_liabilities"],
+        "long_term_debt": financials["long_term_debt"],
+        "shareholders_equity": financials["shareholders_equity"],
+        "investment_cash_flow": financials["investment_cash_flow"],
+        "share_count": financials["share_count"],
+        "backlog": None,
+        "summary": None,
+        "historical_prices": price_history
+    }
+
+    stock = Stock(**financial_data)
+
+    if stock.price_to_earnings_ratio() < 0:
+        raise CompanyLossesError("Company generates losses.")
 
     # Find out how big the backlog is
     prompt_backlog = {
@@ -97,8 +122,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
 
     backlog_finder = BacklogFinder()
-    backlog = await backlog_finder.run(name, prompt_backlog)
-    stream_message(f"{name}'s backlog: ${backlog} million.", MessageType.info)
+    stock.backlog = await backlog_finder.run(name, prompt_backlog)
 
     # Create a summary of the company
     prompt_summarizer = {
@@ -113,22 +137,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     )
 
     summarizer = Summarizer()
-    summary = await summarizer.run(name, prompt_summarizer)
+    stock.summary = await summarizer.run(name, prompt_summarizer)
 
-    financial_data = {
-        "name": name,
-        "ticker": ticker,
-        "last_price": last_price,
-        "revenue": financials["revenue"],
-        "r_and_d_expense": financials["r_and_d_expense"],
-        "investment_cash_flow": financials["investment_cash_flow"],
-        "share_count": financials["share_count"],
-        "backlog": backlog,
-        "summary": summary,
-        "historical_prices": price_history
-    }
-
-    stock = Stock(**financial_data)
     save_stock(stock, reports)
     stream_message("Saved stock to database.", MessageType.info)
 
