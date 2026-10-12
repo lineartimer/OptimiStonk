@@ -42,6 +42,14 @@ async def initialize_database() -> None:
     BaseModel.metadata.create_all(bind=engine)
 
     # Download stock list
+    with SessionFactory() as session:
+        market_is_populated = session.scalar(
+            select(MarketModel.ticker).limit(1)
+        ) is not None
+
+    if market_is_populated:
+        return
+    
     from backend.core.tools.market import Exchange, download_stock_list
 
     for exchange in (Exchange.nasdaq, Exchange.nyse):
