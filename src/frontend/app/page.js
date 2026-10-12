@@ -535,7 +535,7 @@ export default function Home() {
                 <p className={styles.error} role="alert">{deleteError.message}</p>
               )}
               <p>
-                Ticker: {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
+                {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
               </p>
               <CompanySummary
                 key={company.ticker}
