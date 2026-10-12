@@ -1,0 +1,11 @@
+edgartools
+fastapi
+httpx
+langchain
+langchain-openai
+markdownify
+playwright
+sqlalchemy
+structlog
+yfinance
+uvicorn

@@ -1,0 +1,72 @@
+.container {
+  position: relative;
+  max-width: 100%;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 8px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: 2px;
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+
+.arrow {
+  font-size: 12px;
+}
+
+.list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 2;
+  box-sizing: border-box;
+  width: max-content;
+  min-width: 100%;
+  max-height: min(288px, 60vh);
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: 0 2px 6px var(--color-shadow);
+}
+
+/* Explicit scrollbar styling keeps a draggable track visible on macOS too. */
+.list::-webkit-scrollbar {
+  width: 14px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: var(--color-hover);
+}
+
+.list::-webkit-scrollbar-thumb {
+  min-height: 24px;
+  border: 3px solid var(--color-hover);
+  border-radius: 7px;
+  background: var(--color-border);
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-focus);
+}
+
+.option {
+  padding: 4px 8px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.option:hover,
+.active {
+  background: var(--color-hover);
+}
+
+.option[aria-selected="true"] {
+  background: var(--color-highlight);
+}
