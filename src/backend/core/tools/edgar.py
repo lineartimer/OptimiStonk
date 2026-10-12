@@ -262,13 +262,13 @@ def _get_financial_statement(
 ) -> Statement | None:
 
     statements = xbrl.statements
-    get_statement = {
+    statement_getter = {
         FinancialStatementType.income_statement: statements.income_statement,
         FinancialStatementType.balance_sheet: statements.balance_sheet,
         FinancialStatementType.cash_flow: statements.cash_flow_statement
     }[statement_type]
 
-    financial_statement = get_statement()
+    financial_statement = statement_getter()
     if financial_statement:
         return financial_statement
 
@@ -355,7 +355,7 @@ def _parse_from_financial_statement(
 ) -> float | None:
 
     tags = _document_internals[name]["tags"]
-    labels = _document_internals[name]["labels"]
+    patterns = _document_internals[name]["label_keyword_patterns"]
 
     financial_statement = _get_financial_statement(xbrl, statement_type)
     if not financial_statement:
@@ -367,7 +367,7 @@ def _parse_from_financial_statement(
 
         if (
             tag.lower() in [t.lower() for t in tags] and
-            _row_like_labels(row.label, labels)
+            _label_like_patterns(row.label, patterns)
         ):
             if row.cells and row.cells[0]:
                 try:
@@ -390,7 +390,7 @@ def _parse_from_financial_statement(
     return value
 
 
-def _row_like_labels(row_label: str, labels: list[str]) -> bool:
+def _label_like_patterns(row_label: str, labels: list[str]) -> bool:
     row_label_lower_case = row_label.lower()
 
     # Match label definitions:
