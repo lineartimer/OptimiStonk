@@ -29,7 +29,7 @@ class MarketModel(BaseModel):
     ticker: Mapped[str] = mapped_column(Text, primary_key=True)
     name: Mapped[str] = mapped_column(Text)
     stock_type: Mapped[str] = mapped_column(Text)
-    exchange: Mapped[str] = mapped_column(Text)
+    stock_exchange: Mapped[str] = mapped_column(Text)
 
 
 class FailedModel(BaseModel):
@@ -45,7 +45,7 @@ class StockModel(BaseModel):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(Text)
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
-    exchange: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stock_exchange: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_price: Mapped[float] = mapped_column(Float)
     rank: Mapped[float | None] = mapped_column(Float, nullable=True)
     backlog: Mapped[int | None] = mapped_column(nullable=True)

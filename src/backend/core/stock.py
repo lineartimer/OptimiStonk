@@ -28,7 +28,7 @@ class Stock:
                  backlog: int,
                  summary: str,
                  historical_prices: dict,
-                 exchange: str | None = None
+                 stock_exchange: str | None = None
     ):
         if (len(revenue) < 2 or
             len(r_and_d_expense) < 2 or
@@ -50,7 +50,7 @@ class Stock:
 
         self.name = name
         self.ticker = ticker
-        self.exchange = exchange
+        self.stock_exchange = stock_exchange
         self.last_price = last_price
 
         self._historical_data = {}
@@ -285,7 +285,7 @@ class Stock:
         return {
             "name": self.name,
             "ticker": self.ticker,
-            "exchange": self.exchange,
+            "stock_exchange": self.stock_exchange,
             "last_price": self.last_price,
             "summary": self.summary,
             "rank": self._normalize_for_json(self.rank()),

@@ -121,7 +121,7 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
             companies.append(Stock(
                 name=company.name,
                 ticker=company.ticker,
-                exchange=company.exchange,
+                stock_exchange=company.stock_exchange,
                 last_price=company.last_price,
                 backlog=company.backlog,
                 summary=company.summary,
@@ -173,14 +173,14 @@ def delete_stock(ticker: str) -> bool:
 def save_stock(company, reports: dict) -> None:
     with SessionFactory() as session:
         ticker = company.ticker.strip().upper()
-        company.exchange = session.scalar(
-            select(MarketModel.exchange).where(MarketModel.ticker == ticker)
-        ) or company.exchange
+        company.stock_exchange = session.scalar(
+            select(MarketModel.stock_exchange).where(MarketModel.ticker == ticker)
+        ) or company.stock_exchange
 
         stock = StockModel(
             name=company.name,
             ticker=ticker,
-            exchange=company.exchange,
+            stock_exchange=company.stock_exchange,
             last_price=company.last_price,
             rank=company.rank(),
             backlog=company.backlog,

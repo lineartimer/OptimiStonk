@@ -64,7 +64,7 @@ async def download_stock_list(exchange: Exchange) -> dict[str, dict]:
         except ValueError:
             continue
 
-        stocks.setdefault(ticker, {**security, "exchange": exchange.value})
+        stocks.setdefault(ticker, {**security, "stock_exchange": exchange.value})
 
     return stocks
 
