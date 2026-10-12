@@ -131,7 +131,7 @@
                 "us-gaap_Assets"
             ],
             "label_keyword_patterns": [
-                "total assets"
+                "total,assets"
             ]
         },
         "current_liabilities": {

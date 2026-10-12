@@ -534,7 +534,9 @@ export default function Home() {
               {deleteError?.ticker === company.ticker && (
                 <p className={styles.error} role="alert">{deleteError.message}</p>
               )}
-              <p>Ticker: {company.ticker}</p>
+              <p>
+                Ticker: {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
+              </p>
               <CompanySummary
                 key={company.ticker}
                 text={company.summary || "No summary available."}
