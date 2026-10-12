@@ -170,7 +170,7 @@ def delete_stock(ticker: str) -> bool:
         return True
 
 
-def save_stock(company, reports: dict) -> None:
+def save_stock(company, reports: dict[str, str | None]) -> None:
     with SessionFactory() as session:
         ticker = company.ticker.strip().upper()
         company.stock_exchange = session.scalar(

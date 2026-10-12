@@ -127,8 +127,8 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     # Create a summary of the company
     prompt_summarizer = {
         "company": name,
-        "latest_10k": reports["latest_10k"]["document"],
-        "latest_10q": reports["latest_10q"]["document"]
+        "latest_10k": reports["latest_10k"],
+        "latest_10q": reports["latest_10q"]
     }
 
     stream_message(

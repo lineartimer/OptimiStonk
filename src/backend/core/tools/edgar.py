@@ -51,7 +51,9 @@ class _CouldNotFindFinancialDataError(LookupError):
     pass
 
 
-async def get_financial_data(ticker: str, years: int = 5) -> dict:
+async def get_financial_data(
+    ticker: str, years: int = 5
+) -> tuple[dict, dict[str, str | None]]:
     """
     Downloads financial data of a company from the EDGAR database.
 
@@ -231,14 +233,8 @@ def _get_financial_data_impl(ticker: str, years: int):
 
     try:
         reports = {
-            "latest_10k": {
-                "date": latest_10k.filing_date.isoformat(),
-                "document": latest_10k.document.markdown()
-            } if latest_10k else {},
-            "latest_10q": {
-                "date": latest_10q.filing_date.isoformat(),
-                "document": latest_10q.document.markdown()
-            } if latest_10q else {}
+            "latest_10k": latest_10k.document.markdown(),
+            "latest_10q": latest_10q.document.markdown()
         }
 
     except Exception as e:
