@@ -273,7 +273,7 @@ class Stock:
         if rank_raw <= 0:
             return float("-inf")
 
-        return math.log(rank_raw)
+        return round(math.log(rank_raw), 2)
 
     def to_json(self) -> dict:
         price_to_earnings_ratio = self.price_to_earnings_ratio()

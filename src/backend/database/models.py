@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import Float, ForeignKey, JSON, Text, UniqueConstraint
+from sqlalchemy import Float, ForeignKey, JSON, Numeric, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -47,7 +47,7 @@ class StockModel(BaseModel):
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
     stock_exchange: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_price: Mapped[float] = mapped_column(Float)
-    rank: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rank: Mapped[float | None] = mapped_column(Numeric(10, 2, asdecimal=False), nullable=True)
     backlog: Mapped[int | None] = mapped_column(nullable=True)
     price_to_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_to_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)

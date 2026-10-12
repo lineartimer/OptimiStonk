@@ -210,8 +210,8 @@ def _get_financial_data_impl(ticker: str, years: int):
     while len(quarterly_data["revenue"]["all_quarters"]) > 4 * years:
         for field_name in quarterly_data:
             quarterly_data[field_name]["all_quarters"].popitem()
-
-    form_10ks = company.get_filings(form="10-K")
+    
+    form_10ks = company.get_filings(form="10-K", amendments=False)
     if (form_10ks.empty or
         len(quarterly_data["revenue"]["all_quarters"]) < 2
     ):
