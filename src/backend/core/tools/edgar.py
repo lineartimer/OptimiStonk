@@ -4,10 +4,8 @@ from enum import Enum
 from edgar import Company, XBRL
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
-from itertools import product
 import json
 from pathlib import Path
-import re
 import structlog
 
 from backend.api.helpers.streamer import stream_message
