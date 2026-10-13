@@ -1,3 +1,5 @@
+import asyncio
+
 from llama_index.core import Document, VectorStoreIndex
 from llama_index.llms.openai import OpenAI
 from sqlalchemy import select
@@ -7,6 +9,10 @@ from backend.database.models import StockModel
 
 
 async def rag(query: str) -> dict:
+    return await asyncio.to_thread(_rag_impl, query)
+
+
+def _rag_impl(query: str) -> dict:
     with SessionFactory() as db:
         stocks_query = select(StockModel.ticker, StockModel.annual_report)
         stocks = db.execute(stocks_query).all()
