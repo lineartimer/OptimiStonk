@@ -1,0 +1,11 @@
+from fastapi import APIRouter
+
+from backend.core.search import rag as rag_impl
+
+
+search_router = APIRouter()
+
+
+@search_router.get("/api/rag")
+async def rag(query: str) -> str:
+    return await rag_impl(query)

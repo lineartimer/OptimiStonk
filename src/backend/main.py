@@ -7,6 +7,7 @@ import uvicorn
 
 from backend.api.discover import discovery_router
 from backend.api.market import market_router
+from backend.api.search import search_router
 from backend.api.stock import stock_router
 from backend.core.tools.web import web_session
 from backend.database.database import initialize_database
@@ -24,10 +25,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
-app.include_router(stock_router)
 app.include_router(discovery_router)
 app.include_router(market_router)
-
+app.include_router(search_router)
+app.include_router(stock_router)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000)
