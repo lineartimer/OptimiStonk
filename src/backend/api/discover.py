@@ -33,7 +33,7 @@ async def discover_impl():
     return await get_stock_impl(ticker)
 
 
-async def _get_random_ticker():
+async def _get_random_ticker() -> str:
     with SessionFactory() as session:
         ticker = session.scalar(
             select(MarketModel.ticker)

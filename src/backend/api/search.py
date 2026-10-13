@@ -7,5 +7,5 @@ search_router = APIRouter()
 
 
 @search_router.get("/api/rag")
-async def rag(query: str) -> str:
+async def rag(query: str) -> dict:
     return await rag_impl(query)
