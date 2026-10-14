@@ -8,27 +8,27 @@ class StockError(ValueError):
 
 class Stock:
     def __init__(self,
-                 name: str,
-                 ticker: str,
-                 last_price: int,
-                 revenue: dict,
-                 r_and_d_expense: dict,
-                 operating_income: dict,
-                 net_income: dict,
-                 eps: dict,
-                 cash_and_equivalents: dict,
-                 marketable_securities: dict,
-                 accounts_receivable: dict,
-                 total_assets: dict,
-                 current_liabilities: dict,
-                 long_term_debt: dict,
-                 shareholders_equity: dict,
-                 investment_cash_flow: dict,
-                 share_count: dict,
-                 backlog: int,
-                 summary: str,
-                 historical_prices: dict,
-                 stock_exchange: str | None = None
+        name: str,
+        ticker: str,
+        last_price: int,
+        revenue: dict,
+        r_and_d_expense: dict,
+        operating_income: dict,
+        net_income: dict,
+        eps: dict,
+        cash_and_equivalents: dict,
+        marketable_securities: dict,
+        accounts_receivable: dict,
+        total_assets: dict,
+        current_liabilities: dict,
+        long_term_debt: dict,
+        shareholders_equity: dict,
+        investment_cash_flow: dict,
+        share_count: dict,
+        backlog: int,
+        summary: str,
+        historical_prices: dict,
+        stock_exchange: str | None = None
     ):
         if (len(revenue) < 2 or
             len(r_and_d_expense) < 2 or
@@ -46,7 +46,7 @@ class Stock:
             len(share_count) < 2 or
             len(historical_prices) < 2
         ):
-            raise StockError(f"{ticker} has less than 2 quarters of financial data.")
+            raise StockError(f"{ticker} has less than 2 quarters of financial data")
 
         self.name = name
         self.ticker = ticker

@@ -34,10 +34,11 @@ async def get_stock_impl(ticker: str | None = None):
 
     stock = load_stock(ticker)
     if stock:
-        log_and_stream(
-            f"Stock ({ticker}) loaded from database.",
-            MessageType.info
-        )
+        if ticker:
+            log_and_stream(
+                f"Stock ({ticker}) loaded from database",
+                MessageType.info
+            )
 
         if isinstance(stock, list):
             return stream_result([item.to_json() for item in stock])
@@ -70,7 +71,7 @@ async def get_stock_impl(ticker: str | None = None):
 
         else:
             status_code = 500
-            detail = "Failed to load stock data."
+            detail = "Failed to load stock data"
 
             _logger.error(detail, error=str(e))
 
@@ -89,9 +90,9 @@ async def get_stock_impl(ticker: str | None = None):
 def delete_stock(ticker: str):
     ticker = ticker.strip().upper()
     if not ticker:
-        raise HTTPException(status_code=422, detail="Ticker is empty.")
+        raise HTTPException(status_code=422, detail="Ticker is empty")
 
     if not delete_stock_db(ticker):
-        raise HTTPException(status_code=404, detail=f"Stock ({ticker}) not found.")
+        raise HTTPException(status_code=404, detail=f"Stock ({ticker}) not found")
 
     return Response(status_code=204)

@@ -15,6 +15,7 @@ from backend.core.utils.message_type import MessageType
 
 UNIT = 1_000_000
 
+
 with Path(__file__).with_name("edgar.json").open(encoding="utf-8") as f:
     edgar_config = json.load(f)
 
@@ -75,7 +76,12 @@ def _get_financial_data_impl(ticker: str, years: int):
         raise EdgarTickerNotFoundError(f"Ticker not found. {str(e)}")
 
     form_10qs = company.get_filings(form="10-Q", amendments=False)
-    splits = detect_splits(company.get_facts().get_all_facts())
+
+    facts = company.get_facts()
+    if not facts:
+        raise EdgarParseError(f"EDGAR get_facts() returns None for {ticker}")
+
+    splits = detect_splits(facts.get_all_facts())
 
     quarterly_data = {}
     for field_name in _fields:
@@ -111,7 +117,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                 if field_name == "revenue":
                     # In some rare, esoteric cases, revenue can be negative
                     if value < 0:
-                        _logger.warning("Negative revenue found.",
+                        _logger.warning("Negative revenue found",
                             ticker=ticker,
                             quarter=f"{year}/{quarter}"
                         )
@@ -121,7 +127,7 @@ def _get_financial_data_impl(ticker: str, years: int):
                         break
 
                 # Many companies don't report operating income.
-                # Use net income as substitute in those cases
+                # Use net income as a substitute in those cases
                 if field_name == "net_income":
                     quarterly_data["operating_income"]["current_quarter"] = (
                         value
@@ -144,7 +150,7 @@ def _get_financial_data_impl(ticker: str, years: int):
 
         except (LookupError, KeyError) as e:
             # Stop processing if financial data cannot be extracted from the current 10-Q
-            log_and_stream("Stopped processing EDGAR data because of a parsing error.",
+            log_and_stream("Stopped processing EDGAR data because of a parsing error",
                 MessageType.warning,
                 ticker=ticker,
                 quarter=f"{year}/{quarter}",
@@ -153,7 +159,7 @@ def _get_financial_data_impl(ticker: str, years: int):
             break
 
         except Exception as e:
-            log_and_stream("Stopped processing EDGAR data.",
+            log_and_stream("Stopped processing EDGAR data",
                 MessageType.warning,
                 ticker=ticker,
                 quarter=f"{year}/{quarter}",
@@ -243,7 +249,7 @@ def _get_financial_data_impl(ticker: str, years: int):
         )
 
     log_and_stream(
-        f"Downloaded financial data from the EDGAR database.",
+        f"Downloaded financial data from the EDGAR database",
         MessageType.info
     )
 
@@ -282,7 +288,7 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
     )
     if not income_statement:
         raise _FinancialStatementNotFoundError(
-            "Couldn't find income statement when parsing period."
+            "Couldn't find income statement when parsing period"
         )
 
     rendered_income_statement = income_statement.render()
@@ -301,14 +307,14 @@ def _get_xbrl_and_period(form_10q) -> tuple[XBRL, int, int]:
             period = str(period_of_report)[:10]
 
     if not period:
-        raise _CouldNotFindPeriodError(f"Couldn't find {period} period in 10-Q.")
+        raise _CouldNotFindPeriodError(f"Couldn't find {period} period in 10-Q")
 
     try:
         year = int(period[:4])
         quarter = (int(period[5:7]) - 1) // 3 + 1
 
     except:
-        raise EdgarParseError(f"Error parsing quarter {period} of 10-Q.")
+        raise EdgarParseError(f"Error parsing quarter {period} of 10-Q")
 
     return xbrl, year, quarter
 
@@ -319,7 +325,7 @@ def _get_financial_data(xbrl:XBRL, name: str) -> float:
         return value
 
     # If we can't find what we're looking for, it's an error
-    raise _CouldNotFindFinancialDataError(f"Couldn't find {name}.")
+    raise _CouldNotFindFinancialDataError(f"Couldn't find {name}")
 
 
 def _get_optional_financial_data(xbrl: XBRL, name: str) -> float:

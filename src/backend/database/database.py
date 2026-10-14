@@ -30,8 +30,10 @@ if engine.dialect.name == "sqlite":
     @event.listens_for(engine, "connect")
     def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
+
         try:
             cursor.execute("PRAGMA foreign_keys = ON")
+            
         finally:
             cursor.close()
 

@@ -73,7 +73,7 @@ def _create_embeddings(
 
     except Exception as e:
         raise EmbeddingCreationError(
-            f"Failed to create embeddings for {ticker}."
+            f"Failed to create embeddings for {ticker}"
         ) from e
 
     return embeddings
@@ -97,7 +97,7 @@ def _rag_impl(query: str) -> dict:
         ]
 
     if not nodes:
-        return {"result": "No filings available.", "sources": []}
+        return {"result": "No filings available", "sources": []}
 
     index = VectorStoreIndex(
         nodes, embed_model=OpenAIEmbedding(model=EMBEDDING_MODEL)

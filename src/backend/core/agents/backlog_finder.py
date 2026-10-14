@@ -22,7 +22,7 @@ class BacklogResult(BaseModel):
 
 
 class BacklogFinder:
-    def __init__(self):
+    def __init__(self) -> None:
         model = ChatOpenAI(
             model="gpt-5.6-luna",
             use_responses_api=True,
@@ -38,7 +38,7 @@ class BacklogFinder:
     async def run(self, company_name: str, prompt: dict) -> int:
         prompt = json.dumps(prompt, ensure_ascii=False)
         log_and_stream(
-            "Running backlog finder agent.",
+            "Running backlog finder agent",
             MessageType.info,
             prompt_size=len(prompt)
         )
@@ -53,7 +53,8 @@ class BacklogFinder:
         backlog = result["structured_response"].backlog_millions
 
         log_and_stream(
-            f"{company_name}'s backlog is ${backlog} million.",
+            f"{company_name}'s backlog is ${backlog} million",
             MessageType.info
         )
+        
         return backlog
