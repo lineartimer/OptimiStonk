@@ -7,6 +7,7 @@ from backend.core.stock import Stock
 from backend.database.models import (
     BaseModel,
     FailedModel,
+    FilingEmbeddingModel,
     FinancialDataModel,
     HistoricalPriceModel,
     MarketModel,
@@ -170,7 +171,12 @@ def delete_stock(ticker: str) -> bool:
         return True
 
 
-def save_stock(company, reports: dict[str, str | None]) -> None:
+def save_stock(
+    company,
+    reports: dict[str, str | None],
+    embeddings: list[FilingEmbeddingModel]
+) -> None:
+    
     with SessionFactory() as db:
         ticker = company.ticker.strip().upper()
         company.stock_exchange = db.scalar(
@@ -218,6 +224,10 @@ def save_stock(company, reports: dict[str, str | None]) -> None:
             db.add(HistoricalPriceModel(
                 stock_id=stock.id, quarter=quarter, price=data["price"]
             ))
+
+        for embedding in embeddings:
+            embedding.stock_id = stock.id
+        db.add_all(embeddings)
 
         db.commit()
 

@@ -3,51 +3,66 @@ import asyncio
 from llama_index.core import Document, Settings, VectorStoreIndex
 from llama_index.core.ingestion import IngestionPipeline
 from llama_index.core.schema import TextNode
+from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.openai import OpenAI
-from sqlalchemy import delete, select
+from sqlalchemy import select
 
+from backend.config import EMBEDDING_MODEL
 from backend.database.database import SessionFactory
 from backend.database.models import FilingEmbeddingModel, StockModel
+
+
+class EmbeddingCreationError(Exception):
+    pass
+
+
+async def create_embeddings(
+    ticker: str, reports: dict[str, str | None]
+) -> list[FilingEmbeddingModel]:
+    
+    return await asyncio.to_thread(_create_embeddings, ticker, reports)
 
 
 async def rag(query: str) -> dict:
     return await asyncio.to_thread(_rag_impl, query)
 
 
-def _rag_impl(query: str) -> dict:
-    embed_model = Settings.embed_model
-    pipeline = IngestionPipeline(
-        transformations=[Settings.node_parser, embed_model]
-    )
-
-    with SessionFactory() as db:
-        stocks_query = select(
-            StockModel.id,
-            StockModel.ticker,
-            StockModel.annual_report,
-            StockModel.quarterly_report
-        )
-        stocks = db.execute(stocks_query).all()
-
-    embeddings = []
-    for stock in stocks:
+def _create_embeddings(
+    ticker: str, reports: dict[str, str | None]
+) -> list[FilingEmbeddingModel]:
+    
+    ticker = ticker.strip().upper()
+    filings = [
+        (filing_type, report)
         for filing_type, report in [
-            ("10-K", stock.annual_report),
-            ("10-Q", stock.quarterly_report)
-        ]:
-            if not report or not report.strip():
-                continue
+            ("10-K", reports.get("latest_10k")),
+            ("10-Q", reports.get("latest_10q"))
+        ]
+        if report and report.strip()
+    ]
 
+    if not filings:
+        return []
+
+    try:
+        pipeline = IngestionPipeline(
+            transformations=[
+                Settings.node_parser,
+                OpenAIEmbedding(model=EMBEDDING_MODEL)
+            ]
+        )
+
+        embeddings = []
+        for filing_type, report in filings:
             nodes = pipeline.run(documents=[
                 Document(
                     text=report,
-                    metadata={"ticker": stock.ticker, "filing_type": filing_type}
+                    metadata={"ticker": ticker, "filing_type": filing_type}
                 )
             ])
 
             embeddings.extend(
                 FilingEmbeddingModel(
-                    stock_id=stock.id,
                     filing_type=filing_type,
                     chunk_index=i,
                     content=node.text,
@@ -56,12 +71,15 @@ def _rag_impl(query: str) -> dict:
                 for i, node in enumerate(nodes)
             )
 
-    # Replace all stored chunks together, after embedding generation succeeds
-    with SessionFactory() as db:
-        db.execute(delete(FilingEmbeddingModel))
-        db.add_all(embeddings)
-        db.commit()
+    except Exception as e:
+        raise EmbeddingCreationError(
+            f"Failed to create embeddings for {ticker}."
+        ) from e
 
+    return embeddings
+
+
+def _rag_impl(query: str) -> dict:
     with SessionFactory() as db:
         rows = db.execute(
             select(FilingEmbeddingModel, StockModel.ticker)
@@ -81,7 +99,9 @@ def _rag_impl(query: str) -> dict:
     if not nodes:
         return {"result": "No filings available.", "sources": []}
 
-    index = VectorStoreIndex(nodes, embed_model=embed_model)
+    index = VectorStoreIndex(
+        nodes, embed_model=OpenAIEmbedding(model=EMBEDDING_MODEL)
+    )
 
     query_engine = index.as_query_engine(
         llm=OpenAI(model="gpt-5.6-luna")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.core.search import rag as rag_impl
+from backend.core.semantic_search import rag as rag_impl
 
 
 search_router = APIRouter()

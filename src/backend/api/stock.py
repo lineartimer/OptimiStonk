@@ -3,6 +3,7 @@ import structlog
 
 from backend.api.helpers.streamer import stream, stream_result
 from backend.core.financials import CompanyLossesError, NotEnoughDataError, collect_stock_data
+from backend.core.semantic_search import EmbeddingCreationError
 from backend.core.stock import StockError
 from backend.core.tools.edgar import (
     EdgarParseError,
@@ -50,8 +51,6 @@ async def get_stock_impl(ticker: str | None = None):
         stock = await collect_stock_data(ticker)
 
     except Exception as e:
-        save_failed(ticker, str(e))
-
         if (isinstance(e, YahooFinanceTickerNotFoundError) or
             isinstance(e, EdgarTickerNotFoundError)):
             status_code = 404
@@ -65,11 +64,18 @@ async def get_stock_impl(ticker: str | None = None):
             status_code = 422
             detail = str(e)
 
+        elif (isinstance(e, EmbeddingCreationError)):
+            status_code = 503
+            detail = str(e)
+
         else:
             status_code = 500
             detail = "Failed to load stock data."
 
             _logger.error(detail, error=str(e))
+
+        if status_code != 503:
+            save_failed(ticker, str(e))
 
         raise HTTPException(
             status_code=status_code,

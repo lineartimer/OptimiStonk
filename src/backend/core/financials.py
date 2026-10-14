@@ -3,6 +3,7 @@ from datetime import date
 from backend.api.helpers.streamer import stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
+from backend.core.semantic_search import create_embeddings
 from backend.core.stock import Stock
 from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
@@ -119,7 +120,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
         stream_message(".", new_line=False)
 
-    stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
+    stream_message(f"Finding out how big {name}'s backlog is.", MessageType.info)
 
     backlog_finder = BacklogFinder()
     stock.backlog = await backlog_finder.run(name, prompt_backlog)
@@ -139,7 +140,10 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     summarizer = Summarizer()
     stock.summary = await summarizer.run(name, prompt_summarizer)
 
-    save_stock(stock, reports)
+    stream_message("Creating embeddings.", MessageType.info)
+    embeddings = await create_embeddings(ticker, reports)
+
+    save_stock(stock, reports, embeddings)
     stream_message("Saved stock to database.", MessageType.info)
 
     return stock
