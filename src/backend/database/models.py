@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import Float, ForeignKey, JSON, Numeric, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, ForeignKey, JSON, Numeric, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -63,6 +63,27 @@ class StockModel(BaseModel):
     historical_prices: Mapped[list[HistoricalPriceModel]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
+
+
+class FilingEmbeddingModel(BaseModel):
+    __tablename__ = "filing_embeddings"
+    __table_args__ = (
+        UniqueConstraint("stock_id", "filing_type", "chunk_index"),
+        CheckConstraint(
+            "filing_type IN ('10-K', '10-Q')",
+            name="ck_filing_embeddings_filing_type"
+        )
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+    
+    filing_type: Mapped[str] = mapped_column(Text)
+    chunk_index: Mapped[int]
+    content: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float]] = mapped_column(JSON)
 
 
 class FinancialDataModel(BaseModel):
