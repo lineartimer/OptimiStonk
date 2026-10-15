@@ -115,7 +115,9 @@ def _rag_impl(query: str) -> dict:
     }
 
     for source in response.source_nodes:
+        metadata = source.node.metadata
         result["sources"].append({
+            "title": f"{metadata['ticker']} — latest {metadata['filing_type']}",
             "score": source.score,
             "source": source.node.get_content()
         })

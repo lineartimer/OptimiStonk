@@ -1,6 +1,8 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import StockHistoryChart from "./stock-history-chart.js";
 import TickerSelect from "./ticker-select.js";
 import { log } from "./logger.js";
@@ -13,7 +15,8 @@ const stockColumns = [
 
 const tabs = [
   { id: "discover", label: "Add stock(s)" },
-  { id: "stock-details", label: "Stock details" }
+  { id: "stock-details", label: "Stock details" },
+  { id: "search", label: "Search" }
 ];
 
 const ratioFields = [
@@ -179,6 +182,54 @@ function CompanySummary({ text }) {
   );
 }
 
+function ReferencePreview({ title, text }) {
+  const [expanded, setExpanded] = useState(false);
+  const [canExpand, setCanExpand] = useState(false);
+  const previewRef = useRef(null);
+  const previewId = useId();
+
+  useEffect(() => {
+    if (expanded) return;
+
+    const preview = previewRef.current;
+    const updateOverflow = () => {
+      setCanExpand(preview.scrollHeight > preview.clientHeight);
+    };
+    const observer = new ResizeObserver(updateOverflow);
+
+    updateOverflow();
+    observer.observe(preview);
+    return () => observer.disconnect();
+  }, [text, expanded]);
+
+  return (
+    <>
+      <h3>
+        {title}{" "}
+        {canExpand && (
+          <button
+            type="button"
+            className={styles.referenceToggle}
+            aria-label={`${expanded ? "Collapse" : "Expand"} ${title}`}
+            aria-expanded={expanded}
+            aria-controls={previewId}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            {expanded ? "−" : "+"}
+          </button>
+        )}
+      </h3>
+      <div
+        id={previewId}
+        ref={previewRef}
+        className={`${styles.markdown} ${styles.referencePreview} ${expanded ? "" : styles.referencePreviewCollapsed}`}
+      >
+        <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
+      </div>
+    </>
+  );
+}
+
 export default function Home() {
   const [companies, setCompanies] = useState([]);
   const [companiesLoading, setCompaniesLoading] = useState(true);
@@ -195,6 +246,10 @@ export default function Home() {
   const [tickerToAdd, setTickerToAdd] = useState("");
   const [sort, setSort] = useState({ key: "rank", direction: "descending" });
   const [tab, setTab] = useState("stock-details");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResult, setSearchResult] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const [loading, setLoading] = useState(null);
   const [stopping, setStopping] = useState(false);
   const collectionRunRef = useRef(null);
@@ -377,6 +432,24 @@ export default function Home() {
       setDeleteError({ ticker, message: `Failed to delete ${ticker}: ${error.message}` });
     } finally {
       setDeletingTicker(null);
+    }
+  }
+
+  async function search(event) {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query || searchLoading) return;
+
+    setSearchLoading(true);
+    setSearchError("");
+    setSearchResult(null);
+
+    try {
+      setSearchResult(await request(`/api/rag?query=${encodeURIComponent(query)}`));
+    } catch (error) {
+      setSearchError(error.message);
+    } finally {
+      setSearchLoading(false);
     }
   }
 
@@ -571,6 +644,40 @@ export default function Home() {
             </>
           ) : (
             <p>{companiesLoading ? "Loading company details…" : ""}</p>
+          )}
+        </div>
+        <div role="tabpanel" id="panel-search" aria-labelledby="tab-search" hidden={tab !== "search"}>
+          <form className={styles.searchControls} onSubmit={search}>
+            <input
+              type="text"
+              aria-label="Search query"
+              placeholder="Ask a question about company filings"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              disabled={searchLoading}
+            />
+            <button type="submit" disabled={searchLoading || !searchQuery.trim()} aria-busy={searchLoading}>
+              {searchLoading ? "Searching…" : "Search"}
+            </button>
+          </form>
+          {searchLoading && <p role="status">Searching filings…</p>}
+          {searchError && <p className={styles.error} role="alert">{searchError}</p>}
+          {searchResult && (
+            <div aria-live="polite">
+              <div className={styles.markdown}>
+                <Markdown remarkPlugins={[remarkGfm]}>{searchResult.result}</Markdown>
+              </div>
+              <h2>References</h2>
+              {searchResult.sources.length > 0 ? (
+                <ol>
+                  {searchResult.sources.map(({ title, source }, index) => (
+                    <li key={index}>
+                      <ReferencePreview title={title} text={source} />
+                    </li>
+                  ))}
+                </ol>
+              ) : <p>No references available.</p>}
+            </div>
           )}
         </div>
       </section>

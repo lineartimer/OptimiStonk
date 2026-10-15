@@ -121,6 +121,7 @@
 }
 
 .page button:focus-visible,
+.searchControls input:focus-visible,
 .page a:focus-visible,
 .discoveryMessages:focus-visible {
   outline: 2px solid var(--color-focus);
@@ -193,7 +194,8 @@
 }
 
 .discoveryControls,
-.addStockControls {
+.addStockControls,
+.searchControls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -207,6 +209,7 @@
 
 .discoveryControls > button,
 .addStockControls > button,
+.searchControls > button,
 .cancelButton,
 .deleteButton {
   flex-shrink: 0;
@@ -217,20 +220,23 @@
 }
 
 .discoveryControls > button,
-.addStockControls > button {
+.addStockControls > button,
+.searchControls > button {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-surface);
 }
 
 .discoveryControls > button:hover:not(:disabled),
-.addStockControls > button:hover:not(:disabled) {
+.addStockControls > button:hover:not(:disabled),
+.searchControls > button:hover:not(:disabled) {
   border-color: var(--color-primary-hover);
   background: var(--color-primary-hover);
 }
 
 .discoveryControls > button:disabled,
 .addStockControls > button:disabled,
+.searchControls > button:disabled,
 .deleteButton:disabled {
   opacity: 0.5;
 }
@@ -239,6 +245,45 @@
   min-width: 0;
   max-width: 100%;
   margin-top: 12px;
+}
+
+.searchControls input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.markdown {
+  line-height: 1.5;
+  overflow-x: auto;
+}
+
+.markdown table {
+  border-collapse: collapse;
+}
+
+.markdown th,
+.markdown td {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+}
+
+.referencePreview > :first-child {
+  margin-top: 0;
+}
+
+.referencePreview > :last-child {
+  margin-bottom: 0;
+}
+
+.referencePreviewCollapsed {
+  max-height: 4.5em;
+  overflow: hidden;
 }
 
 .discoveryMessages {
@@ -359,11 +404,15 @@
   overflow: hidden;
 }
 
-.summaryToggle {
+.summaryToggle,
+.referenceToggle {
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--color-primary);
+}
+
+.summaryToggle {
   text-decoration: underline;
 }
 
