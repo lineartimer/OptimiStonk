@@ -104,7 +104,7 @@ def _rag_impl(query: str) -> dict:
     )
 
     query_engine = index.as_query_engine(
-        llm=OpenAI(model="gpt-5.6-luna")
+        llm=OpenAI(model="gpt-6-luna")
     )
 
     response = query_engine.query(query)

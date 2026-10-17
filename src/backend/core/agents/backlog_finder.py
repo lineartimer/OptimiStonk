@@ -24,7 +24,7 @@ class BacklogResult(BaseModel):
 class BacklogFinder:
     def __init__(self) -> None:
         model = ChatOpenAI(
-            model="gpt-5.6-luna",
+            model="gpt-6-luna",
             use_responses_api=True,
             reasoning_effort="medium"
         )
