@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import { formatMillions, formatRatio } from "../../lib/format.js";
+import { formatMillions, formatPrice, formatRatio } from "../../lib/format.js";
 import CompanySummary from "./company-summary.js";
 import StockHistoryChart from "./stock-history-chart.js";
 import controls from "../shared/controls.module.css";
@@ -48,7 +48,10 @@ export default function StockDetailsTab({
             <p className={controls.error} role="alert">{deleteError.message}</p>
           )}
           <p>
-            {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
+            <span className={styles.stockIdentity}>
+              {company.ticker}{company.stock_exchange ? `:${company.stock_exchange}` : ""}
+            </span>{" "}
+            <strong title="Latest collected price">{formatPrice(company.last_price)}</strong>
           </p>
           <CompanySummary
             key={company.ticker}

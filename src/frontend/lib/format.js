@@ -2,6 +2,13 @@ const metricNumber = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2
 });
 
+const priceNumber = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
 const ratioNumber = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
@@ -37,4 +44,8 @@ export function formatRank(value) {
 
 export function formatMillions(value) {
   return Number.isFinite(value) ? `$${metricNumber.format(value)} million` : "—";
+}
+
+export function formatPrice(value) {
+  return Number.isFinite(value) ? priceNumber.format(value) : "—";
 }

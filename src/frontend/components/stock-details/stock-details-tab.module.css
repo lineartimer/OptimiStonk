@@ -9,6 +9,10 @@
   min-width: 0;
 }
 
+.stockIdentity {
+  color: var(--color-muted);
+}
+
 .stockOverview {
   display: grid;
   grid-template-columns: 50% minmax(0, 1fr);
