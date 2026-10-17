@@ -132,7 +132,8 @@ export default function Dashboard() {
     setStopping(false);
 
     try {
-      const discoverySound = ticker ? null : new Audio("/sounds/discovery.mp3");
+      const discoverySound = ticker ? null : new Audio("/sounds/success.mp3");
+      const failureSound = ticker ? null : new Audio("/sounds/failure.mp3");
 
       while (!run.stopRequested) {
         try {
@@ -149,7 +150,14 @@ export default function Dashboard() {
           await loadCompanies();
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
-          if (ticker || !error.stockFailure) break;
+          if (ticker || !error.stockFailure) {
+            if (failureSound && !run.stopRequested && !error.marketExhausted) {
+              failureSound.play().catch(() => {
+                // Sound playback failures should not interrupt cleanup.
+              });
+            }
+            break;
+          }
         } finally {
           await loadMarket();
         }

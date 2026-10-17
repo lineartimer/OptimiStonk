@@ -31,10 +31,11 @@ export async function request(path, signal, onStatus, method = "GET") {
 
             // Stock failures have already been recorded and can be skipped.
             // A bare 404 means the market is exhausted, not a missing ticker.
+            error.marketExhausted = event.status_code === 404 && event.detail === "Not Found";
             error.stockFailure = event.status_code === 422
               || (event.status_code === 404 && event.detail !== "Not Found")
               || (event.status_code === 500 && (
-                event.detail === "Failed to load stock data."
+                event.detail === "Failed to load stock data"
                 || event.detail.startsWith("Failed to load stock data: ")
               ));
 
