@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 from enum import Enum
 from edgar import Company, XBRL
+from edgar.httpclient import HTTP_MGR
 from edgar.ttm.splits import detect_splits
 from edgar.xbrl.statements import Statement
 import json
@@ -14,6 +15,10 @@ from backend.core.utils.message_type import MessageType
 
 
 UNIT = 1_000_000
+
+
+# Rate limiting
+HTTP_MGR.update_rate_limiter(requests_per_second=5)
 
 
 with Path(__file__).with_name("edgar.json").open(encoding="utf-8") as f:

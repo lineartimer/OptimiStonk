@@ -26,6 +26,7 @@ export default function Dashboard() {
   const [deleteError, setDeleteError] = useState(null);
   const deleteButtonRef = useRef(null);
   const [marketTickers, setMarketTickers] = useState([]);
+  const [marketProgress, setMarketProgress] = useState(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [marketError, setMarketError] = useState("");
   const [sort, setSort] = useState({ key: "rank", direction: "descending" });
@@ -102,14 +103,16 @@ export default function Dashboard() {
     setMarketError("");
 
     try {
-      const tickers = await request("/api/market", signal);
+      const { tickers, seen, total } = await request("/api/market", signal);
       if (signal?.aborted) return;
 
       setMarketTickers(tickers);
+      setMarketProgress({ seen, total });
     } catch (error) {
       if (!signal?.aborted) {
         setMarketError(error.message);
         setMarketTickers([]);
+        setMarketProgress(null);
       }
     } finally {
       if (!signal?.aborted) setMarketLoading(false);
@@ -222,6 +225,7 @@ export default function Dashboard() {
         <DiscoveryTab
           active={tab === "discover"}
           marketTickers={marketTickers}
+          marketProgress={marketProgress}
           marketLoading={marketLoading}
           marketError={marketError}
           collectionMode={collectionMode}

@@ -8,6 +8,7 @@ import styles from "./discovery-tab.module.css";
 export default function DiscoveryTab({
   active,
   marketTickers,
+  marketProgress,
   marketLoading,
   marketError,
   collectionMode,
@@ -20,6 +21,9 @@ export default function DiscoveryTab({
   const [tickerToAdd, setTickerToAdd] = useState("");
   const messagesRef = useRef(null);
   const followMessagesRef = useRef(true);
+  const seenPercentage = marketProgress?.total
+    ? (100 * marketProgress.seen / marketProgress.total).toFixed(1)
+    : "0.0";
 
   useEffect(() => {
     setTickerToAdd((current) => marketTickers.includes(current) ? current : "");
@@ -110,6 +114,11 @@ export default function DiscoveryTab({
           </div>
         ))}
       </div>
+      {marketProgress && (
+        <p className={styles.marketProgress} role="status">
+          {marketProgress.seen}/{marketProgress.total} ({seenPercentage}%) of stocks seen
+        </p>
+      )}
     </div>
   );
 }

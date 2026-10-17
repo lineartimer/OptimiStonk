@@ -36,6 +36,11 @@
   font-weight: normal;
 }
 
+.marketProgress {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
 .info {
   color: var(--color-accent);
 }
