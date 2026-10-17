@@ -9,6 +9,7 @@ from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
+from backend.core.utils.logger import log_and_stream
 from backend.core.utils.message_type import MessageType
 from backend.database.database import save_stock
 
@@ -140,7 +141,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     summarizer = Summarizer()
     stock.summary = await summarizer.run(name, prompt_summarizer)
 
-    stream_message("Creating embeddings", MessageType.info)
+    log_and_stream("Creating embeddings", MessageType.info)
     embeddings = await create_embeddings(ticker, reports)
 
     save_stock(stock, reports, embeddings)

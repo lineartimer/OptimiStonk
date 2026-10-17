@@ -132,12 +132,20 @@ export default function Dashboard() {
     setStopping(false);
 
     try {
+      const discoverySound = ticker ? null : new Audio("/sounds/discovery.mp3");
+
       while (!run.stopRequested) {
         try {
           const path = ticker
             ? `/api/stock?ticker=${encodeURIComponent(ticker)}`
             : "/api/discover";
           await request(path, undefined, addDiscoveryMessage);
+          if (discoverySound) {
+            discoverySound.currentTime = 0;
+            discoverySound.play().catch(() => {
+              // Sound playback failures should not interrupt discovery.
+            });
+          }
           await loadCompanies();
         } catch (error) {
           addDiscoveryMessage(error.message, "error");
