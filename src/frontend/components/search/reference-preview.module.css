@@ -1,0 +1,19 @@
+.referencePreview > :first-child {
+  margin-top: 0;
+}
+
+.referencePreview > :last-child {
+  margin-bottom: 0;
+}
+
+.referencePreview.referencePreviewCollapsed {
+  max-height: 4.5em;
+  overflow: hidden;
+}
+
+.referenceToggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+}

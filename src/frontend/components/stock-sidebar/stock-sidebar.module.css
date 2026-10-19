@@ -1,0 +1,98 @@
+.sidebar {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  /* Fill the grid row without contributing to its height. */
+  height: 0;
+  min-height: 100%;
+  padding: 0 16px 0 16px;
+  border-right: 1px solid var(--color-border);
+}
+
+.sidebar > a {
+  flex-shrink: 0;
+}
+
+.logo {
+  margin: 6px auto 0 auto;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  background: url("/img/logo.png") center / contain no-repeat;
+}
+
+.companiesScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.companies {
+  border-collapse: separate;
+  border-spacing: 0;
+  white-space: nowrap;
+}
+
+.companies thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface);
+}
+
+.companies th,
+.companies td {
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+}
+
+.companies th,
+.companies td:first-child {
+  padding: 0;
+}
+
+.companies td + td {
+  padding: 8px 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.companies th + th,
+.companies td + td {
+  text-align: right;
+}
+
+.companies button {
+  width: 100%;
+  padding: 8px 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: inherit;
+  overflow-wrap: anywhere;
+}
+
+.companies th button {
+  font-weight: bold;
+  white-space: pre;
+}
+
+.companies th button:hover,
+.companies tbody tr:hover {
+  background: var(--color-hover);
+}
+
+.companies tbody tr {
+  cursor: pointer;
+}
+
+.sidebar .companies button:focus-visible {
+  outline-offset: -2px;
+}
+
+.companies .selectedCompany,
+.companies .selectedCompany:hover {
+  background: var(--color-highlight);
+  color: var(--color-text);
+  font-weight: bold;
+}

@@ -22,12 +22,12 @@ async def web_search(query: str) -> list:
         query: Search query.
     """
 
-    stream_message("Searching the web.", MessageType.info)
+    stream_message("Searching the web", MessageType.info)
 
     stored_search = load_web_search(query)
     if stored_search:
         _logger.info(
-            "Web search loaded from database.",
+            "Web search loaded from database",
             query=query,
             result_count=len(stored_search.search_result)
         )
@@ -55,7 +55,7 @@ async def web_search(query: str) -> list:
             search_results = (payload.get("web") or {}).get("results", [])
     
     except Exception as e:
-        log_and_stream("Web search failed.", MessageType.error, error=str(e))
+        log_and_stream("Web search failed", MessageType.error, error=str(e))
         return []
 
     cleaned_result = []
@@ -83,7 +83,7 @@ async def web_search(query: str) -> list:
     save_web_search(query, cleaned_result)
 
     _logger.info(
-        "Web search completed and saved.",
+        "Web search completed and saved",
         query=query,
         result_count=len(cleaned_result)
     )

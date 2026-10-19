@@ -21,21 +21,22 @@ async def discover_impl():
 
     if not ticker:
         log_and_stream(
-            "All the market has been explored. Nothing left to do.",
+            "All the market has been explored. Nothing left to do",
             MessageType.warning
         )
         raise HTTPException(status_code=404)
     
     log_and_stream(
-        f"Information collection started for {ticker}.",
+        f"Information collection started for {ticker}",
         MessageType.info
     )
+    
     return await get_stock_impl(ticker)
 
 
-async def _get_random_ticker():
-    with SessionFactory() as session:
-        ticker = session.scalar(
+async def _get_random_ticker() -> str:
+    with SessionFactory() as db:
+        ticker = db.scalar(
             select(MarketModel.ticker)
             .where(
                 ~select(StockModel.id)

@@ -1,0 +1,18 @@
+.historyChart {
+  min-width: 0;
+}
+
+.historyChart h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.chartScroll {
+  overflow-x: auto;
+}
+
+.chartCanvas {
+  min-width: 0;
+  height: 270px;
+}

@@ -13,7 +13,7 @@ import {
   YAxis
 } from "recharts";
 import { buildStockHistory, getSeriesDomain } from "./stock-history.js";
-import styles from "./page.module.css";
+import styles from "./stock-history-chart.module.css";
 
 const revenueColor = "var(--color-primary)";
 const priceColor = "var(--color-error)";

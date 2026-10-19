@@ -1,0 +1,52 @@
+.companyHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.companyHeading h1 {
+  min-width: 0;
+}
+
+.stockIdentity {
+  color: var(--color-muted);
+}
+
+.stockOverview {
+  display: grid;
+  grid-template-columns: 50% minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+  margin-top: 24px;
+  padding-top: 16px;
+}
+
+.financialData {
+  min-width: 0;
+}
+
+.financialData h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  text-align: center;
+}
+
+.companyMetrics {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: 16px;
+  margin: 0;
+  font-size: 16px;
+}
+
+.companyMetrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+  .stockOverview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
