@@ -3,11 +3,13 @@ from datetime import date
 from backend.api.helpers.streamer import stream_message
 from backend.core.agents.backlog_finder import BacklogFinder
 from backend.core.agents.summarizer import Summarizer
+from backend.core.semantic_search import create_embeddings
 from backend.core.stock import Stock
 from backend.core.tools.brave_search import web_search
 from backend.core.tools.edgar import get_financial_data
 from backend.core.tools.web import download_web_page
 from backend.core.tools.yahoo_finance import get_price_history
+from backend.core.utils.logger import log_and_stream
 from backend.core.utils.message_type import MessageType
 from backend.database.database import save_stock
 
@@ -65,7 +67,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     min_quarters = 4 * years - 2 # Subtracting 2 to handle Yahoo Finance vs. Edgar misalignment
     if (len(financials["revenue"]) < min_quarters or
         len(price_history) < min_quarters):
-        raise NotEnoughDataError(f"Less than {years} years of data found.")
+        raise NotEnoughDataError(f"Less than {years} years of data found")
 
     financial_data = {
         "name": name,
@@ -93,7 +95,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     stock = Stock(**financial_data)
 
     if stock.price_to_earnings_ratio() < 0:
-        raise CompanyLossesError("Company generates losses.")
+        raise CompanyLossesError("Company generates losses")
 
     # Find out how big the backlog is
     prompt_backlog = {
@@ -105,7 +107,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     cnt = 1
     search_results = await web_search(SEARCH_QUERY.format(company_name=name))
 
-    stream_message("Downloading web pages.", MessageType.info)
+    stream_message("Downloading web pages", MessageType.info)
     for search_result in search_results:
         if cnt > 5:
             break
@@ -119,7 +121,7 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
 
         stream_message(".", new_line=False)
 
-    stream_message(f"Finding out how big is {name}'s backlog.", MessageType.info)
+    stream_message(f"Finding out how big {name}'s backlog is", MessageType.info)
 
     backlog_finder = BacklogFinder()
     stock.backlog = await backlog_finder.run(name, prompt_backlog)
@@ -127,19 +129,22 @@ async def collect_stock_data(ticker: str, years: int = 5) -> Stock:
     # Create a summary of the company
     prompt_summarizer = {
         "company": name,
-        "latest_10k": reports["latest_10k"]["document"],
-        "latest_10q": reports["latest_10q"]["document"]
+        "latest_10k": reports["latest_10k"],
+        "latest_10q": reports["latest_10q"]
     }
 
     stream_message(
-        "Creating a summary based on the latest SEC filings.",
+        "Creating a summary based on the latest SEC filings",
         MessageType.info
     )
 
     summarizer = Summarizer()
     stock.summary = await summarizer.run(name, prompt_summarizer)
 
-    save_stock(stock, reports)
-    stream_message("Saved stock to database.", MessageType.info)
+    log_and_stream("Creating embeddings", MessageType.info)
+    embeddings = await create_embeddings(ticker, reports)
+
+    save_stock(stock, reports, embeddings)
+    stream_message("Saved stock to database", MessageType.info)
 
     return stock

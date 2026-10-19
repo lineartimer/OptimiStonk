@@ -61,7 +61,7 @@ async def download_web_page(url: str) -> str:
 
     stored_page = load_web_page(url)
     if stored_page:
-        _logger.info("Web page loaded from database.", url=url)
+        _logger.info("Web page loaded from database", url=url)
         return stored_page.content
 
     try:
@@ -73,7 +73,7 @@ async def download_web_page(url: str) -> str:
                 response = await page.goto(url, wait_until="domcontentloaded")
                 if response is None or not response.ok:
                     _logger.error(
-                        "Page load failed.",
+                        "Page load failed",
                         url=url,
                         http_status=response.status if response else None
                     )
@@ -89,7 +89,7 @@ async def download_web_page(url: str) -> str:
 
                 title = (await page.title()).lower().strip(" .!?")
                 if title in _BLOCKED_TITLES:
-                    _logger.error("Browser verification needed.", url=url)
+                    _logger.error("Browser verification needed", url=url)
                     return ""
 
                 content = markdownify(
@@ -101,16 +101,16 @@ async def download_web_page(url: str) -> str:
                 await page.close()
 
         if not content:
-            _logger.error("No text on page.", url=url)
+            _logger.error("No text on page", url=url)
             return ""
 
         save_web_page(url, content)
 
-        _logger.info("Web page downloaded and saved.", url=url)
+        _logger.info("Web page downloaded and saved", url=url)
         return content
 
     except Exception as e:
-        _logger.error("Page load failed.", error=str(e), url=url)
+        _logger.error("Page load failed", error=str(e), url=url)
 
     return ""
 
@@ -134,12 +134,12 @@ async def download_file(url: str) -> str:
     finally:
         await response.dispose()
     
-    _logger.info("File downloaded.", url=url)
+    _logger.info("File downloaded", url=url)
     return content
 
 
 def _get_context() -> BrowserContext:
     if _context is None:
-        raise RuntimeError("No active web_session.")
+        raise RuntimeError("No active web_session")
     
     return _context

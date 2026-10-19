@@ -1,0 +1,40 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-bottom: 24px;
+}
+
+.tabs::before,
+.tabs::after {
+  content: "";
+  flex: 0 0 16px;
+  align-self: flex-end;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs::after {
+  flex-basis: 48px;
+}
+
+.tabs button {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+}
+
+.tabs button + button {
+  margin-left: -1px;
+}
+
+.tabs button[aria-selected="true"] {
+  border-bottom: 0;
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.tabs button[aria-selected="false"] {
+  background: var(--color-highlight);
+  font-weight: normal;
+}

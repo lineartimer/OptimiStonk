@@ -21,9 +21,9 @@ class SummaryResult(BaseModel):
 
 
 class Summarizer:
-    def __init__(self):
+    def __init__(self) -> None:
         model = ChatOpenAI(
-            model="gpt-5.6-luna",
+            model="gpt-6-luna",
             use_responses_api=True,
             reasoning_effort="medium"
         )
@@ -37,7 +37,7 @@ class Summarizer:
     async def run(self, company_name: str, prompt: dict) -> int:
         prompt = json.dumps(prompt, ensure_ascii=False)
         log_and_stream(
-            "Running summarizer agent.",
+            "Running summarizer agent",
             MessageType.info,
             prompt_size=len(prompt))
 
@@ -51,7 +51,7 @@ class Summarizer:
         summary = result["structured_response"].summary
 
         log_and_stream(
-            f"Summary of {company_name}: {summary[:20]}...",
+            f"Summary of {company_name}: {summary[:50]}...",
             MessageType.info
         )
 

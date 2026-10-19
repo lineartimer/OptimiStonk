@@ -7,6 +7,7 @@ from backend.core.stock import Stock
 from backend.database.models import (
     BaseModel,
     FailedModel,
+    FilingEmbeddingModel,
     FinancialDataModel,
     HistoricalPriceModel,
     MarketModel,
@@ -29,8 +30,10 @@ if engine.dialect.name == "sqlite":
     @event.listens_for(engine, "connect")
     def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
+
         try:
             cursor.execute("PRAGMA foreign_keys = ON")
+            
         finally:
             cursor.close()
 
@@ -42,8 +45,8 @@ async def initialize_database() -> None:
     BaseModel.metadata.create_all(bind=engine)
 
     # Download stock list
-    with SessionFactory() as session:
-        market_is_populated = session.scalar(
+    with SessionFactory() as db:
+        market_is_populated = db.scalar(
             select(MarketModel.ticker).limit(1)
         ) is not None
 
@@ -55,60 +58,60 @@ async def initialize_database() -> None:
     for exchange in (Exchange.nasdaq, Exchange.nyse):
         companies = await download_stock_list(exchange)
 
-        with SessionFactory() as session:
-            session.add_all(
+        with SessionFactory() as db:
+            db.add_all(
                 MarketModel(ticker=ticker, **company)
                 for ticker, company in companies.items()
             )
-            session.commit()
+            db.commit()
 
 
 def load_web_page(url: str) -> WebPageModel | None:
-    with SessionFactory() as session:
-        return session.scalar(select(WebPageModel).where(WebPageModel.url == url))
+    with SessionFactory() as db:
+        return db.scalar(select(WebPageModel).where(WebPageModel.url == url))
 
 
 def save_web_page(url: str, content: str) -> WebPageModel:
-    with SessionFactory() as session:
+    with SessionFactory() as db:
         web_page = WebPageModel(url=url, content=content)
 
-        session.add(web_page)
-        session.commit()
+        db.add(web_page)
+        db.commit()
 
 
 def load_web_search(query: str) -> WebSearchModel | None:
-    with SessionFactory() as session:
-        return session.scalar(
+    with SessionFactory() as db:
+        return db.scalar(
             select(WebSearchModel).where(WebSearchModel.query == query)
         )
 
 
 def save_web_search(query: str, search_result: list) -> WebSearchModel:
-    with SessionFactory() as session:
+    with SessionFactory() as db:
         brave_search = WebSearchModel(query=query, search_result=search_result)
 
-        session.add(brave_search)
-        session.commit()
+        db.add(brave_search)
+        db.commit()
 
         return brave_search
 
 
 def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
-    with SessionFactory() as session:
+    with SessionFactory() as db:
         query = select(StockModel).order_by(StockModel.name)
         if ticker:
             query = query.where(StockModel.ticker == ticker.upper())
 
         companies = []
-        for company in session.scalars(query).all():
-            financial_rows = list(session.scalars(
+        for company in db.scalars(query).all():
+            financial_rows = list(db.scalars(
                 select(FinancialDataModel)
                 .where(FinancialDataModel.stock_id == company.id)
                 .order_by(FinancialDataModel.quarter)
             ))
 
             prices = {
-                row.quarter: row.price for row in session.scalars(
+                row.quarter: row.price for row in db.scalars(
                     select(HistoricalPriceModel)
                     .where(HistoricalPriceModel.stock_id == company.id)
                 )
@@ -156,24 +159,29 @@ def load_stock(ticker: str | None = None) -> Stock | list[Stock] | None:
 
 
 def delete_stock(ticker: str) -> bool:
-    with SessionFactory() as session:
-        stock = session.scalar(
+    with SessionFactory() as db:
+        stock = db.scalar(
             select(StockModel).where(StockModel.ticker == ticker.strip().upper())
         )
 
         if stock is None:
             return False
 
-        session.delete(stock)
-        session.commit()
+        db.delete(stock)
+        db.commit()
 
         return True
 
 
-def save_stock(company, reports: dict) -> None:
-    with SessionFactory() as session:
+def save_stock(
+    company,
+    reports: dict[str, str | None],
+    embeddings: list[FilingEmbeddingModel]
+) -> None:
+    
+    with SessionFactory() as db:
         ticker = company.ticker.strip().upper()
-        company.stock_exchange = session.scalar(
+        company.stock_exchange = db.scalar(
             select(MarketModel.stock_exchange).where(MarketModel.ticker == ticker)
         ) or company.stock_exchange
 
@@ -192,11 +200,11 @@ def save_stock(company, reports: dict) -> None:
             quarterly_report=reports["latest_10q"]
         )
         
-        session.add(stock)
-        session.flush()
+        db.add(stock)
+        db.flush()
 
         for quarter, data in company._historical_data.items():
-            session.add(FinancialDataModel(
+            db.add(FinancialDataModel(
                 stock_id=stock.id,
                 quarter=quarter,
                 revenue=data["revenue"],
@@ -215,21 +223,25 @@ def save_stock(company, reports: dict) -> None:
                 share_count=data["share_count"]
             ))
 
-            session.add(HistoricalPriceModel(
+            db.add(HistoricalPriceModel(
                 stock_id=stock.id, quarter=quarter, price=data["price"]
             ))
 
-        session.commit()
+        for embedding in embeddings:
+            embedding.stock_id = stock.id
+        db.add_all(embeddings)
+
+        db.commit()
 
 
 def save_failed(ticker: str, reason: str) -> None:
     ticker = ticker.strip().upper()
 
-    with SessionFactory() as session:
-        failed = session.get(FailedModel, ticker)
+    with SessionFactory() as db:
+        failed = db.get(FailedModel, ticker)
         if failed is None:
-            session.add(FailedModel(ticker=ticker, reason=reason))
+            db.add(FailedModel(ticker=ticker, reason=reason))
         else:
             failed.reason = reason
 
-        session.commit()
+        db.commit()

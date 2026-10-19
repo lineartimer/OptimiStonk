@@ -3,6 +3,7 @@ fastapi
 httpx
 langchain
 langchain-openai
+llama-index
 markdownify
 playwright
 sqlalchemy

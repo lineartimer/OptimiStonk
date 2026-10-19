@@ -18,6 +18,10 @@ module.exports = {
       {
         source: "/api/stock",
         destination: `${backendUrl}/api/stock`
+      },
+      {
+        source: "/api/rag",
+        destination: `${backendUrl}/api/rag`
       }
     ];
   }

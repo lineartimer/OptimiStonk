@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import Float, ForeignKey, JSON, Text, UniqueConstraint
+from sqlalchemy import CheckConstraint, Float, ForeignKey, JSON, Numeric, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -47,14 +47,14 @@ class StockModel(BaseModel):
     ticker: Mapped[str] = mapped_column(Text, unique=True, index=True)
     stock_exchange: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_price: Mapped[float] = mapped_column(Float)
-    rank: Mapped[float | None] = mapped_column(Float, nullable=True)
+    rank: Mapped[float | None] = mapped_column(Numeric(10, 2, asdecimal=False), nullable=True)
     backlog: Mapped[int | None] = mapped_column(nullable=True)
     price_to_revenue: Mapped[float | None] = mapped_column(Float, nullable=True)
     price_to_backlog: Mapped[float | None] = mapped_column(Float, nullable=True)
     revenue_growth: Mapped[float | None] = mapped_column(Float, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    annual_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    quarterly_report: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    annual_report: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quarterly_report: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     financial_data: Mapped[list[FinancialDataModel]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
@@ -63,6 +63,27 @@ class StockModel(BaseModel):
     historical_prices: Mapped[list[HistoricalPriceModel]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
+
+
+class FilingEmbeddingModel(BaseModel):
+    __tablename__ = "filing_embeddings"
+    __table_args__ = (
+        UniqueConstraint("stock_id", "filing_type", "chunk_index"),
+        CheckConstraint(
+            "filing_type IN ('10-K', '10-Q')",
+            name="ck_filing_embeddings_filing_type"
+        )
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    stock_id: Mapped[int] = mapped_column(
+        ForeignKey("stocks.id", ondelete="CASCADE"), index=True
+    )
+    
+    filing_type: Mapped[str] = mapped_column(Text)
+    chunk_index: Mapped[int]
+    content: Mapped[str] = mapped_column(Text)
+    embedding: Mapped[list[float]] = mapped_column(JSON)
 
 
 class FinancialDataModel(BaseModel):

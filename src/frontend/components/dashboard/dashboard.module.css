@@ -1,0 +1,52 @@
+.page {
+  /* Navy, blue, cyan, and green drawn from the robot-and-growth logo. */
+  --color-text: #09275e;
+  --color-primary: #0065df;
+  --color-primary-hover: #0052b8;
+  --color-accent: #007b66;
+  --color-focus: var(--color-primary);
+  --color-border: #6c89b0;
+  --color-divider: #d4e7f5;
+  --color-highlight: #daf5ff;
+  --color-hover: #eefaff;
+  --color-surface: #fff;
+  --color-muted: #576d8b;
+  --color-shadow: #09275e26;
+  --color-warning: #8a6100;
+  --color-error: #dc2626;
+  --color-error-hover: #fff5f5;
+
+  display: grid;
+  grid-template-columns: min-content minmax(0, 1fr);
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 16px;
+}
+
+.page button:focus-visible,
+.page input:focus-visible,
+.page a:focus-visible,
+.page [role="log"]:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.page button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.page button:disabled {
+  cursor: default;
+}
+
+.page button[aria-busy="true"] {
+  cursor: wait;
+}

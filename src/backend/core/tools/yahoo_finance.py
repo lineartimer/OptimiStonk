@@ -39,11 +39,11 @@ def _get_price_history(ticker: str, years: int):
         lp = stock.fast_info.last_price
 
     except KeyError:
-        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found")
 
     # Needed if mouse is hovered over last_price while debugging
     if not lp:
-        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found.")
+        raise YahooFinanceTickerNotFoundError(f"Ticker {ticker} not found")
 
     last_price = round(float(lp), 2)
 
@@ -55,7 +55,12 @@ def _get_price_history(ticker: str, years: int):
     )
 
     info = stock.get_info()
-    name = info["shortName"]
+    
+    name = info.get("shortName")
+    if not name:
+        raise YahooFinanceParseError(
+            f"No 'shortName' field returned by Yahoo Finance for {ticker}"
+        )
 
     prices_by_quarter = {}
     extra_price_point = {}
@@ -97,7 +102,7 @@ def _get_price_history(ticker: str, years: int):
 
     if len(prices_by_quarter) < 2:
         _logger.warning(
-            "Stopped processing Yahoo Finance data.",
+            "Stopped processing Yahoo Finance data",
             ticker=ticker,
             quarter=f"{year}/{quarter}"
         )
@@ -106,7 +111,7 @@ def _get_price_history(ticker: str, years: int):
             f"At least 2 quarters of financial data could not be found for {name}"
         )
     
-    log_and_stream("Downloaded price data from Yahoo Finance.", MessageType.info)
+    log_and_stream("Downloaded price data from Yahoo Finance", MessageType.info)
 
     # Return prices in normal order
     return (
