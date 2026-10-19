@@ -6,7 +6,7 @@ OptimiStonk is an agentic app for discovering investment opportunities.
 This is achieved by an automatic discovery process that
 - Collects financial data from various sources (e.g. Edgar and Yahoo Finance) for the several thousand companies listed on NASDAQ and the NYSE
 - Searches the web, reads web pages and extracts information from this data using AI agents
-- Stores the financial data in a relational database along with a vector-based representation of financial reports to allow semantic search
+- Stores the financial data in a relational database along with a vector-based representation of financial reports to allow for RAG and semantic search
 - Calculates a rank for each stock using common financial ratios that indicate financial strength and valuation
 - Allows users to look at the results through an interactive dashboard
 
