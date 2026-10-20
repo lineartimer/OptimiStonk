@@ -18,6 +18,8 @@ The project uses the following tech stack:
 - React/Next.js
 - Recharts
 
+![OptimiStonk screenshot](doc/img/OptimiStonk.png)
+
 # Running the app locally
 
 - Clone the repo on your computer
